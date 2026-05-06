@@ -145,7 +145,6 @@ const useVerificationState = (leadData) => {
   const [isLoading, setIsLoading] = useState({ mobile: false, email: false });
   const [errorMessage, setErrorMessage] = useState({ mobile: "", email: "" });
   const [successMessage, setSuccessMessage] = useState({ mobile: "", email: "" });
-  const [debugOtp, setDebugOtp] = useState({ mobile: "", email: "" });
   
   const handleVerify = async (type) => {
     console.log("Verify button clicked");
@@ -154,7 +153,6 @@ const useVerificationState = (leadData) => {
     // Clear previous messages
     setErrorMessage(prev => ({ ...prev, [type]: "" }));
     setSuccessMessage(prev => ({ ...prev, [type]: "" }));
-    setDebugOtp(prev => ({ ...prev, [type]: "" }));
 
     if (type === "mobile") {
       const mobileNumber = leadData?.mobile;
@@ -196,10 +194,6 @@ const useVerificationState = (leadData) => {
 
         setSuccessMessage(prev => ({ ...prev, mobile: "Verification Link has been sent successfully." }));
         setVerificationSent(prev => ({ ...prev, mobile: true }));
-
-        if (data.debugOtp) {
-          setDebugOtp(prev => ({ ...prev, mobile: data.debugOtp }));
-        }
       } catch (error) {
         console.error("Error while calling AWS Lambda API:", error);
         setErrorMessage(prev => ({ ...prev, mobile: "Unable to connect to SMS service. Please check API Gateway URL and CORS configuration." }));
@@ -221,7 +215,7 @@ const useVerificationState = (leadData) => {
     await handleVerify(type);
   };
   
-  return { verificationSent, isLoading, errorMessage, successMessage, debugOtp, handleVerify, handleResend };
+  return { verificationSent, isLoading, errorMessage, successMessage, handleVerify, handleResend };
 };
 const formatTime = () => new Date().toLocaleString("en-IN", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
 const formatFileSize = (b) => b < 1024 ? b+" B" : b < 1048576 ? (b/1024).toFixed(1)+" KB" : (b/1048576).toFixed(1)+" MB";
@@ -777,7 +771,7 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
   const journeyIdx = leadStatus==="Converted"?3:leadStatus==="In Progress"?2:1;
   const mobileVerified = leadData.mobileVerified==="Yes";
   const emailVerified  = leadData.emailVerified==="Yes";
-  const { verificationSent, isLoading, errorMessage, successMessage, debugOtp, handleVerify, handleResend } = useVerificationState(leadData);
+  const { verificationSent, isLoading, errorMessage, successMessage, handleVerify, handleResend } = useVerificationState(leadData);
   const openActionPanel = (type) => { setActiveTab("activity"); setShowPanel(type); };
 
   return (
@@ -962,9 +956,6 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
                     )}
                     {successMessage[item.key] && !errorMessage[item.key] && (
                       <div className="verify-success-msg">{successMessage[item.key]}</div>
-                    )}
-                    {debugOtp[item.key] && (
-                      <div className="verify-debug-otp">Debug OTP: <strong>{debugOtp[item.key]}</strong></div>
                     )}
                   </div>
                 ))}

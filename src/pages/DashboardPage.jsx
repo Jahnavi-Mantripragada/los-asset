@@ -47,7 +47,7 @@ const sourceOptions = [
 ];
 
 const emptyLeadForm = {
-  firstName: "", lastName: "", mobile: "", product: "", source: "",
+  firstName: "", lastName: "", mobile: "", email: "", product: "", source: "",
 };
 
 const channelData = [
@@ -126,7 +126,7 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
   const disqualifiedLeads = leads.filter((l) => l.status === "Disqualified").length;
   const conversionRate    = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
 
-  const handleOpenCreatePanel  = () => setIsCreatePanelOpen(true);
+  const handleOpenCreatePanel  = () => { setLeadForm(emptyLeadForm); setIsCreatePanelOpen(true); };
   const handleCloseCreatePanel = () => { setIsCreatePanelOpen(false); setLeadForm(emptyLeadForm); };
   const handleLeadFormChange   = (e) => {
     const { name, value } = e.target;
@@ -134,11 +134,16 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
   };
   const handleCreateLead = (e) => {
     e.preventDefault();
+    const maxId = leads.reduce((max, lead) => {
+      const num = parseInt(lead.id.replace("LD-", ""), 10);
+      return num > max ? num : max;
+    }, 10020);
     const newLead = {
-      id:          `LD-${10021 + leads.length}`,
+      id:          `LD-${maxId + 1}`,
       firstName:   leadForm.firstName,
       lastName:    leadForm.lastName,
       mobile:      leadForm.mobile,
+      email:       leadForm.email,
       product:     leadForm.product,
       source:      leadForm.source,
       status:      "New",
@@ -591,6 +596,12 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
                   <input id="mobile" name="mobile" type="tel"
                     placeholder="Enter 10-digit mobile number" value={leadForm.mobile}
                     onChange={handleLeadFormChange} maxLength="10" required />
+                </div>
+                <div className="field-group">
+                  <label htmlFor="email">Email Address</label>
+                  <input id="email" name="email" type="email"
+                    placeholder="Enter email address" value={leadForm.email}
+                    onChange={handleLeadFormChange} required />
                 </div>
               </div>
 

@@ -162,6 +162,7 @@ function App() {
   if (currentPage === "leadDetail" && selectedLead) {
     return (
       <LeadDetailPage
+        key={selectedLead.id}
         lead={selectedLead}
         onBack={handleBackToDashboard}
         onLogout={handleLogout}

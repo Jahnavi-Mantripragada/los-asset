@@ -115,6 +115,9 @@
 .hc-val{color:var(--ld-text);font-size:12px;font-weight:720;}
 .highlight-chip.amber{background:var(--ld-amber-bg);border-color:rgba(160,92,10,.15);}
 .highlight-chip.amber .hc-val{color:var(--ld-amber);}
+.highlight-chip.primary{background:var(--ld-blue-tint);border-color:var(--ld-blue);order:-1;}
+.highlight-chip.primary .hc-label{color:var(--ld-blue);}
+.highlight-chip.primary .hc-val{color:var(--ld-blue);font-weight:800;}
 
 /* TOPBAR ACTIONS */
 .record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;padding-top:30px;}

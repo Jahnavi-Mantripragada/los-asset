@@ -685,10 +685,7 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [leadStatus, setLeadStatus] = useState(initialData.leadStage);
-  const [leadData, setLeadData] = useState(() => {
-    try { const s = localStorage.getItem(`lead_json_${initialData.leadNumber}`); if(s) return {...initialData,...JSON.parse(s)}; } catch(e){}
-    return initialData;
-  });
+  const [leadData, setLeadData] = useState(initialData);
   const [activities, setActivities] = useState([{ id:1, type:"status", title:"Lead Created", desc:`Created via ${initialData.generationMode} · Source: ${initialData.leadOrigin}`, time:"Today, 9:30 AM" }]);
   const [editingField, setEditingField] = useState(null);
   const [sectionEditMode, setSectionEditMode] = useState(null);
@@ -816,7 +813,7 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
             <div className="record-title-row">
               <div className="record-avatar">{leadData.firstName?.charAt(0)}{leadData.lastName?.charAt(0)}</div>
               <div style={{flex:1,minWidth:0}}>
-                <span className="page-eyebrow">Lead Record</span>
+                <span className="page-eyebrow">{leadData.leadNumber}</span>
                 <div className="record-title-line">
                   <h1>{leadData.firstName} {leadData.lastName}</h1>
                   <span className={`status-pill ${statusClass}`}>{leadStatus}</span>
@@ -828,6 +825,7 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
               </div>
             </div>
             <div className="highlights-panel">
+              <div className="highlight-chip primary"><span className="hc-label">Lead #</span><strong className="hc-val">{leadData.leadNumber}</strong></div>
               <div className="highlight-chip"><span className="hc-label">Product</span><strong className="hc-val">{leadData.loanType}</strong></div>
               <div className="highlight-chip"><span className="hc-label">Loan Amt</span><strong className="hc-val">{leadData.requestedLoanAmount}</strong></div>
               <div className="highlight-chip"><span className="hc-label">Tenure</span><strong className="hc-val">{leadData.loanTenureYears} yrs</strong></div>

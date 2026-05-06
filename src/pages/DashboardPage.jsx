@@ -36,6 +36,113 @@ const emptyLeadForm = {
   source: "",
 };
 
+const channelData = [
+  { label: "Website", value: "34%", width: "74%", icon: "⌁" },
+  { label: "Mobile App", value: "26%", width: "58%", icon: "▣" },
+  { label: "Branch Walk-in", value: "18%", width: "42%", icon: "⌂" },
+  { label: "Referral", value: "12%", width: "31%", icon: "↗" },
+  { label: "Aggregator", value: "10%", width: "26%", icon: "◆" },
+];
+
+const funnelData = [
+  { label: "Lead Captured", value: 186, icon: "01" },
+  { label: "Application In Progress", value: 74, icon: "02" },
+  { label: "Document Collection", value: 39, icon: "03" },
+  { label: "Verification Review", value: 31, icon: "04" },
+  { label: "Credit Review", value: 22, icon: "05" },
+  { label: "APS Generated", value: 16, icon: "06" },
+];
+
+const verificationQueue = [
+  {
+    applicant: "Aarav Sharma",
+    lead: "LD-10017",
+    check: "PAN Verification",
+    status: "Pending",
+  },
+  {
+    applicant: "Neha Mehta",
+    lead: "LD-10012",
+    check: "Mobile OTP",
+    status: "Completed",
+  },
+  {
+    applicant: "Rohan Iyer",
+    lead: "LD-10008",
+    check: "Passport OCR",
+    status: "Review",
+  },
+];
+
+const creditQueue = [
+  {
+    application: "APP-24091",
+    customer: "Karan Malhotra",
+    stage: "Credit Review",
+    aging: "2 Days",
+  },
+  {
+    application: "APP-24084",
+    customer: "Priya Nair",
+    stage: "Sent Back",
+    aging: "4 Days",
+  },
+  {
+    application: "APP-24079",
+    customer: "Vivek Rao",
+    stage: "APS Pending",
+    aging: "1 Day",
+  },
+];
+
+const documentExceptions = [
+  {
+    lead: "LD-10015",
+    document: "Income Proof",
+    issue: "Document missing",
+    severity: "High",
+  },
+  {
+    lead: "LD-10011",
+    document: "PAN Card",
+    issue: "Name mismatch",
+    severity: "Medium",
+  },
+  {
+    lead: "LD-10006",
+    document: "Bank Statement",
+    issue: "Re-upload required",
+    severity: "Low",
+  },
+];
+
+const activityData = [
+  {
+    title: "PAN verification completed",
+    subtitle: "Applicant identity check completed for LD-10018.",
+    time: "12 min ago",
+    icon: "✓",
+  },
+  {
+    title: "Application sent back for rework",
+    subtitle: "Income proof missing for credit review.",
+    time: "38 min ago",
+    icon: "↩",
+  },
+  {
+    title: "New digital lead assigned",
+    subtitle: "Website lead routed to Sales User.",
+    time: "1 hr ago",
+    icon: "+",
+  },
+  {
+    title: "APS generated",
+    subtitle: "Loan file moved to APS generated stage.",
+    time: "2 hrs ago",
+    icon: "★",
+  },
+];
+
 function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
   const [selectedListView, setSelectedListView] = useState("All Leads");
   const [isCreatePanelOpen, setIsCreatePanelOpen] = useState(false);
@@ -56,6 +163,10 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
   const newLeads = leads.filter((lead) => lead.status === "New").length;
   const inProgressLeads = leads.filter((lead) => lead.status === "In Progress").length;
   const convertedLeads = leads.filter((lead) => lead.status === "Converted").length;
+  const disqualifiedLeads = leads.filter((lead) => lead.status === "Disqualified").length;
+
+  const conversionRate =
+    totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
 
   const handleOpenCreatePanel = () => {
     setIsCreatePanelOpen(true);
@@ -76,45 +187,70 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
   };
 
   const handleCreateLead = (event) => {
-  event.preventDefault();
+    event.preventDefault();
 
-  const newLead = {
-    id: `LD-${10021 + leads.length}`,
-    firstName: leadForm.firstName,
-    lastName: leadForm.lastName,
-    mobile: leadForm.mobile,
-    product: leadForm.product,
-    source: leadForm.source,
-    status: "New",
-    owner: "Sales User",
-    createdDate: "04 May 2026",
+    const newLead = {
+      id: `LD-${10021 + leads.length}`,
+      firstName: leadForm.firstName,
+      lastName: leadForm.lastName,
+      mobile: leadForm.mobile,
+      product: leadForm.product,
+      source: leadForm.source,
+      status: "New",
+      owner: "Sales User",
+      createdDate: "06 May 2026",
+    };
+
+    setSelectedListView("All Leads");
+    handleCloseCreatePanel();
+
+    onCreateLead(newLead);
   };
-
-  setSelectedListView("All Leads");
-  handleCloseCreatePanel();
-
-  onCreateLead(newLead);
-};
 
   return (
     <div className="dashboard-page">
       <aside className="app-sidebar">
         <div className="sidebar-brand">
           <div className="sidebar-logo">LOS</div>
+
           <div>
             <h2>LOS Portal</h2>
-            <p>Loan Origination</p>
+            <p>Loan Origination Workspace</p>
           </div>
         </div>
 
         <nav className="sidebar-nav">
-          <button className="nav-item active">Dashboard</button>
-          <button className="nav-item">Leads</button>
-          <button className="nav-item">Applications</button>
-          <button className="nav-item">Applicants</button>
-          <button className="nav-item">Documents</button>
-          <button className="nav-item">Approvals</button>
+          <button className="nav-item active">
+            <span>▦</span>
+            Dashboard
+          </button>
+          <button className="nav-item">
+            <span>◎</span>
+            Leads
+          </button>
+          <button className="nav-item">
+            <span>▣</span>
+            Loan Files
+          </button>
+          <button className="nav-item">
+            <span>◌</span>
+            Applicants
+          </button>
+          <button className="nav-item">
+            <span>□</span>
+            Documents
+          </button>
+          <button className="nav-item">
+            <span>◇</span>
+            Approvals
+          </button>
         </nav>
+
+        <div className="sidebar-insight-card">
+          <span>Today’s LOS Focus</span>
+          <strong>12 loan files need attention</strong>
+          <p>Inactive leads, document pending cases, and sent-back applications.</p>
+        </div>
 
         <div className="sidebar-footer">
           <p>Logged in as</p>
@@ -124,128 +260,448 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
-          <div>
-            <span className="page-eyebrow">Lead Management</span>
-            <h1>Dashboard</h1>
-            <p>Track leads, list views, and loan origination activity.</p>
+          <div className="dashboard-title-block">
+            <span className="page-eyebrow">LOS Command Center</span>
+            <h1>Morning Coffee View</h1>
+            <p>
+              A focused operational view of lead intake, loan file movement,
+              verification readiness, and credit review queues.
+            </p>
           </div>
 
           <div className="topbar-actions">
-            <button className="ghost-button" onClick={onLogout}>
-              Logout
+            <button
+              className="icon-only-button logout-action"
+              onClick={onLogout}
+              title="Logout"
+              aria-label="Logout"
+            >
+              <span>↪</span>
             </button>
 
-            <button className="primary-action-button" onClick={handleOpenCreatePanel}>
-              + Create New Lead
+            <button
+              className="create-lead-button"
+              onClick={handleOpenCreatePanel}
+            >
+              <span>＋</span>
+              Create Lead
             </button>
           </div>
         </header>
 
         <section className="kpi-grid">
-          <div className="kpi-card">
-            <div>
+          <div className="kpi-card primary-kpi">
+            <div className="kpi-content">
               <span>Total Leads</span>
               <strong>{totalLeads}</strong>
+              <p>Across active LOS lead sources</p>
             </div>
-            <div className="kpi-icon">TL</div>
+            <div className="kpi-icon">◎</div>
           </div>
 
           <div className="kpi-card">
-            <div>
+            <div className="kpi-content">
               <span>New Leads</span>
               <strong>{newLeads}</strong>
+              <p>Awaiting first action</p>
             </div>
-            <div className="kpi-icon blue">NW</div>
+            <div className="kpi-icon">+</div>
           </div>
 
           <div className="kpi-card">
-            <div>
+            <div className="kpi-content">
               <span>In Progress</span>
               <strong>{inProgressLeads}</strong>
+              <p>Application work started</p>
             </div>
-            <div className="kpi-icon orange">IP</div>
+            <div className="kpi-icon">▣</div>
           </div>
 
           <div className="kpi-card">
-            <div>
+            <div className="kpi-content">
               <span>Converted</span>
               <strong>{convertedLeads}</strong>
+              <p>Moved to loan application</p>
             </div>
-            <div className="kpi-icon green">CV</div>
+            <div className="kpi-icon">✓</div>
+          </div>
+
+          <div className="kpi-card">
+            <div className="kpi-content">
+              <span>Conversion</span>
+              <strong>{conversionRate}%</strong>
+              <p>Lead to application ratio</p>
+            </div>
+            <div className="kpi-icon">↗</div>
+          </div>
+
+          <div className="kpi-card">
+            <div className="kpi-content">
+              <span>Disqualified</span>
+              <strong>{disqualifiedLeads}</strong>
+              <p>Rejected or not eligible</p>
+            </div>
+            <div className="kpi-icon">!</div>
           </div>
         </section>
 
-        <section className="lead-panel">
-          <div className="lead-panel-header">
-            <div>
-              <h2>Lead List View</h2>
-              <p>Showing records based on the selected list view.</p>
+        <section className="dashboard-first-row">
+          <section className="lead-panel compact-lead-panel">
+            <div className="lead-panel-header">
+              <div>
+                <span className="section-eyebrow">Dynamic Records</span>
+                <h2>Lead List View</h2>
+                <p>Live LOS lead records based on selected view.</p>
+              </div>
+
+              <div className="table-actions">
+                <div className="list-view-control">
+                  <label htmlFor="listView">List View</label>
+                  <select
+                    id="listView"
+                    value={selectedListView}
+                    onChange={(event) => setSelectedListView(event.target.value)}
+                  >
+                    {listViews.map((listView) => (
+                      <option key={listView} value={listView}>
+                        {listView}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button className="small-action-button">
+                  <span>↓</span>
+                  Export
+                </button>
+              </div>
             </div>
 
-            <div className="list-view-control">
-              <label htmlFor="listView">List View</label>
-              <select
-                id="listView"
-                value={selectedListView}
-                onChange={(event) => setSelectedListView(event.target.value)}
-              >
-                {listViews.map((listView) => (
-                  <option key={listView} value={listView}>
-                    {listView}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+            <div className="table-wrapper compact-table-wrapper">
+              <table className="lead-table">
+                <thead>
+                  <tr>
+                    <th>Lead ID</th>
+                    <th>Applicant</th>
+                    <th>Product</th>
+                    <th>Stage</th>
+                    <th>Owner</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
 
-          <div className="table-wrapper">
-            <table className="lead-table">
+                <tbody>
+                  {filteredLeads.map((lead) => (
+                    <tr key={lead.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className="lead-link-button"
+                          onClick={() => onOpenLeadDetails(lead)}
+                        >
+                          {lead.id}
+                        </button>
+                      </td>
+
+                      <td>
+                        <div className="customer-cell">
+                          <span>
+                            {lead.firstName?.charAt(0)}
+                            {lead.lastName?.charAt(0)}
+                          </span>
+                          <div>
+                            <strong>
+                              {lead.firstName} {lead.lastName}
+                            </strong>
+                            <p>{lead.mobile}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td>{lead.product}</td>
+
+                      <td>
+                        <span
+                          className={`status-pill ${lead.status
+                            .toLowerCase()
+                            .replaceAll(" ", "-")}`}
+                        >
+                          {lead.status}
+                        </span>
+                      </td>
+
+                      <td>{lead.owner}</td>
+                      <td>{lead.createdDate}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="insight-panel source-panel">
+            <div className="panel-header">
+              <div>
+                <span className="section-eyebrow">Lead Intake</span>
+                <h2>Source Mix</h2>
+                <p>Static source contribution by channel.</p>
+              </div>
+            </div>
+
+            <div className="channel-list">
+              {channelData.map((channel) => (
+                <div className="channel-row" key={channel.label}>
+                  <div className="channel-label">
+                    <span>
+                      <i>{channel.icon}</i>
+                      {channel.label}
+                    </span>
+                    <strong>{channel.value}</strong>
+                  </div>
+
+                  <div className="channel-track">
+                    <div
+                      className="channel-fill"
+                      style={{ width: channel.width }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="insight-panel verification-panel">
+            <div className="panel-header">
+              <div>
+                <span className="section-eyebrow">Verification</span>
+                <h2>Readiness</h2>
+                <p>Static identity and document health.</p>
+              </div>
+            </div>
+
+            <div className="donut-card">
+              <div className="donut-chart">
+                <span>78%</span>
+              </div>
+
+              <div className="donut-legend">
+                <div>
+                  <i className="legend-dot completed"></i>
+                  Verified
+                  <strong>78%</strong>
+                </div>
+                <div>
+                  <i className="legend-dot pending"></i>
+                  Pending
+                  <strong>16%</strong>
+                </div>
+                <div>
+                  <i className="legend-dot failed"></i>
+                  Exception
+                  <strong>6%</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section className="dashboard-second-row">
+          <section className="insight-panel funnel-panel">
+            <div className="panel-header">
+              <div>
+                <span className="section-eyebrow">Loan File Movement</span>
+                <h2>Origination Funnel</h2>
+                <p>Movement from lead creation to APS generation.</p>
+              </div>
+              <span className="panel-pill">Current Week</span>
+            </div>
+
+            <div className="funnel-list">
+              {funnelData.map((item) => (
+                <div className="funnel-row" key={item.label}>
+                  <div>
+                    <span className="funnel-step">{item.icon}</span>
+                    <strong>{item.label}</strong>
+                  </div>
+
+                  <div className="funnel-bar-wrap">
+                    <div
+                      className="funnel-bar"
+                      style={{ width: `${Math.max(item.value / 2.2, 12)}%` }}
+                    ></div>
+                  </div>
+
+                  <span className="funnel-value">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="insight-panel">
+            <div className="panel-header">
+              <div>
+                <span className="section-eyebrow">SLA Control</span>
+                <h2>Watchlist</h2>
+                <p>Cases requiring operational attention.</p>
+              </div>
+            </div>
+
+            <div className="watchlist">
+              <div>
+                <span>Inactive Leads &gt; 5 Days</span>
+                <strong>09</strong>
+              </div>
+              <div>
+                <span>Document Pending Cases</span>
+                <strong>14</strong>
+              </div>
+              <div>
+                <span>Credit Review Aging</span>
+                <strong>06</strong>
+              </div>
+              <div>
+                <span>Sent Back for Rework</span>
+                <strong>11</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="insight-panel">
+            <div className="panel-header">
+              <div>
+                <span className="section-eyebrow">Activity Trail</span>
+                <h2>Recent Activity</h2>
+                <p>Latest lead and loan file movement.</p>
+              </div>
+            </div>
+
+            <div className="activity-list">
+              {activityData.map((activity) => (
+                <div className="activity-item" key={activity.title}>
+                  <div className="activity-icon">{activity.icon}</div>
+
+                  <div>
+                    <strong>{activity.title}</strong>
+                    <p>{activity.subtitle}</p>
+                    <span>{activity.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </section>
+
+        <section className="static-table-grid">
+          <div className="mini-table-panel">
+            <div className="mini-table-header">
+              <div>
+                <span className="mini-table-icon">✓</span>
+                <div>
+                  <h3>Verification Queue</h3>
+                  <p>Applicant checks pending with verification team</p>
+                </div>
+              </div>
+              <button>View All</button>
+            </div>
+
+            <table className="mini-table">
               <thead>
                 <tr>
-                  <th>Lead ID</th>
-                  <th>Customer Name</th>
-                  <th>Mobile</th>
-                  <th>Product</th>
-                  <th>Source</th>
+                  <th>Applicant</th>
+                  <th>Check</th>
                   <th>Status</th>
-                  <th>Owner</th>
-                  <th>Created Date</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredLeads.map((lead) => (
-                  <tr key={lead.id}>
+                {verificationQueue.map((row) => (
+                  <tr key={`${row.lead}-${row.check}`}>
                     <td>
-                      <button
-                        type="button"
-                        className="lead-link-button"
-                        onClick={() => onOpenLeadDetails(lead)}
-                      >
-                        {lead.id}
-                      </button>
+                      <strong>{row.applicant}</strong>
+                      <span>{row.lead}</span>
                     </td>
-
+                    <td>{row.check}</td>
                     <td>
-                      {lead.firstName} {lead.lastName}
-                    </td>
-
-                    <td>{lead.mobile}</td>
-                    <td>{lead.product}</td>
-                    <td>{lead.source}</td>
-
-                    <td>
-                      <span
-                        className={`status-pill ${lead.status
-                          .toLowerCase()
-                          .replaceAll(" ", "-")}`}
-                      >
-                        {lead.status}
+                      <span className={`mini-pill ${row.status.toLowerCase()}`}>
+                        {row.status}
                       </span>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-                    <td>{lead.owner}</td>
-                    <td>{lead.createdDate}</td>
+          <div className="mini-table-panel">
+            <div className="mini-table-header">
+              <div>
+                <span className="mini-table-icon">◇</span>
+                <div>
+                  <h3>Credit Review Queue</h3>
+                  <p>Loan files awaiting credit action</p>
+                </div>
+              </div>
+              <button>View All</button>
+            </div>
+
+            <table className="mini-table">
+              <thead>
+                <tr>
+                  <th>Application</th>
+                  <th>Stage</th>
+                  <th>Aging</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {creditQueue.map((row) => (
+                  <tr key={row.application}>
+                    <td>
+                      <strong>{row.application}</strong>
+                      <span>{row.customer}</span>
+                    </td>
+                    <td>{row.stage}</td>
+                    <td>{row.aging}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mini-table-panel">
+            <div className="mini-table-header">
+              <div>
+                <span className="mini-table-icon">!</span>
+                <div>
+                  <h3>Document Exceptions</h3>
+                  <p>Cases requiring document correction</p>
+                </div>
+              </div>
+              <button>View All</button>
+            </div>
+
+            <table className="mini-table">
+              <thead>
+                <tr>
+                  <th>Lead</th>
+                  <th>Issue</th>
+                  <th>Severity</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {documentExceptions.map((row) => (
+                  <tr key={`${row.lead}-${row.document}`}>
+                    <td>
+                      <strong>{row.lead}</strong>
+                      <span>{row.document}</span>
+                    </td>
+                    <td>{row.issue}</td>
+                    <td>
+                      <span className={`severity-pill ${row.severity.toLowerCase()}`}>
+                        {row.severity}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -256,12 +712,15 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
 
       {isCreatePanelOpen && (
         <div className="drawer-backdrop" onClick={handleCloseCreatePanel}>
-          <aside className="create-lead-drawer" onClick={(event) => event.stopPropagation()}>
+          <aside
+            className="create-lead-drawer"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="drawer-header">
               <div>
-                <span className="drawer-eyebrow">New Lead</span>
-                <h2>Create Lead</h2>
-                <p>Capture basic lead information to start the loan journey.</p>
+                <span className="drawer-eyebrow">Lead Capture</span>
+                <h2>Create New Lead</h2>
+                <p>Capture applicant and loan requirement details to start the LOS journey.</p>
               </div>
 
               <button className="drawer-close-button" onClick={handleCloseCreatePanel}>
@@ -271,7 +730,7 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
 
             <form className="create-lead-form" onSubmit={handleCreateLead}>
               <div className="form-section">
-                <h3>Customer Information</h3>
+                <h3>Applicant Information</h3>
 
                 <div className="form-grid two-column">
                   <div className="field-group">
@@ -317,11 +776,11 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
               </div>
 
               <div className="form-section">
-                <h3>Lead Details</h3>
+                <h3>Loan Requirement</h3>
 
                 <div className="form-grid two-column">
                   <div className="field-group">
-                    <label htmlFor="product">Product</label>
+                    <label htmlFor="product">Loan Product</label>
                     <select
                       id="product"
                       name="product"
@@ -359,10 +818,10 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
               </div>
 
               <div className="drawer-info-card">
-                <strong>Default Status</strong>
+                <strong>Default LOS Assignment</strong>
                 <p>
-                  Newly created leads will be saved with status <b>New</b> and assigned to
-                  the logged-in user for now. After creation, the lead details page will open.
+                  The lead will be created with stage <b>New</b> and assigned to the logged-in
+                  sales user.
                 </p>
               </div>
 
@@ -375,7 +834,8 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
                   Cancel
                 </button>
 
-                <button type="submit" className="primary-action-button">
+                <button type="submit" className="header-action-button create-action">
+                  <span className="header-action-icon">＋</span>
                   Create Lead
                 </button>
               </div>

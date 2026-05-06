@@ -2,6 +2,7 @@ import { useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import LeadDetailPage from "./pages/LeadDetailPage";
+import ApplicationOnboardingPage from "./pages/application/ApplicationOnboardingPage";
 import "./styles/theme.css";
 import "./index.css";
 
@@ -67,6 +68,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [selectedLead, setSelectedLead] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState(null);
   const [leads, setLeads] = useState(initialLeads);
 
   const handleLoginSuccess = () => {
@@ -78,26 +80,83 @@ function App() {
     setIsLoggedIn(false);
     setCurrentPage("dashboard");
     setSelectedLead(null);
+    setSelectedApplication(null);
   };
 
   const handleOpenLeadDetails = (lead) => {
     setSelectedLead(lead);
+    setSelectedApplication(null);
     setCurrentPage("leadDetail");
   };
 
   const handleBackToDashboard = () => {
     setCurrentPage("dashboard");
     setSelectedLead(null);
+    setSelectedApplication(null);
   };
 
   const handleCreateLead = (newLead) => {
     setLeads((previousLeads) => [newLead, ...previousLeads]);
     setSelectedLead(newLead);
+    setSelectedApplication(null);
+    setCurrentPage("leadDetail");
+  };
+
+  const handleConvertLead = (lead) => {
+    const application = {
+      id: `APP-${lead.id.replace("LD-", "")}`,
+      leadId: lead.id,
+      applicantName: `${lead.firstName} ${lead.lastName}`,
+      mobile: lead.mobile,
+      product: lead.product,
+      source: lead.source,
+      owner: lead.owner,
+      requestedAmount: "₹42,00,000",
+      status: "Application In Progress",
+      createdDate: new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+    };
+
+    setLeads((previousLeads) =>
+      previousLeads.map((item) =>
+        item.id === lead.id
+          ? {
+              ...item,
+              status: "Converted",
+            }
+          : item
+      )
+    );
+
+    setSelectedLead({
+      ...lead,
+      status: "Converted",
+    });
+
+    setSelectedApplication(application);
+    setCurrentPage("applicationOnboarding");
+  };
+
+  const handleBackToLeadDetail = () => {
     setCurrentPage("leadDetail");
   };
 
   if (!isLoggedIn) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (currentPage === "applicationOnboarding" && selectedApplication) {
+    return (
+      <ApplicationOnboardingPage
+        application={selectedApplication}
+        lead={selectedLead}
+        onBack={handleBackToLeadDetail}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   if (currentPage === "leadDetail" && selectedLead) {
@@ -106,6 +165,7 @@ function App() {
         lead={selectedLead}
         onBack={handleBackToDashboard}
         onLogout={handleLogout}
+        onConvertLead={handleConvertLead}
       />
     );
   }

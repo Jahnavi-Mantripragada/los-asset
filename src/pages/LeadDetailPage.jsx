@@ -131,6 +131,98 @@ const buildLeadDetails = (lead) => ({
 });
 
 const STATUS_STEPS = ["New", "In Progress", "Converted"];
+
+/* ══ VERIFICATION STATE TRACKER ══ */
+const SEND_MOBILE_VERIFICATION_API_URL = "https://j0e80xdyw4.execute-api.ap-south-1.amazonaws.com/los-send-mobile-verification";
+
+const validateIndianMobileNumber = (mobile) => {
+  const cleaned = mobile.replace(/\D/g, '');
+  return /^[6-9]\d{9}$/.test(cleaned);
+};
+
+const useVerificationState = (leadData) => {
+  const [verificationSent, setVerificationSent] = useState({ mobile: false, email: false });
+  const [isLoading, setIsLoading] = useState({ mobile: false, email: false });
+  const [errorMessage, setErrorMessage] = useState({ mobile: "", email: "" });
+  const [successMessage, setSuccessMessage] = useState({ mobile: "", email: "" });
+  const [debugOtp, setDebugOtp] = useState({ mobile: "", email: "" });
+  
+  const handleVerify = async (type) => {
+    console.log("Verify button clicked");
+    console.log(`Verification initiated for ${type}`);
+    
+    // Clear previous messages
+    setErrorMessage(prev => ({ ...prev, [type]: "" }));
+    setSuccessMessage(prev => ({ ...prev, [type]: "" }));
+    setDebugOtp(prev => ({ ...prev, [type]: "" }));
+
+    if (type === "mobile") {
+      const mobileNumber = leadData?.mobile;
+      console.log("Current mobile number:", mobileNumber);
+      console.log("Configured Send SMS API URL:", SEND_MOBILE_VERIFICATION_API_URL);
+
+      if (!mobileNumber || mobileNumber === "Not captured") {
+        setErrorMessage(prev => ({ ...prev, mobile: "Mobile number is not available." }));
+        return;
+      }
+
+      if (!validateIndianMobileNumber(mobileNumber)) {
+        setErrorMessage(prev => ({ ...prev, mobile: "Please enter a valid Indian mobile number." }));
+        return;
+      }
+
+      try {
+        setIsLoading(prev => ({ ...prev, mobile: true }));
+        console.log("Calling AWS Lambda API through API Gateway...");
+
+        const response = await fetch(SEND_MOBILE_VERIFICATION_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            mobileNumber: mobileNumber
+          })
+        });
+
+        const data = await response.json();
+        console.log("API Gateway response status:", response.status);
+        console.log("Lambda response data:", data);
+
+        if (!response.ok || !data.success) {
+          setErrorMessage(prev => ({ ...prev, mobile: data.message || "Failed to send SMS. Please try again." }));
+          return;
+        }
+
+        setSuccessMessage(prev => ({ ...prev, mobile: "Verification Link has been sent successfully." }));
+        setVerificationSent(prev => ({ ...prev, mobile: true }));
+
+        if (data.debugOtp) {
+          setDebugOtp(prev => ({ ...prev, mobile: data.debugOtp }));
+        }
+      } catch (error) {
+        console.error("Error while calling AWS Lambda API:", error);
+        setErrorMessage(prev => ({ ...prev, mobile: "Unable to connect to SMS service. Please check API Gateway URL and CORS configuration." }));
+      } finally {
+        setIsLoading(prev => ({ ...prev, mobile: false }));
+      }
+    } else if (type === "email") {
+      // Email verification - placeholder for future implementation
+      console.log("Email verification initiated");
+      setVerificationSent(prev => ({ ...prev, email: true }));
+      setSuccessMessage(prev => ({ ...prev, email: "Verification email has been sent." }));
+    }
+  };
+  
+  const handleResend = async (type) => {
+    console.log(`Resend verification for ${type}`);
+    // Reset the sent state and trigger verify again
+    setVerificationSent(prev => ({ ...prev, [type]: false }));
+    await handleVerify(type);
+  };
+  
+  return { verificationSent, isLoading, errorMessage, successMessage, debugOtp, handleVerify, handleResend };
+};
 const formatTime = () => new Date().toLocaleString("en-IN", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
 const formatFileSize = (b) => b < 1024 ? b+" B" : b < 1048576 ? (b/1024).toFixed(1)+" KB" : (b/1048576).toFixed(1)+" MB";
 
@@ -596,7 +688,7 @@ function DocumentRow({ doc, onDelete }) {
 /* ══ MAIN COMPONENT ══ */
 function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
   const initialData = buildLeadDetails(lead);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [leadStatus, setLeadStatus] = useState(initialData.leadStage);
   const [leadData, setLeadData] = useState(() => {
@@ -685,6 +777,7 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
   const journeyIdx = leadStatus==="Converted"?3:leadStatus==="In Progress"?2:1;
   const mobileVerified = leadData.mobileVerified==="Yes";
   const emailVerified  = leadData.emailVerified==="Yes";
+  const { verificationSent, isLoading, errorMessage, successMessage, debugOtp, handleVerify, handleResend } = useVerificationState(leadData);
   const openActionPanel = (type) => { setActiveTab("activity"); setShowPanel(type); };
 
   return (
@@ -842,8 +935,37 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
                 <h3>Contact Verification</h3>
                 {[{key:"mobile",label:"Mobile",value:leadData.mobile,verified:mobileVerified},{key:"email",label:"Email",value:leadData.email,verified:emailVerified}].map(item=>(
                   <div className={`verify-row ${item.verified?"verified":"unverified"}`} key={item.key}>
-                    <div><span>{item.label}</span><strong>{item.value}</strong></div>
-                    <div className={`verify-status-badge ${item.verified?"verified":"pending"}`}>{item.verified?"✓ Verified":"⚠ Pending"}</div>
+                    <div className="verify-row-info"><span>{item.label}</span><strong>{item.value}</strong></div>
+                    <div className="verify-row-actions">
+                      {item.verified && (
+                        <div className="verify-status-badge verified">✓ Verified</div>
+                      )}
+                      {!item.verified && verificationSent[item.key] && (
+                        <div className="verify-sent-state">
+                          <span className="verify-link-sent">✓ OTP sent successfully</span>
+                          <button className="verify-resend-btn" onClick={() => handleResend(item.key)} disabled={isLoading[item.key]}>
+                            {isLoading[item.key] ? "Sending..." : "Resend"}
+                          </button>
+                        </div>
+                      )}
+                      {!item.verified && !verificationSent[item.key] && (
+                        <div className="verify-pending-actions">
+                          <div className="verify-status-badge pending">⚠ Pending</div>
+                          <button className="verify-btn" onClick={() => handleVerify(item.key)} disabled={isLoading[item.key]}>
+                            {isLoading[item.key] ? "Sending..." : "Verify"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {errorMessage[item.key] && (
+                      <div className="verify-error-msg">{errorMessage[item.key]}</div>
+                    )}
+                    {successMessage[item.key] && !errorMessage[item.key] && (
+                      <div className="verify-success-msg">{successMessage[item.key]}</div>
+                    )}
+                    {debugOtp[item.key] && (
+                      <div className="verify-debug-otp">Debug OTP: <strong>{debugOtp[item.key]}</strong></div>
+                    )}
                   </div>
                 ))}
               </section>

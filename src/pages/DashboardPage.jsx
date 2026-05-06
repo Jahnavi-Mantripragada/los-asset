@@ -106,7 +106,7 @@ const navItems = [
 function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
   const [selectedListView,   setSelectedListView]   = useState("All Leads");
   const [isCreatePanelOpen,  setIsCreatePanelOpen]  = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [leadForm,           setLeadForm]           = useState(emptyLeadForm);
 
   const filteredLeads = leads.filter((lead) => {
@@ -309,8 +309,8 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
           <section className="lead-panel compact-lead-panel">
             <div className="lead-panel-header">
               <div>
-                <span className="section-eyebrow">Dynamic Records</span>
-                <h2>Lead List View</h2>
+                <span className="section-eyebrow">Leads</span>
+                <h2>{selectedListView}</h2>
                 <p>Live LOS lead records based on selected view.</p>
               </div>
               <div className="table-actions">

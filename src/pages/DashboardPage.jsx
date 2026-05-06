@@ -159,7 +159,7 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="sidebar-logo">
-            <img src="/images/logo.tif" alt="LOS Portal Logo" className="sidebar-logo-img" />
+            <img src="/images/logo.png" alt="LOS Portal Logo" className="sidebar-logo-img" />
           </div>
           <div className="sidebar-brand-text">
             <h2>LOS Portal</h2>

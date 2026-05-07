@@ -211,32 +211,47 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
     setLeadForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCreateLead = (e) => {
+  const handleCreateLead = async (e) => {
     e.preventDefault();
 
-    const maxId = leads.reduce((max, lead) => {
-      const num = parseInt(String(lead.id || "").replace("LD-", ""), 10);
-      return Number.isNaN(num) ? max : Math.max(max, num);
-    }, 10020);
+    try {
+      const res = await fetch("https://bf518gysd5.execute-api.ap-south-1.amazonaws.com/default/loanbackend", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(leadForm),
+      });
 
-    const newLead = {
-      id: `LD-${maxId + 1}`,
-      firstName: leadForm.firstName,
-      lastName: leadForm.lastName,
-      mobile: leadForm.mobile,
-      email: leadForm.email,
-      product: leadForm.product,
-      source: leadForm.source,
-      status: "New",
-      owner: "Sales User",
-      createdDate: "06 May 2026",
-    };
+      const data = await res.json();
 
-    setSelectedListView("All Leads");
-    handleCloseCreatePanel();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create lead");
+      }
 
-    const newLeadId = onCreateLead ? onCreateLead(newLead) : newLead.id;
-    navigate(`/leads/${newLeadId}`);
+      const newLead = {
+        id: data.id || `LD-${Date.now()}`,
+        firstName: leadForm.firstName,
+        lastName: leadForm.lastName,
+        mobile: leadForm.mobile,
+        email: leadForm.email,
+        product: leadForm.product,
+        source: leadForm.source,
+        status: "New",
+        owner: "Sales User",
+        createdDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+        ...data,
+      };
+
+      setSelectedListView("All Leads");
+      handleCloseCreatePanel();
+
+      const newLeadId = onCreateLead ? onCreateLead(newLead) : newLead.id;
+      alert("Lead created successfully");
+      navigate(`/leads/${newLeadId}`);
+    } catch (err) {
+      alert(err.message || "An error occurred while creating the lead");
+    }
   };
 
   return (

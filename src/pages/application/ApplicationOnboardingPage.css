@@ -3,10 +3,10 @@
 ═══════════════════════════════════════════════════ */
 :root {
   --los-blue-deep:    #0f2d5e;
-  --los-blue:         #1557a8;
-  --los-blue-mid:     #2a6fd4;
-  --los-blue-light:   #e3eeff;
-  --los-blue-tint:    #f0f5ff;
+  --los-blue:         #1e5fa5;
+  --los-blue-mid:     #3578c2;
+  --los-blue-light:   #e8f0fb;
+  --los-blue-tint:    #f0f5fb;
   --los-bg:           #f0f4f9;
   --los-card:         #ffffff;
   --los-border:       #d5e0ef;
@@ -185,27 +185,52 @@
 .primary-button {
   border: none;
   color: #fff;
-  background: linear-gradient(135deg, #1452a0, #2a7de1);
-  box-shadow: 0 1px 3px rgba(20,82,160,.3), 0 4px 12px rgba(20,82,160,.25);
+  background: linear-gradient(135deg, #1557a8, #2a7de1);
+  box-shadow: 0 1px 3px rgba(30,95,165,.25), 0 4px 12px rgba(30,95,165,.2);
 }
 .primary-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(20,82,160,.35), 0 8px 20px rgba(20,82,160,.3);
-  background: linear-gradient(135deg, #1762bb, #3189f0);
+  box-shadow: 0 2px 6px rgba(30,95,165,.32), 0 8px 20px rgba(30,95,165,.25);
+  background: linear-gradient(135deg, #1e68bb, #3189f0);
 }
 .secondary-button {
   background: #fff;
-  border: 1.5px solid var(--los-border);
-  color: var(--los-blue);
+  border: 1px solid var(--los-border);
+  color: var(--los-muted);
 }
 .secondary-button:hover:not(:disabled) {
   background: var(--los-blue-tint);
-  border-color: rgba(21,87,168,.3);
-  transform: translateY(-1px);
+  border-color: rgba(30,95,165,.25);
+  color: var(--los-blue);
 }
 .primary-button:disabled, .secondary-button:disabled {
-  opacity: .5; cursor: not-allowed; transform: none;
+  opacity: .45; cursor: not-allowed; transform: none;
 }
+
+/* Ghost button — for low-priority actions like "Previous" */
+.btn-ghost {
+  height: 36px;
+  border-radius: 9px;
+  padding: 0 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all .15s ease;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  color: var(--los-muted);
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--los-text);
+  background: var(--los-bg);
+  border-radius: 9px;
+}
+.btn-ghost:disabled { opacity: .35; cursor: not-allowed; }
 .record-action-logout {
   height: 36px;
   padding: 0 12px;
@@ -300,7 +325,7 @@
 .progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #1452a0, #2a7de1);
+  background: linear-gradient(90deg, #1557a8, #2a7de1);
   transition: width .6s ease;
   position: relative;
   display: flex;
@@ -337,7 +362,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  max-height: calc(100vh - 112px);
+  /* stop well above the fixed footer: topbar-offset(80) + footer(68) + gap(20) */
+  max-height: calc(100vh - 168px);
   display: flex;
   flex-direction: column;
 }
@@ -426,7 +452,7 @@
   box-shadow: 0 0 0 3px var(--los-blue-light);
 }
 .step-node.in-progress.active {
-  box-shadow: 0 0 0 4px rgba(21,87,168,.2), 0 4px 14px rgba(21,87,168,.3);
+  box-shadow: 0 0 0 4px rgba(30,95,165,.2), 0 4px 14px rgba(30,95,165,.28);
 }
 .step-node.pending {
   background: var(--los-amber-mid);
@@ -519,9 +545,9 @@
   border-color: var(--los-border-soft);
 }
 .stepper-info-btn.active {
-  background: linear-gradient(135deg, #f5f9ff, #edf4ff);
-  border-color: rgba(21,87,168,.2);
-  box-shadow: 0 2px 8px rgba(15,45,94,.07);
+  background: var(--los-blue-light);
+  border-color: rgba(30,95,165,.2);
+  box-shadow: 0 2px 8px rgba(15,45,94,.06);
 }
 
 .stepper-info-top {
@@ -765,7 +791,28 @@
   color: var(--los-text);
   white-space: nowrap;
 }
-.footer-actions { display: flex; align-items: center; gap: 8px; }
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Give Save & Continue more presence in the footer */
+.footer-actions .primary-button {
+  height: 38px;
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 7px;
+}
+
+/* Subtle divider before the main action */
+.footer-actions .footer-action-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--los-border);
+  margin: 0 4px;
+}
 
 /* ═══════════════════════════════════════════════════
    STEP PLACEHOLDER (for sub-pages that haven't been built)

@@ -215,7 +215,7 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
     e.preventDefault();
 
     try {
-      const res = await fetch("https://bf518gysd5.execute-api.ap-south-1.amazonaws.com/default/loanbackend", {
+      const res = await fetch("https://weaq9mioy2.execute-api.ap-south-1.amazonaws.com/create-lead", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

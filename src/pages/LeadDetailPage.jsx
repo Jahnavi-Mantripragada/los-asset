@@ -859,7 +859,15 @@ function LeadDetailPage({ leads, onLogout, onConvertLead }) {
             </div>
           </div>
           <div className="record-actions">
-            <button className="record-action-logout" onClick={()=>{onLogout();navigate("/login",{replace:true});}}><LogoutIcon /> Sign Out</button>
+            <button
+              className="record-action-logout"
+              onClick={async () => {
+                await onLogout();
+                navigate("/login", { replace: true });
+              }}
+            >
+              <LogoutIcon /> Sign Out
+            </button>            
             {leadStatus!=="Disqualified"&&leadStatus!=="Converted"&&<button className="record-action-danger" onClick={()=>setShowModal("disqualify")}><BanIcon /> Disqualify</button>}
             {leadStatus!=="Converted"&&leadStatus!=="Disqualified"&&<button className="record-action-success" onClick={()=>setShowModal("convert")}><CheckIcon /> Convert Lead</button>}
             {leadStatus==="Converted"&&<button className="record-action-success" onClick={()=>navigate(`/applications/${leadId}/onboarding`)}><CheckIcon /> Open Application</button>}

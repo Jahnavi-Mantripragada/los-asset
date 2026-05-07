@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { getCurrentUser, fetchAuthSession, signOut } from "aws-amplify/auth";
+
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import LeadDetailPage from "./pages/LeadDetailPage";
 import ApplicationOnboardingPage from "./pages/application/ApplicationOnboardingPage";
+
 import "./styles/theme.css";
 import "./index.css";
 
@@ -65,20 +68,66 @@ const initialLeads = [
   },
 ];
 
-function PrivateRoute({ isLoggedIn, children }) {
-  return isLoggedIn ? children : <Navigate to="/login" replace />;
+function AuthLoader() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        fontFamily: "Inter, system-ui, sans-serif",
+        color: "#334155",
+        background: "#f8fafc",
+      }}
+    >
+      Checking session...
+    </div>
+  );
+}
+
+function PrivateRoute({ user, children }) {
+  return user ? children : <Navigate to="/login" replace />;
 }
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [user, setUser] = useState(null);
   const [leads, setLeads] = useState(initialLeads);
 
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+  const checkAuthSession = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      const session = await fetchAuthSession();
+
+      if (session.tokens?.accessToken) {
+        setUser(currentUser);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setAuthChecking(false);
+    }
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  useEffect(() => {
+    checkAuthSession();
+  }, []);
+
+  const handleLoginSuccess = async () => {
+    setAuthChecking(true);
+    await checkAuthSession();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setUser(null);
+    }
   };
 
   const handleCreateLead = (newLead) => {
@@ -99,6 +148,10 @@ function App() {
     );
   };
 
+  if (authChecking) {
+    return <AuthLoader />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -106,7 +159,7 @@ function App() {
         <Route
           path="/"
           element={
-            isLoggedIn ? (
+            user ? (
               <Navigate to="/dashboard" replace />
             ) : (
               <Navigate to="/login" replace />
@@ -117,14 +170,20 @@ function App() {
         {/* Login */}
         <Route
           path="/login"
-          element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
+          element={
+            user ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <LoginPage onLoginSuccess={handleLoginSuccess} />
+            )
+          }
         />
 
         {/* Dashboard */}
         <Route
           path="/dashboard"
           element={
-            <PrivateRoute isLoggedIn={isLoggedIn}>
+            <PrivateRoute user={user}>
               <DashboardPage
                 leads={leads}
                 onCreateLead={handleCreateLead}
@@ -138,7 +197,7 @@ function App() {
         <Route
           path="/leads/:leadId"
           element={
-            <PrivateRoute isLoggedIn={isLoggedIn}>
+            <PrivateRoute user={user}>
               <LeadDetailPage
                 leads={leads}
                 onLogout={handleLogout}
@@ -152,11 +211,8 @@ function App() {
         <Route
           path="/applications/:leadId/onboarding"
           element={
-            <PrivateRoute isLoggedIn={isLoggedIn}>
-              <ApplicationOnboardingPage
-                leads={leads}
-                onLogout={handleLogout}
-              />
+            <PrivateRoute user={user}>
+              <ApplicationOnboardingPage leads={leads} onLogout={handleLogout} />
             </PrivateRoute>
           }
         />
@@ -165,7 +221,7 @@ function App() {
         <Route
           path="*"
           element={
-            isLoggedIn ? (
+            user ? (
               <Navigate to="/dashboard" replace />
             ) : (
               <Navigate to="/login" replace />

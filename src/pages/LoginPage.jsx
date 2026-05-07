@@ -1,27 +1,74 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signIn } from "aws-amplify/auth";
 import "./LoginPage.css";
 
 function LoginPage({ onLoginSuccess }) {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const handleChange = (event) => {
     const { name, value } = event.target;
+
     setFormData((previousData) => ({
       ...previousData,
       [name]: value,
     }));
+
+    if (errorMessage) {
+      setErrorMessage("");
+    }
   };
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault();
-    console.log("Login submitted", formData);
-    onLoginSuccess();
-    navigate("/dashboard", { replace: true });
+
+    const username = formData.username.trim();
+    const password = formData.password;
+
+    if (!username || !password) {
+      setErrorMessage("Please enter both user ID/email and password.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage("");
+
+      const result = await signIn({
+        username,
+        password,
+      });
+
+      if (result.isSignedIn) {
+        await onLoginSuccess();
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      if (result.nextStep?.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") {
+        setErrorMessage(
+          "This user requires a new password setup. Set a permanent password in Cognito or implement the new-password flow."
+        );
+        return;
+      }
+
+      setErrorMessage(
+        `Additional sign-in step required: ${result.nextStep?.signInStep || "Unknown step"}`
+      );
+    } catch (error) {
+      console.error("Cognito login failed:", error);
+      setErrorMessage(error.message || "Login failed. Please check your credentials.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -136,6 +183,12 @@ function LoginPage({ onLoginSuccess }) {
           </div>
 
           <form className="login-form" onSubmit={handleLogin}>
+            {errorMessage && (
+              <div className="login-error-message" role="alert">
+                {errorMessage}
+              </div>
+            )}
+
             <div className="form-group">
               <label htmlFor="username">User ID / Email</label>
               <div className="input-wrapper">
@@ -153,6 +206,7 @@ function LoginPage({ onLoginSuccess }) {
                   value={formData.username}
                   onChange={handleChange}
                   autoComplete="username"
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -179,13 +233,14 @@ function LoginPage({ onLoginSuccess }) {
                   value={formData.password}
                   onChange={handleChange}
                   autoComplete="current-password"
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
 
             <div className="login-options">
               <label className="remember-me">
-                <input type="checkbox" />
+                <input type="checkbox" disabled={isSubmitting} />
                 <span>Remember me</span>
               </label>
               <span className="secure-note">
@@ -196,11 +251,13 @@ function LoginPage({ onLoginSuccess }) {
               </span>
             </div>
 
-            <button type="submit" className="login-button">
-              Sign In
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <button type="submit" className="login-button" disabled={isSubmitting}>
+              {isSubmitting ? "Signing In..." : "Sign In"}
+              {!isSubmitting && (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
             </button>
           </form>
 

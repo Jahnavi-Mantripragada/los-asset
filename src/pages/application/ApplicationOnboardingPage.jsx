@@ -316,7 +316,10 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
                         {isActive && <span className="stepper-active-arrow"><ChevronRightIcon /></span>}
                       </div>
                       <span className="stepper-step-desc">{step.description}</span>
-                      <span className={`status-pill ${statusClass}`}>{status}</span>
+                      {/* Only show pill for statuses that need calling out — the circle handles Completed/Not Started */}
+                      {["In Progress", "Pending Validation", "Blocked", "Needs Rework"].includes(status) && (
+                        <span className={`status-pill ${statusClass}`}>{status}</span>
+                      )}
                     </button>
                   </div>
                 );
@@ -417,10 +420,11 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
           </div>
         </div>
         <div className="footer-actions">
-          <button className="secondary-button" type="button" onClick={previousStep} disabled={activeStepIndex === 0}>
+          <button className="btn-ghost" type="button" onClick={previousStep} disabled={activeStepIndex === 0}>
             ← Previous
           </button>
           <button className="secondary-button" type="button"><SaveIcon /> Save Draft</button>
+          <span className="footer-action-sep" />
           <button
             className="primary-button"
             type="button"

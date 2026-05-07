@@ -1,857 +1,439 @@
-/* ═══════════════════════════════════════════════════
-   DESIGN TOKENS
-═══════════════════════════════════════════════════ */
-:root {
-  --los-blue-deep:    #0f2d5e;
-  --los-blue:         #1557a8;
-  --los-blue-mid:     #2a6fd4;
-  --los-blue-light:   #e3eeff;
-  --los-blue-tint:    #f0f5ff;
-  --los-bg:           #f0f4f9;
-  --los-card:         #ffffff;
-  --los-border:       #d5e0ef;
-  --los-border-soft:  #e4ecf7;
-  --los-text:         #0f1f34;
-  --los-muted:        #4d6882;
-  --los-soft:         #8ba3be;
-  --los-green:        #1a7a42;
-  --los-green-mid:    #25a05a;
-  --los-green-bg:     #e6f7ee;
-  --los-amber:        #925207;
-  --los-amber-mid:    #c4730f;
-  --los-amber-bg:     #fef5e5;
-  --los-red:          #b02318;
-  --los-red-mid:      #d9342a;
-  --los-red-bg:       #fdecea;
-  --los-info:         #0b5c96;
-  --los-info-bg:      #e5f1fc;
+import { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import "./ApplicationOnboardingPage.css";
+import CustomerIdentityPage from "./CustomerIdentityPage";
+import ApplicantProfilePage from "./ApplicantProfilePage";
+import IncomeEmploymentPage from "./IncomeEmploymentPage";
+import CoApplicantsPage from "./CoApplicantsPage";
+import DocumentsPage from "./DocumentsPage";
+import CollateralPage from "./CollateralPage";
+import LoanRequirementPage from "./LoanRequirementPage";
+import EligibilityOfferPage from "./EligibilityOfferPage";
+import ApplicationPackagePage from "./ApplicationPackagePage";
+import FeesSubmissionPage from "./FeesSubmissionPage";
 
-  --shadow-xs:   0 1px 3px rgba(15,33,64,.06), 0 2px 6px rgba(15,33,64,.04);
-  --shadow-sm:   0 2px 6px rgba(15,33,64,.07), 0 6px 18px rgba(15,33,64,.06);
-  --shadow-md:   0 4px 12px rgba(15,33,64,.09), 0 16px 36px rgba(15,33,64,.07);
-  --shadow-lg:   0 8px 24px rgba(15,33,64,.12), 0 32px 64px rgba(15,33,64,.10);
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const BackIcon = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+  </svg>
+);
+const LogoutIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+const SaveIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.1">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+    <path d="M17 21v-8H7v8" /><path d="M7 3v5h8" />
+  </svg>
+);
+const CheckIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.8">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+const AlertIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+    <path d="M12 9v4" /><path d="M12 17h.01" />
+  </svg>
+);
+const UserIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20 21a8 8 0 0 0-16 0" /><circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const FileIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+    <path d="M14 2v6h6" /><path d="M8 13h8" /><path d="M8 17h5" />
+  </svg>
+);
+const HomeIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m3 11 9-8 9 8" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" />
+  </svg>
+);
+const RupeeIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M6 3h12" /><path d="M6 8h12" /><path d="M6 13h7a5 5 0 0 0 0-10" /><path d="m6 13 8 8" />
+  </svg>
+);
+const ShieldIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+  </svg>
+);
+const BriefcaseIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1" />
+    <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+    <path d="M3 13h18" />
+  </svg>
+);
+const ChevronRightIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="m9 18 6-6-6-6" />
+  </svg>
+);
 
-  --radius-sm:  10px;
-  --radius-md:  16px;
-  --radius-lg:  22px;
-  --radius-xl:  28px;
-}
+// ─── Step config — NO status here; all status lives in state ─────────────────
+const STEPS = [
+  { id: "customer-identity",  number: "01", title: "Customer Identity",   description: "PAN, mobile, email and KYC verification",           icon: ShieldIcon,    component: CustomerIdentityPage },
+  { id: "applicant-profile",  number: "02", title: "Applicant Profile",   description: "Personal, residential and demographic details",      icon: UserIcon,      component: ApplicantProfilePage },
+  { id: "income-employment",  number: "03", title: "Income & Employment", description: "Salary, business income and obligation details",     icon: BriefcaseIcon, component: IncomeEmploymentPage },
+  { id: "co-applicants",      number: "04", title: "Co-Applicants",       description: "Add co-applicants, guarantors and relationships",    icon: UserIcon,      component: CoApplicantsPage },
+  { id: "documents",          number: "05", title: "Documents",           description: "Document checklist, upload and OCR status",         icon: FileIcon,      component: DocumentsPage },
+  { id: "collateral",         number: "06", title: "Collateral",          description: "Property, project and security information",        icon: HomeIcon,      component: CollateralPage },
+  { id: "loan-requirement",   number: "07", title: "Loan Requirement",    description: "Product, loan type, purpose, amount and tenure",    icon: RupeeIcon,     component: LoanRequirementPage },
+  { id: "eligibility-offer",  number: "08", title: "Eligibility & Offer", description: "Eligibility, FOIR, LTV and recommended offer",     icon: CheckIcon,     component: EligibilityOfferPage },
+  { id: "application-package",number: "09", title: "Application Package", description: "Generate, review and sign application form",       icon: FileIcon,      component: ApplicationPackagePage },
+  { id: "fees-submission",    number: "10", title: "Fees & Submission",   description: "Payment, final review and submit to credit",       icon: RupeeIcon,     component: FeesSubmissionPage },
+];
 
-* { box-sizing: border-box; }
+// Build initial statuses: first step is "In Progress", all others "Not Started"
+const INITIAL_STATUSES = STEPS.reduce((acc, step, i) => {
+  acc[step.id] = i === 0 ? "In Progress" : "Not Started";
+  return acc;
+}, {});
 
-/* ═══════════════════════════════════════════════════
-   PAGE SHELL
-═══════════════════════════════════════════════════ */
-.app-onboarding-page {
-  width: 100%;
-  min-height: 100vh;
-  background: var(--los-bg);
-  color: var(--los-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
-  padding-bottom: 88px;
-}
+const STATUS_CLASS = {
+  "Completed":         "completed",
+  "In Progress":       "in-progress",
+  "Pending Validation":"pending",
+  "Not Started":       "not-started",
+  "Needs Rework":      "needs-rework",
+  "Blocked":           "blocked",
+};
 
-/* ═══════════════════════════════════════════════════
-   TOP BAR
-═══════════════════════════════════════════════════ */
-.app-onboarding-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  height: 64px;
-  padding: 0 24px;
-  background: #fff;
-  border-bottom: 1px solid var(--los-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-}
+// ─── Component ───────────────────────────────────────────────────────────────
+function ApplicationOnboardingPage({ leads, onLogout }) {
+  const navigate = useNavigate();
+  const { leadId } = useParams();
 
-.app-topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
+  // Which step panel is visible
+  const [activeStepId, setActiveStepId] = useState(STEPS[0].id);
 
-.back-button {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  border: 1px solid var(--los-border);
-  background: transparent;
-  color: var(--los-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex: 0 0 auto;
-}
-.back-button:hover {
-  background: var(--los-bg);
-  color: var(--los-text);
-  transform: translateX(-1px);
-}
+  // Live status map — this is the single source of truth for all progress
+  const [stepStatuses, setStepStatuses] = useState(INITIAL_STATUSES);
 
-.app-onboarding-topbar h1 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--los-text);
-  letter-spacing: -0.2px;
-  line-height: 1.2;
-}
-.topbar-subtitle {
-  margin: 2px 0 0;
-  color: var(--los-soft);
-  font-size: 12px;
-  font-weight: 400;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.topbar-dot {
-  display: inline-block;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--los-border);
-  flex: 0 0 auto;
-}
+  // ── Derived values ────────────────────────────────────────────────────────
+  const activeStepIndex = STEPS.findIndex((s) => s.id === activeStepId);
+  const activeStep      = STEPS[activeStepIndex] ?? STEPS[0];
+  const ActiveStepComponent = activeStep.component;
+  const activeStatus    = stepStatuses[activeStep.id];
 
-.app-topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 0 0 auto;
-}
+  const completedCount  = Object.values(stepStatuses).filter((s) => s === "Completed").length;
+  const progressPercent = Math.round((completedCount / STEPS.length) * 100);
+  const isLastStep      = activeStepIndex === STEPS.length - 1;
 
-.topbar-progress-chip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.topbar-progress-track {
-  width: 100px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--los-border-soft);
-  overflow: hidden;
-  flex: 0 0 auto;
-}
-.topbar-progress-fill {
-  height: 100%;
-  background: var(--los-blue);
-  border-radius: 999px;
-  transition: width .5s ease;
-}
-.topbar-progress-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--los-muted);
-  white-space: nowrap;
-}
-.topbar-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--los-border);
-}
-.app-topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+  // ── Lead / application data ───────────────────────────────────────────────
+  const lead = leads.find((l) => l.id === leadId);
+  const application = lead
+    ? {
+        id:            `APP-${lead.id.replace("LD-", "")}`,
+        leadId:        lead.id,
+        applicantName: `${lead.firstName} ${lead.lastName}`,
+        product:       lead.product,
+        source:        lead.source,
+        owner:         lead.owner,
+        requestedAmount: "₹42,00,000",
+        createdDate:   new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      }
+    : null;
 
-/* ═══════════════════════════════════════════════════
-   BUTTONS
-═══════════════════════════════════════════════════ */
-.primary-button, .secondary-button {
-  height: 36px;
-  border-radius: 9px;
-  padding: 0 14px;
-  font-size: 12.5px;
-  font-weight: 700;
-  font-family: inherit;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: all .18s ease;
-  white-space: nowrap;
-}
-.primary-button {
-  border: none;
-  color: #fff;
-  background: linear-gradient(135deg, #1452a0, #2a7de1);
-  box-shadow: 0 1px 3px rgba(20,82,160,.3), 0 4px 12px rgba(20,82,160,.25);
-}
-.primary-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(20,82,160,.35), 0 8px 20px rgba(20,82,160,.3);
-  background: linear-gradient(135deg, #1762bb, #3189f0);
-}
-.secondary-button {
-  background: #fff;
-  border: 1.5px solid var(--los-border);
-  color: var(--los-blue);
-}
-.secondary-button:hover:not(:disabled) {
-  background: var(--los-blue-tint);
-  border-color: rgba(21,87,168,.3);
-  transform: translateY(-1px);
-}
-.primary-button:disabled, .secondary-button:disabled {
-  opacity: .5; cursor: not-allowed; transform: none;
-}
-.record-action-logout {
-  height: 36px;
-  padding: 0 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 9px;
-  border: 1.5px solid var(--los-border);
-  background: #fff;
-  color: var(--los-muted);
-  font-size: 12px;
-  font-weight: 650;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all .15s;
-}
-.record-action-logout:hover {
-  background: var(--los-red-bg);
-  border-color: rgba(176,35,24,.22);
-  color: var(--los-red);
-}
+  const stepStats = useMemo(() => [
+    { label: "Application No.", value: application?.id            || "APP-2026-000184" },
+    { label: "Lead No.",        value: application?.leadId        || "LD-2026-00491" },
+    { label: "Applicant",       value: application?.applicantName || "Aarav Mehta" },
+    { label: "Product",         value: application?.product       || "Home Loan" },
+    { label: "Amount",          value: application?.requestedAmount || "₹42,00,000" },
+    { label: "Stage",           value: completedCount === STEPS.length ? "Submitted" : "Application In Progress" },
+  ], [application, completedCount]);
 
-/* ═══════════════════════════════════════════════════
-   SHARED UTILS
-═══════════════════════════════════════════════════ */
-.eyebrow {
-  display: block;
-  color: var(--los-soft);
-  font-size: 10px;
-  line-height: 1.2;
-  font-weight: 800;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  margin-bottom: 5px;
-}
+  // ── Navigation handlers ───────────────────────────────────────────────────
 
-/* ═══════════════════════════════════════════════════
-   MAIN SHELL
-═══════════════════════════════════════════════════ */
-.app-onboarding-shell { padding: 20px 24px; }
+  /**
+   * Mark the current step Completed, promote the next one to In Progress,
+   * and advance the visible panel. Called by both "Continue" (topbar) and
+   * "Save & Continue" (footer).
+   */
+  const saveAndContinue = () => {
+    setStepStatuses((prev) => {
+      const next = { ...prev, [activeStep.id]: "Completed" };
+      // Only promote next step if it hasn't been touched yet
+      if (!isLastStep) {
+        const nextId = STEPS[activeStepIndex + 1].id;
+        if (next[nextId] === "Not Started") next[nextId] = "In Progress";
+      }
+      return next;
+    });
+    if (!isLastStep) setActiveStepId(STEPS[activeStepIndex + 1].id);
+  };
 
-/* ═══════════════════════════════════════════════════
-   SUMMARY STRIP
-═══════════════════════════════════════════════════ */
-.application-summary-card {
-  background: #fff;
-  border: 1px solid var(--los-border-soft);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  padding: 16px 20px;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(110px, 1fr)) 200px;
-  gap: 0;
-  margin-bottom: 18px;
-  overflow: hidden;
-}
-.summary-item {
-  padding: 8px 16px;
-  border-right: 1px solid var(--los-border-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.summary-item:first-child { padding-left: 0; }
-.summary-progress { padding: 8px 0 8px 16px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
-.summary-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--los-soft);
-}
-.summary-value {
-  font-size: 13px;
-  font-weight: 750;
-  color: var(--los-text);
-  line-height: 1.2;
-}
-.summary-progress-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.progress-track {
-  width: 100%;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--los-blue-light);
-  overflow: visible;
-  position: relative;
-}
-.progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #1452a0, #2a7de1);
-  transition: width .6s ease;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.progress-pct-label {
-  position: absolute;
-  right: -28px;
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--los-blue);
-  white-space: nowrap;
-}
+  /**
+   * Just move the viewport back — statuses already earned don't change.
+   */
+  const previousStep = () => {
+    if (activeStepIndex > 0) setActiveStepId(STEPS[activeStepIndex - 1].id);
+  };
 
-/* ═══════════════════════════════════════════════════
-   WORKSPACE GRID
-═══════════════════════════════════════════════════ */
-.app-workspace {
-  display: grid;
-  grid-template-columns: 288px minmax(0, 1fr) 272px;
-  gap: 18px;
-  align-items: start;
-}
+  /**
+   * Clicking a stepper item only navigates — it never resets a status.
+   */
+  const goToStep = (stepId) => setActiveStepId(stepId);
 
-/* ═══════════════════════════════════════════════════
-   LEFT: VERTICAL STEPPER PANEL
-═══════════════════════════════════════════════════ */
-.app-stepper-panel {
-  position: sticky;
-  top: 80px;
-  background: #fff;
-  border: 1px solid var(--los-border-soft);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  max-height: calc(100vh - 112px);
-  display: flex;
-  flex-direction: column;
-}
+  const handleBack   = () => navigate(`/leads/${leadId}`);
+  const handleLogout = async () => { await onLogout(); navigate("/login", { replace: true }); };
 
-.stepper-panel-header {
-  padding: 14px 16px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border-bottom: 1px solid var(--los-border-soft);
-  flex: 0 0 auto;
-}
-.stepper-panel-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--los-text);
-  letter-spacing: -0.1px;
-}
-.stepper-panel-count {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--los-soft);
-}
-
-/* ── Timeline list ── */
-.stepper-timeline {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 16px 14px 16px 16px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--los-border) transparent;
-}
-.stepper-timeline::-webkit-scrollbar { width: 4px; }
-.stepper-timeline::-webkit-scrollbar-track { background: transparent; }
-.stepper-timeline::-webkit-scrollbar-thumb { background: var(--los-border); border-radius: 99px; }
-
-/* ── Each row: circle-col + info-col ── */
-.stepper-row {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  position: relative;
-}
-.stepper-row + .stepper-row { margin-top: 0; }
-
-/* ── Left column: node circle + connector ── */
-.stepper-track-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 0 0 auto;
-  width: 32px;
-}
-
-/* The circle node */
-.step-node {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: all .2s ease;
-  font-family: inherit;
-  z-index: 2;
-}
-
-/* Status variants */
-.step-node.completed {
-  background: var(--los-green);
-  border-color: var(--los-green);
-  color: #fff;
-  box-shadow: 0 0 0 3px var(--los-green-bg);
-}
-.step-node.in-progress {
-  background: var(--los-blue);
-  border-color: var(--los-blue);
-  color: #fff;
-  box-shadow: 0 0 0 3px var(--los-blue-light);
-}
-.step-node.in-progress.active {
-  box-shadow: 0 0 0 4px rgba(21,87,168,.2), 0 4px 14px rgba(21,87,168,.3);
-}
-.step-node.pending {
-  background: var(--los-amber-mid);
-  border-color: var(--los-amber-mid);
-  color: #fff;
-  box-shadow: 0 0 0 3px var(--los-amber-bg);
-}
-.step-node.blocked {
-  background: var(--los-red-mid);
-  border-color: var(--los-red-mid);
-  color: #fff;
-  box-shadow: 0 0 0 3px var(--los-red-bg);
-}
-.step-node.not-started {
-  background: #fff;
-  border-color: var(--los-border);
-  color: var(--los-soft);
-}
-.step-node.not-started.active {
-  background: var(--los-blue-tint);
-  border-color: var(--los-blue);
-  color: var(--los-blue);
-}
-.step-node.needs-rework {
-  background: var(--los-red-bg);
-  border-color: var(--los-red);
-  color: var(--los-red);
-}
-
-.step-node:hover { transform: scale(1.08); }
-
-/* Pulse ring on active step */
-.step-node-pulse {
-  position: absolute;
-  inset: -5px;
-  border-radius: 50%;
-  border: 2px solid var(--los-blue);
-  opacity: 0;
-  animation: pulse-ring 2s ease-out infinite;
-  pointer-events: none;
-}
-@keyframes pulse-ring {
-  0%   { opacity: .6; transform: scale(.85); }
-  70%  { opacity: 0;  transform: scale(1.25); }
-  100% { opacity: 0;  transform: scale(1.25); }
-}
-
-.step-node-number {
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.step-node-check { display: flex; align-items: center; justify-content: center; }
-
-/* Connector line */
-.step-connector {
-  width: 2px;
-  flex: 1;
-  min-height: 20px;
-  background: var(--los-border-soft);
-  border-radius: 2px;
-  margin: 3px 0;
-  transition: background .3s ease;
-  position: relative;
-  z-index: 1;
-}
-.step-connector.filled {
-  background: var(--los-green);
-  opacity: .45;
-}
-
-/* ── Right column: step info ── */
-.stepper-info-btn {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  padding: 6px 10px 10px;
-  text-align: left;
-  cursor: pointer;
-  transition: all .18s ease;
-  font-family: inherit;
-  margin-bottom: 8px; /* matches connector spacing */
-  color: inherit;
-}
-.stepper-info-btn:hover {
-  background: var(--los-blue-tint);
-  border-color: var(--los-border-soft);
-}
-.stepper-info-btn.active {
-  background: linear-gradient(135deg, #f5f9ff, #edf4ff);
-  border-color: rgba(21,87,168,.2);
-  box-shadow: 0 2px 8px rgba(15,45,94,.07);
-}
-
-.stepper-info-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 3px;
-}
-.stepper-step-title {
-  font-size: 13px;
-  font-weight: 740;
-  color: var(--los-text);
-  line-height: 1.3;
-}
-.stepper-info-btn.not-started .stepper-step-title { color: var(--los-muted); }
-.stepper-active-arrow { color: var(--los-blue); display: flex; }
-.stepper-step-desc {
-  display: block;
-  font-size: 11px;
-  color: var(--los-soft);
-  font-weight: 500;
-  line-height: 1.4;
-  margin-bottom: 6px;
-}
-
-/* ═══════════════════════════════════════════════════
-   STATUS PILLS
-═══════════════════════════════════════════════════ */
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 20px;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 10px;
-  font-weight: 750;
-  line-height: 1;
-  letter-spacing: .03em;
-  border: 1px solid transparent;
-}
-.status-pill.large { min-height: 26px; padding: 5px 11px; font-size: 11px; border-radius: 8px; }
-.status-pill.completed  { background: var(--los-green-bg); color: var(--los-green); border-color: rgba(26,122,66,.15); }
-.status-pill.in-progress,
-.status-pill.pending    { background: var(--los-amber-bg); color: var(--los-amber); border-color: rgba(146,82,7,.15); }
-.status-pill.not-started{ background: var(--los-blue-light); color: var(--los-muted); border-color: rgba(77,104,130,.12); }
-.status-pill.needs-rework,
-.status-pill.blocked    { background: var(--los-red-bg); color: var(--los-red); border-color: rgba(176,35,24,.15); }
-
-/* ═══════════════════════════════════════════════════
-   CENTER: STEP CONTENT
-═══════════════════════════════════════════════════ */
-.app-step-content { min-width: 0; }
-
-.step-body-card {
-  background: #fff;
-  border: 1px solid var(--los-border-soft);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  min-height: 560px;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Merged header at top of body card — no separate card needed */
-.step-card-header {
-  padding: 20px 22px 16px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex: 0 0 auto;
-}
-.step-card-header-left { min-width: 0; }
-.step-card-breadcrumb {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--los-soft);
-  letter-spacing: .02em;
-  margin-bottom: 7px;
-}
-.step-card-breadcrumb-sep {
-  color: var(--los-border);
-  font-weight: 400;
-  margin: 0 1px;
-}
-.step-card-title {
-  margin: 0 0 4px;
-  font-size: 19px;
-  font-weight: 720;
-  color: var(--los-text);
-  letter-spacing: -.3px;
-  line-height: 1.2;
-}
-.step-card-desc {
-  margin: 0;
-  color: var(--los-soft);
-  font-size: 12.5px;
-  font-weight: 400;
-  line-height: 1.5;
-}
-.step-card-divider {
-  height: 1px;
-  background: var(--los-border-soft);
-  flex: 0 0 auto;
-}
-.step-card-body {
-  flex: 1;
-  padding: 20px 22px;
-}
-
-/* ═══════════════════════════════════════════════════
-   RIGHT: VALIDATION PANEL
-═══════════════════════════════════════════════════ */
-.validation-panel {
-  position: sticky;
-  top: 80px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.validation-card {
-  background: #fff;
-  border: 1px solid var(--los-border-soft);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xs);
-  padding: 14px 16px;
-  overflow: hidden;
-}
-.validation-card.warning { background: linear-gradient(160deg, #fff 70%, #fffcf5 100%); }
-.validation-card.info { background: linear-gradient(160deg, #fff 70%, #f5f9ff 100%); }
-
-.validation-card-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding-bottom: 12px;
-  margin-bottom: 0;
-  border-bottom: 1px solid var(--los-border-soft);
-}
-.validation-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-}
-.validation-icon.success { background: var(--los-green-bg); color: var(--los-green); }
-.validation-icon.warning { background: var(--los-amber-bg); color: var(--los-amber); }
-.validation-icon.info    { background: var(--los-info-bg); color: var(--los-info); }
-
-.validation-card h3 { margin: 0 0 2px; font-size: 13.5px; font-weight: 760; color: var(--los-text); }
-.validation-card p  { margin: 0; font-size: 11px; font-weight: 500; color: var(--los-muted); }
-
-.validation-list {
-  list-style: none;
-  padding: 10px 0 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.validation-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--los-text);
-  line-height: 1.35;
-}
-.val-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
-.val-icon.success { background: var(--los-green-bg); color: var(--los-green); }
-.val-icon.warning { background: var(--los-amber-bg); color: var(--los-amber); }
-
-/* Info grid */
-.info-grid {
-  padding-top: 10px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 12px;
-}
-.info-grid-item { display: flex; flex-direction: column; gap: 2px; }
-.info-grid-item span { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--los-soft); }
-.info-grid-item strong { font-size: 12px; font-weight: 720; color: var(--los-text); }
-
-/* ═══════════════════════════════════════════════════
-   BOTTOM ACTION BAR
-═══════════════════════════════════════════════════ */
-.application-action-bar {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 60;
-  height: 68px;
-  padding: 0 24px;
-  background: rgba(255,255,255,.96);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid var(--los-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  box-shadow: 0 -6px 20px rgba(15,33,64,.08);
-}
-.footer-status {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.footer-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--los-green-mid);
-  flex: 0 0 auto;
-  box-shadow: 0 0 0 3px var(--los-green-bg);
-  animation: pulse-dot 3s ease-in-out infinite;
-}
-@keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 3px var(--los-green-bg); }
-  50%       { box-shadow: 0 0 0 5px rgba(37,160,90,.15); }
-}
-.application-action-bar strong {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--los-text);
-  white-space: nowrap;
-}
-.footer-actions { display: flex; align-items: center; gap: 8px; }
-
-/* ═══════════════════════════════════════════════════
-   STEP PLACEHOLDER (for sub-pages that haven't been built)
-═══════════════════════════════════════════════════ */
-.step-placeholder {
-  min-height: 320px;
-  border: 1.5px dashed var(--los-border);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 36px;
-}
-.step-placeholder-tag {
-  width: fit-content;
-  margin-bottom: 14px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--los-blue-light);
-  color: var(--los-blue);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-.step-placeholder h3 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 780;
-  color: var(--los-text);
-  letter-spacing: -.4px;
-}
-.step-placeholder p {
-  max-width: 600px;
-  margin: 10px 0 0;
-  color: var(--los-muted);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.65;
-}
-
-/* ═══════════════════════════════════════════════════
-   RESPONSIVE — 1280px
-═══════════════════════════════════════════════════ */
-@media (max-width: 1280px) {
-  .application-summary-card {
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  // ── 404 guard ─────────────────────────────────────────────────────────────
+  if (!lead) {
+    return (
+      <div className="app-onboarding-page">
+        <header className="app-onboarding-topbar">
+          <div className="app-topbar-left">
+            <button className="back-button" type="button" onClick={handleBack}><BackIcon /></button>
+            <div><h1>Application Onboarding</h1></div>
+          </div>
+        </header>
+        <main className="app-onboarding-shell">
+          <p style={{ padding: "2rem" }}>Lead not found. The lead with ID &quot;{leadId}&quot; does not exist.</p>
+        </main>
+      </div>
+    );
   }
-  .summary-item {
-    border-right: none;
-    border-bottom: 1px solid var(--los-border-soft);
-    padding-bottom: 12px;
-  }
-  .summary-item:nth-child(3) { border-bottom: none; }
-  .summary-progress { grid-column: span 3; border-top: 1px solid var(--los-border-soft); padding-top: 12px; }
-  .app-workspace { grid-template-columns: 272px minmax(0,1fr); }
-  .validation-panel { grid-column: 1 / -1; position: static; display: grid; grid-template-columns: repeat(3,1fr); }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="app-onboarding-page">
+
+      {/* ─── Top Bar ─── */}
+      <header className="app-onboarding-topbar">
+        <div className="app-topbar-left">
+          <button className="back-button" type="button" onClick={handleBack}><BackIcon /></button>
+          <div className="topbar-brand">
+            <h1>Application Onboarding</h1>
+            <p className="topbar-subtitle">
+              {application?.applicantName || "Aarav Mehta"}
+              <span className="topbar-dot" />
+              {application?.product || "Home Loan"}
+              <span className="topbar-dot" />
+              {application?.id || "APP-2026-000184"}
+            </p>
+          </div>
+        </div>
+        <div className="app-topbar-right">
+          <div className="topbar-progress-chip">
+            <div className="topbar-progress-track">
+              <div className="topbar-progress-fill" style={{ width: `${progressPercent}%` }} />
+            </div>
+            <span className="topbar-progress-label">{completedCount} of {STEPS.length} steps</span>
+          </div>
+          <div className="topbar-divider" />
+          <div className="app-topbar-actions">
+            <button className="secondary-button" type="button"><SaveIcon /> Save Draft</button>
+            <button className="primary-button" type="button" onClick={saveAndContinue} disabled={isLastStep && activeStatus === "Completed"}>
+              {isLastStep ? "Complete" : "Continue"} <ChevronRightIcon />
+            </button>
+            <button className="record-action-logout" type="button" onClick={handleLogout}><LogoutIcon /> Sign Out</button>
+          </div>
+        </div>
+      </header>
+
+      <main className="app-onboarding-shell">
+
+        {/* ─── Summary Strip ─── */}
+        <section className="application-summary-card">
+          {stepStats.map((item) => (
+            <div className="summary-item" key={item.label}>
+              <span className="summary-label">{item.label}</span>
+              <strong className="summary-value">{item.value}</strong>
+            </div>
+          ))}
+          <div className="summary-progress">
+            <div className="summary-progress-top">
+              <span className="summary-label">Completion</span>
+              <strong className="summary-value">{completedCount} / {STEPS.length} steps</strong>
+            </div>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${progressPercent}%` }}>
+                <span className="progress-pct-label">{progressPercent}%</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── Workspace ─── */}
+        <section className="app-workspace">
+
+          {/* ── Left: Vertical Stepper ── */}
+          <aside className="app-stepper-panel">
+            <div className="stepper-panel-header">
+              <h2 className="stepper-panel-title">Application Steps</h2>
+              <span className="stepper-panel-count">{completedCount}/{STEPS.length} done</span>
+            </div>
+
+            <div className="stepper-timeline">
+              {STEPS.map((step, index) => {
+                const status      = stepStatuses[step.id];
+                const isActive    = step.id === activeStepId;
+                const isCompleted = status === "Completed";
+                const isLast      = index === STEPS.length - 1;
+                const statusClass = STATUS_CLASS[status] ?? "not-started";
+                // Connector fills green when this step is complete
+                const connClass   = !isLast && isCompleted ? "filled" : "";
+
+                return (
+                  <div key={step.id} className={`stepper-row ${isActive ? "active" : ""}`}>
+                    {/* Circle node + vertical connector */}
+                    <div className="stepper-track-col">
+                      <button
+                        type="button"
+                        className={`step-node ${statusClass} ${isActive ? "active" : ""}`}
+                        onClick={() => goToStep(step.id)}
+                        aria-label={`Go to ${step.title}`}
+                      >
+                        {isActive && !isCompleted && <span className="step-node-pulse" />}
+                        {isCompleted
+                          ? <span className="step-node-check"><CheckIcon /></span>
+                          : <span className="step-node-number">{step.number}</span>
+                        }
+                      </button>
+                      {!isLast && <div className={`step-connector ${connClass}`} />}
+                    </div>
+
+                    {/* Step info button */}
+                    <button
+                      type="button"
+                      className={`stepper-info-btn ${isActive ? "active" : ""} ${statusClass}`}
+                      onClick={() => goToStep(step.id)}
+                    >
+                      <div className="stepper-info-top">
+                        <strong className="stepper-step-title">{step.title}</strong>
+                        {isActive && <span className="stepper-active-arrow"><ChevronRightIcon /></span>}
+                      </div>
+                      <span className="stepper-step-desc">{step.description}</span>
+                      <span className={`status-pill ${statusClass}`}>{status}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* ── Center: Step Content ── */}
+          <section className="app-step-content">
+            <div className="step-body-card">
+              <div className="step-card-header">
+                <div className="step-card-header-left">
+                  <span className="step-card-breadcrumb">
+                    Step {activeStep.number}
+                    <span className="step-card-breadcrumb-sep">/</span>
+                    {STEPS.length}
+                  </span>
+                  <h2 className="step-card-title">{activeStep.title}</h2>
+                  <p className="step-card-desc">{activeStep.description}</p>
+                </div>
+                <span className={`status-pill ${STATUS_CLASS[activeStatus] ?? "not-started"}`}>
+                  {activeStatus}
+                </span>
+              </div>
+              <div className="step-card-divider" />
+              <div className="step-card-body">
+                <ActiveStepComponent />
+              </div>
+            </div>
+          </section>
+
+          {/* ── Right: Validation Panel ── */}
+          <aside className="validation-panel">
+            <div className="validation-card">
+              <div className="validation-card-header">
+                <span className="validation-icon success"><CheckIcon /></span>
+                <div>
+                  <h3>Ready Checks</h3>
+                  <p>{completedCount} step{completedCount !== 1 ? "s" : ""} completed</p>
+                </div>
+              </div>
+              <ul className="validation-list">
+                <li><span className="val-icon success"><CheckIcon /></span>Mobile number verified</li>
+                <li><span className="val-icon success"><CheckIcon /></span>Primary applicant captured</li>
+                <li><span className="val-icon success"><CheckIcon /></span>Product selected</li>
+              </ul>
+            </div>
+
+            <div className="validation-card warning">
+              <div className="validation-card-header">
+                <span className="validation-icon warning"><AlertIcon /></span>
+                <div>
+                  <h3>Pending Items</h3>
+                  <p>Required before final submission</p>
+                </div>
+              </div>
+              <ul className="validation-list warning">
+                <li><span className="val-icon warning"><AlertIcon /></span>PAN verification pending</li>
+                <li><span className="val-icon warning"><AlertIcon /></span>Income documents missing</li>
+                <li><span className="val-icon warning"><AlertIcon /></span>Eligibility not calculated</li>
+              </ul>
+            </div>
+
+            <div className="validation-card info">
+              <div className="validation-card-header">
+                <span className="validation-icon info">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Application Info</h3>
+                  <p>Current session details</p>
+                </div>
+              </div>
+              <div className="info-grid">
+                <div className="info-grid-item"><span>Branch</span><strong>Mumbai Central</strong></div>
+                <div className="info-grid-item"><span>RM</span><strong>{application?.owner || "Priya Sharma"}</strong></div>
+                <div className="info-grid-item"><span>Created</span><strong>{application?.createdDate || "07 May 2026"}</strong></div>
+                <div className="info-grid-item"><span>Source</span><strong>{application?.source || "Direct"}</strong></div>
+              </div>
+            </div>
+          </aside>
+
+        </section>
+      </main>
+
+      {/* ─── Bottom Action Bar ─── */}
+      <footer className="application-action-bar">
+        <div className="footer-status">
+          <span className="footer-status-dot" />
+          <div>
+            <strong>
+              {completedCount === STEPS.length
+                ? "All steps complete — ready to submit"
+                : `${STEPS.length - completedCount} step${STEPS.length - completedCount !== 1 ? "s" : ""} remaining`}
+            </strong>
+          </div>
+        </div>
+        <div className="footer-actions">
+          <button className="secondary-button" type="button" onClick={previousStep} disabled={activeStepIndex === 0}>
+            ← Previous
+          </button>
+          <button className="secondary-button" type="button"><SaveIcon /> Save Draft</button>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={saveAndContinue}
+            disabled={isLastStep && activeStatus === "Completed"}
+          >
+            {isLastStep ? "Mark Complete" : "Save & Continue"} {!isLastStep && <ChevronRightIcon />}
+          </button>
+        </div>
+      </footer>
+
+    </div>
+  );
 }
 
-/* ═══════════════════════════════════════════════════
-   RESPONSIVE — 980px
-═══════════════════════════════════════════════════ */
-@media (max-width: 980px) {
-  .app-onboarding-topbar { height: auto; padding: 14px 20px; flex-wrap: wrap; }
-  .app-topbar-right { flex-wrap: wrap; gap: 10px; }
-  .topbar-divider { display: none; }
-  .application-action-bar { height: auto; padding: 14px 20px; flex-direction: column; align-items: flex-start; }
-  .footer-actions { width: 100%; flex-wrap: wrap; }
-  .app-workspace { grid-template-columns: 1fr; }
-  .app-stepper-panel { position: static; max-height: none; }
-  .stepper-timeline { max-height: 360px; overflow-y: auto; }
-  .validation-panel { position: static; grid-template-columns: 1fr 1fr; }
-  .application-summary-card { grid-template-columns: repeat(2, 1fr); }
-  .summary-progress { grid-column: span 2; }
-}
-
-/* ═══════════════════════════════════════════════════
-   RESPONSIVE — 640px
-═══════════════════════════════════════════════════ */
-@media (max-width: 640px) {
-  .app-onboarding-shell { padding: 14px 16px; }
-  .app-onboarding-topbar { padding: 14px 16px; }
-  .application-summary-card { grid-template-columns: 1fr; }
-  .summary-progress { grid-column: auto; }
-  .step-content-header { flex-direction: column; }
-  .primary-button, .secondary-button { width: 100%; justify-content: center; }
-  .validation-panel { grid-template-columns: 1fr; }
-  .app-onboarding-topbar h1 { font-size: 18px; }
-}
+export default ApplicationOnboardingPage;

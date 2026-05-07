@@ -361,11 +361,19 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   /*
-   * Fixed height so the panel always ends visibly above the footer.
-   * Breakdown: 100vh - sticky-top(80) - footer-height(68) - bottom-gap(16)
+   * max-height (no fixed height) so the panel never overflows the footer
+   * in either its natural OR sticky position.
+   *
+   * Natural position sits ~180px down the page
+   * (topbar 64 + shell-pad 20 + summary-card ~96).
+   * To keep the bottom edge above the footer (68px) with a 16px gap:
+   *   max-bottom = 100vh - 68 - 16 = 100vh - 84
+   *   max-height = (100vh - 84) - 180 = 100vh - 264  → round to 260
+   *
+   * When sticky (top: 80px) this gives extra clearance above the footer,
+   * which is fine — the timeline scrolls inside.
    */
-  height: calc(100vh - 164px);
-  max-height: calc(100vh - 164px);
+  max-height: calc(100vh - 260px);
   display: flex;
   flex-direction: column;
 }
@@ -395,6 +403,7 @@
 /* ── Timeline list ── */
 .stepper-timeline {
   flex: 1;
+  min-height: 0; /* flex items default to min-height:auto which prevents shrinking */
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px 14px 16px 16px;

@@ -20,6 +20,14 @@ const BackIcon = () => (
   </svg>
 );
 
+const LogoutIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
 const SaveIcon = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.1">
     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
@@ -241,8 +249,8 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
     navigate(`/leads/${leadId}`);
   };
 
-  const handleLogout = () => {
-    onLogout();
+  const handleLogout = async () => {
+    await onLogout();
     navigate("/login", { replace: true });
   };
 
@@ -304,8 +312,8 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
           <button className="primary-button" type="button" onClick={nextStep}>
             Continue
           </button>
-          <button className="secondary-button" type="button" onClick={handleLogout}>
-            Logout
+          <button className="record-action-logout" type="button" onClick={handleLogout}>
+            <LogoutIcon /> Sign Out
           </button>
         </div>
       </header>

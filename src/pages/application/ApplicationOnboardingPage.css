@@ -160,6 +160,30 @@
   transform: none;
 }
 
+.record-action-logout {
+  height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9px;
+  border: 1px solid var(--los-border);
+  background: var(--los-card);
+  color: var(--los-muted);
+  font-size: 12px;
+  font-weight: 650;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--los-shadow-card);
+  transition: all 0.15s;
+}
+
+.record-action-logout:hover {
+  background: var(--los-red-bg);
+  border-color: rgba(192, 57, 43, 0.25);
+  color: var(--los-red);
+}
+
 .app-onboarding-shell {
   padding: 22px 24px;
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import "./ApplicationOnboardingPage.css";
 
 import CustomerIdentityPage from "./CustomerIdentityPage";
@@ -190,8 +191,32 @@ const statusClassMap = {
   Blocked: "blocked",
 };
 
-function ApplicationOnboardingPage({ application, lead, onBack }) {
+function ApplicationOnboardingPage({ leads, onLogout }) {
+  const navigate = useNavigate();
+  const { leadId } = useParams();
+
   const [activeStepId, setActiveStepId] = useState("customer-identity");
+
+  const lead = leads.find((l) => l.id === leadId);
+
+  const application = lead
+    ? {
+        id: `APP-${lead.id.replace("LD-", "")}`,
+        leadId: lead.id,
+        applicantName: `${lead.firstName} ${lead.lastName}`,
+        mobile: lead.mobile,
+        product: lead.product,
+        source: lead.source,
+        owner: lead.owner,
+        requestedAmount: "₹42,00,000",
+        status: "Application In Progress",
+        createdDate: new Date().toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+      }
+    : null;
 
   const activeStepIndex = steps.findIndex((step) => step.id === activeStepId);
   const activeStep = steps[activeStepIndex] || steps[0];
@@ -212,28 +237,53 @@ function ApplicationOnboardingPage({ application, lead, onBack }) {
     }
   };
 
+  const handleBack = () => {
+    navigate(`/leads/${leadId}`);
+  };
+
+  const handleLogout = () => {
+    onLogout();
+    navigate("/login", { replace: true });
+  };
+
   const stepStats = useMemo(
     () => [
       { label: "Application No.", value: application?.id || "APP-2026-000184" },
-      { label: "Lead No.", value: application?.leadId || lead?.id || "LD-2026-00491" },
-      {
-        label: "Applicant",
-        value:
-          application?.applicantName ||
-          `${lead?.firstName || "Aarav"} ${lead?.lastName || "Mehta"}`,
-      },
-      { label: "Product", value: application?.product || lead?.product || "Home Loan" },
+      { label: "Lead No.", value: application?.leadId || "LD-2026-00491" },
+      { label: "Applicant", value: application?.applicantName || "Aarav Mehta" },
+      { label: "Product", value: application?.product || "Home Loan" },
       { label: "Requested Amount", value: application?.requestedAmount || "₹42,00,000" },
       { label: "Stage", value: application?.status || "Application In Progress" },
     ],
-    [application, lead]
+    [application]
   );
+
+  if (!lead) {
+    return (
+      <div className="app-onboarding-page">
+        <header className="app-onboarding-topbar">
+          <div className="app-topbar-left">
+            <button className="back-button" type="button" onClick={handleBack}>
+              <BackIcon />
+            </button>
+            <div>
+              <div className="eyebrow">Post Conversion Journey</div>
+              <h1>Application Onboarding</h1>
+            </div>
+          </div>
+        </header>
+        <main className="app-onboarding-shell">
+          <p style={{ padding: "2rem" }}>Lead not found. The lead with ID &quot;{leadId}&quot; does not exist.</p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="app-onboarding-page">
       <header className="app-onboarding-topbar">
         <div className="app-topbar-left">
-          <button className="back-button" type="button" onClick={onBack}>
+          <button className="back-button" type="button" onClick={handleBack}>
             <BackIcon />
           </button>
 
@@ -253,6 +303,9 @@ function ApplicationOnboardingPage({ application, lead, onBack }) {
           </button>
           <button className="primary-button" type="button" onClick={nextStep}>
             Continue
+          </button>
+          <button className="secondary-button" type="button" onClick={handleLogout}>
+            Logout
           </button>
         </div>
       </header>

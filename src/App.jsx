@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import LeadDetailPage from "./pages/LeadDetailPage";
@@ -64,62 +65,28 @@ const initialLeads = [
   },
 ];
 
+function PrivateRoute({ isLoggedIn, children }) {
+  return isLoggedIn ? children : <Navigate to="/login" replace />;
+}
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentPage, setCurrentPage] = useState("dashboard");
-  const [selectedLead, setSelectedLead] = useState(null);
-  const [selectedApplication, setSelectedApplication] = useState(null);
   const [leads, setLeads] = useState(initialLeads);
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
-    setCurrentPage("dashboard");
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
-    setCurrentPage("dashboard");
-    setSelectedLead(null);
-    setSelectedApplication(null);
-  };
-
-  const handleOpenLeadDetails = (lead) => {
-    setSelectedLead(lead);
-    setSelectedApplication(null);
-    setCurrentPage("leadDetail");
-  };
-
-  const handleBackToDashboard = () => {
-    setCurrentPage("dashboard");
-    setSelectedLead(null);
-    setSelectedApplication(null);
   };
 
   const handleCreateLead = (newLead) => {
     setLeads((previousLeads) => [newLead, ...previousLeads]);
-    setSelectedLead(newLead);
-    setSelectedApplication(null);
-    setCurrentPage("leadDetail");
+    return newLead.id;
   };
 
   const handleConvertLead = (lead) => {
-    const application = {
-      id: `APP-${lead.id.replace("LD-", "")}`,
-      leadId: lead.id,
-      applicantName: `${lead.firstName} ${lead.lastName}`,
-      mobile: lead.mobile,
-      product: lead.product,
-      source: lead.source,
-      owner: lead.owner,
-      requestedAmount: "₹42,00,000",
-      status: "Application In Progress",
-      createdDate: new Date().toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-    };
-
     setLeads((previousLeads) =>
       previousLeads.map((item) =>
         item.id === lead.id
@@ -130,54 +97,83 @@ function App() {
           : item
       )
     );
-
-    setSelectedLead({
-      ...lead,
-      status: "Converted",
-    });
-
-    setSelectedApplication(application);
-    setCurrentPage("applicationOnboarding");
   };
-
-  const handleBackToLeadDetail = () => {
-    setCurrentPage("leadDetail");
-  };
-
-  if (!isLoggedIn) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  if (currentPage === "applicationOnboarding" && selectedApplication) {
-    return (
-      <ApplicationOnboardingPage
-        application={selectedApplication}
-        lead={selectedLead}
-        onBack={handleBackToLeadDetail}
-        onLogout={handleLogout}
-      />
-    );
-  }
-
-  if (currentPage === "leadDetail" && selectedLead) {
-    return (
-      <LeadDetailPage
-        key={selectedLead.id}
-        lead={selectedLead}
-        onBack={handleBackToDashboard}
-        onLogout={handleLogout}
-        onConvertLead={handleConvertLead}
-      />
-    );
-  }
 
   return (
-    <DashboardPage
-      leads={leads}
-      onCreateLead={handleCreateLead}
-      onLogout={handleLogout}
-      onOpenLeadDetails={handleOpenLeadDetails}
-    />
+    <BrowserRouter>
+      <Routes>
+        {/* Root redirect */}
+        <Route
+          path="/"
+          element={
+            isLoggedIn ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        {/* Login */}
+        <Route
+          path="/login"
+          element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
+        />
+
+        {/* Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute isLoggedIn={isLoggedIn}>
+              <DashboardPage
+                leads={leads}
+                onCreateLead={handleCreateLead}
+                onLogout={handleLogout}
+              />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Lead Detail */}
+        <Route
+          path="/leads/:leadId"
+          element={
+            <PrivateRoute isLoggedIn={isLoggedIn}>
+              <LeadDetailPage
+                leads={leads}
+                onLogout={handleLogout}
+                onConvertLead={handleConvertLead}
+              />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Application Onboarding */}
+        <Route
+          path="/applications/:leadId/onboarding"
+          element={
+            <PrivateRoute isLoggedIn={isLoggedIn}>
+              <ApplicationOnboardingPage
+                leads={leads}
+                onLogout={handleLogout}
+              />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Catch-all redirect */}
+        <Route
+          path="*"
+          element={
+            isLoggedIn ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

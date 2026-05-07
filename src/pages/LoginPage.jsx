@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 
 function LoginPage({ onLoginSuccess }) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -19,6 +21,7 @@ function LoginPage({ onLoginSuccess }) {
     event.preventDefault();
     console.log("Login submitted", formData);
     onLoginSuccess();
+    navigate("/dashboard", { replace: true });
   };
 
   return (

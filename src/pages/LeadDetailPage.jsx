@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import "./LeadDetailPage.css";
 
 /* ══ SVG ICONS ══ */
@@ -680,8 +681,12 @@ function DocumentRow({ doc, onDelete }) {
 }
 
 /* ══ MAIN COMPONENT ══ */
-function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
-  const initialData = buildLeadDetails(lead);
+function LeadDetailPage({ leads, onLogout, onConvertLead }) {
+  const navigate = useNavigate();
+  const { leadId } = useParams();
+  const lead = leads.find(l => l.id === leadId);
+
+  const initialData = lead ? buildLeadDetails(lead) : {};
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [leadStatus, setLeadStatus] = useState(initialData.leadStage);
@@ -696,8 +701,23 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
   const [uploadedDocs, setUploadedDocs] = useState([]);
   const fileInputRef = useRef(null);
 
+  if (!lead) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", gap: "16px", fontFamily: "inherit" }}>
+        <h2 style={{ fontSize: "1.5rem", color: "#1e3a5f" }}>Lead Not Found</h2>
+        <p style={{ color: "#6b7280" }}>No lead found with ID <strong>{leadId}</strong>.</p>
+        <button
+          style={{ padding: "10px 24px", background: "#1e5fa5", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.95rem" }}
+          onClick={() => navigate("/dashboard")}
+        >
+          ← Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
   useEffect(() => {
-    try { localStorage.setItem(`lead_json_${leadData.leadNumber}`, JSON.stringify(leadData)); } catch(e){}
+    /* intentionally no localStorage per routing contract */
   }, [leadData]);
 
   const handleFieldEdit = (key,val) => { setSectionEditMode(null); setEditingField({key,value:val}); };
@@ -740,7 +760,9 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
     const c={...lead,...leadData,id:leadData.leadNumber,status:"Converted",leadStage:"Converted",loanFileStatus:"Application In Progress"};
     setLeadStatus("Converted"); setLeadData(p=>({...p,leadStage:"Converted",loanFileStatus:"Application In Progress"}));
     addActivity({type:"status",title:"Lead Converted to Loan Application",desc:"New loan file initiated."});
-    setShowModal(null); if(onConvertLead) onConvertLead(c);
+    setShowModal(null);
+    if(onConvertLead) onConvertLead(c);
+    navigate(`/applications/${leadId}/onboarding`);
   };
   const handleStatusStep = (step) => {
     if(step===leadStatus) return;
@@ -788,7 +810,7 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
         </button>
         <nav className="sidebar-nav">
           {navItems.map(item=>(
-            <button key={item.label} className={`nav-item${item.active?" active":""}`} onClick={item.isBack?onBack:undefined} title={item.label} data-label={item.label}>
+            <button key={item.label} className={`nav-item${item.active?" active":""}`} onClick={item.isBack?()=>navigate("/dashboard"):undefined} title={item.label} data-label={item.label}>
               <span className="nav-icon">{item.icon}</span><span className="nav-label">{item.label}</span>
             </button>
           ))}
@@ -809,7 +831,7 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
         {/* TOPBAR */}
         <header className="record-topbar">
           <div className="record-topbar-left">
-            <button className="back-btn" onClick={onBack}><BackIcon /> Back to Dashboard</button>
+            <button className="back-btn" onClick={()=>navigate("/dashboard")}><BackIcon /> Back to Dashboard</button>
             <div className="record-title-row">
               <div className="record-avatar">{leadData.firstName?.charAt(0)}{leadData.lastName?.charAt(0)}</div>
               <div style={{flex:1,minWidth:0}}>
@@ -837,10 +859,10 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
             </div>
           </div>
           <div className="record-actions">
-            <button className="record-action-logout" onClick={onLogout}><LogoutIcon /> Sign Out</button>
+            <button className="record-action-logout" onClick={()=>{onLogout();navigate("/login",{replace:true});}}><LogoutIcon /> Sign Out</button>
             {leadStatus!=="Disqualified"&&leadStatus!=="Converted"&&<button className="record-action-danger" onClick={()=>setShowModal("disqualify")}><BanIcon /> Disqualify</button>}
             {leadStatus!=="Converted"&&leadStatus!=="Disqualified"&&<button className="record-action-success" onClick={()=>setShowModal("convert")}><CheckIcon /> Convert Lead</button>}
-            {leadStatus==="Converted"&&<button className="record-action-success" onClick={()=>onConvertLead&&onConvertLead({...lead,...leadData,status:"Converted"})}><CheckIcon /> Open Application</button>}
+            {leadStatus==="Converted"&&<button className="record-action-success" onClick={()=>navigate(`/applications/${leadId}/onboarding`)}><CheckIcon /> Open Application</button>}
             {leadStatus==="Disqualified"&&<button className="record-action-outline" onClick={()=>handleStatusStep("New")}>↩ Reset to New</button>}
           </div>
         </header>
@@ -978,7 +1000,7 @@ function LeadDetailPage({ lead, onBack, onLogout, onConvertLead }) {
                   <button className="quick-btn qa-task" onClick={()=>openActionPanel("task")}>✅ Create Task</button>
                   <button className="quick-btn qa-email" onClick={()=>openActionPanel("email")}>✉️ Send Email</button>
                   <button className="quick-btn qa-note" onClick={()=>openActionPanel("notes")}>📝 Add Note</button>
-                  <button className="quick-btn qa-convert" onClick={()=>{if(leadStatus==="Converted"){onConvertLead&&onConvertLead({...lead,...leadData,status:"Converted"});return;}setShowModal("convert");}} disabled={leadStatus==="Disqualified"}>
+                  <button className="quick-btn qa-convert" onClick={()=>{if(leadStatus==="Converted"){navigate(`/applications/${leadId}/onboarding`);return;}setShowModal("convert");}} disabled={leadStatus==="Disqualified"}>
                     {leadStatus==="Converted"?"Open Application":"Convert Lead"}
                   </button>
                 </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./DashboardPage.css";
 
 /* ── Inline SVG Icons ───────────────────────────────────────── */
@@ -103,7 +104,8 @@ const navItems = [
 
 /* ── Component ──────────────────────────────────────────────── */
 
-function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
+function DashboardPage({ leads, onCreateLead, onLogout }) {
+  const navigate = useNavigate();
   const [selectedListView,   setSelectedListView]   = useState("All Leads");
   const [isCreatePanelOpen,  setIsCreatePanelOpen]  = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -152,7 +154,8 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
     };
     setSelectedListView("All Leads");
     handleCloseCreatePanel();
-    onCreateLead(newLead);
+    const newLeadId = onCreateLead(newLead);
+    navigate(`/leads/${newLeadId}`);
   };
 
   return (
@@ -234,7 +237,7 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
             {/* Logout */}
             <button
               className="logout-button"
-              onClick={onLogout}
+              onClick={() => { onLogout(); navigate("/login", { replace: true }); }}
               title="Sign out"
               aria-label="Sign out"
             >
@@ -347,7 +350,7 @@ function DashboardPage({ leads, onCreateLead, onLogout, onOpenLeadDetails }) {
                   {filteredLeads.map((lead) => (
                     <tr key={lead.id}>
                       <td>
-                        <button type="button" className="lead-link-button" onClick={() => onOpenLeadDetails(lead)}>
+                        <button type="button" className="lead-link-button" onClick={() => navigate(`/leads/${lead.id}`)}>
                           {lead.id}
                         </button>
                       </td>

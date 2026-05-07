@@ -171,25 +171,22 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
         <div className="app-topbar-left">
           <button className="back-button" type="button" onClick={handleBack}><BackIcon /></button>
           <div className="topbar-brand">
-            <div className="eyebrow">Post Conversion Journey</div>
             <h1>Application Onboarding</h1>
-            <p>Complete the application file, verify required details and prepare the case for review.</p>
+            <p className="topbar-subtitle">
+              {application?.applicantName || "Aarav Mehta"}
+              <span className="topbar-dot" />
+              {application?.product || "Home Loan"}
+              <span className="topbar-dot" />
+              {application?.id || "APP-2026-000184"}
+            </p>
           </div>
         </div>
         <div className="app-topbar-right">
-          <div className="topbar-meta">
-            <span className="topbar-meta-label">Application</span>
-            <span className="topbar-meta-value">{application?.id || "APP-2026-000184"}</span>
-          </div>
-          <div className="topbar-divider" />
-          <div className="topbar-progress-mini">
-            <span className="topbar-meta-label">Progress</span>
-            <div className="topbar-progress-row">
-              <div className="topbar-progress-track">
-                <div className="topbar-progress-fill" style={{ width: `${progressPercent}%` }} />
-              </div>
-              <span className="topbar-progress-pct">{progressPercent}%</span>
+          <div className="topbar-progress-chip">
+            <div className="topbar-progress-track">
+              <div className="topbar-progress-fill" style={{ width: `${progressPercent}%` }} />
             </div>
+            <span className="topbar-progress-label">{completedCount} of {steps.length} steps</span>
           </div>
           <div className="topbar-divider" />
           <div className="app-topbar-actions">
@@ -228,15 +225,8 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
           {/* ── Left: Vertical Stepper ── */}
           <aside className="app-stepper-panel">
             <div className="stepper-panel-header">
-              <div className="stepper-panel-title">
-                <span className="eyebrow">Application Journey</span>
-                <h2>Steps Overview</h2>
-              </div>
-              <div className="stepper-badge">
-                <span className="stepper-badge-done">{completedCount}</span>
-                <span className="stepper-badge-sep">/</span>
-                <span className="stepper-badge-total">{steps.length}</span>
-              </div>
+              <h2 className="stepper-panel-title">Application Steps</h2>
+              <span className="stepper-panel-count">{completedCount}/{steps.length} done</span>
             </div>
 
             <div className="stepper-timeline">
@@ -290,26 +280,25 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
 
           {/* ── Center: Step Content ── */}
           <section className="app-step-content">
-            <div className="step-content-header">
-              <div className="step-header-left">
-                <div className="step-header-meta">
-                  <span className="step-header-number">Step {activeStep.number}</span>
-                  <span className="step-header-sep">·</span>
-                  <span className="eyebrow" style={{ marginBottom: 0 }}>
-                    {activeStepIndex + 1} of {steps.length}
+            <div className="step-body-card">
+              <div className="step-card-header">
+                <div className="step-card-header-left">
+                  <span className="step-card-breadcrumb">
+                    Step {activeStep.number}
+                    <span className="step-card-breadcrumb-sep">/</span>
+                    {steps.length}
                   </span>
+                  <h2 className="step-card-title">{activeStep.title}</h2>
+                  <p className="step-card-desc">{activeStep.description}</p>
                 </div>
-                <h2 className="step-header-title">{activeStep.title}</h2>
-                <p className="step-header-desc">{activeStep.description}</p>
-              </div>
-              <div className="step-header-right">
-                <span className={`status-pill large ${statusClassMap[activeStep.status]}`}>
+                <span className={`status-pill ${statusClassMap[activeStep.status]}`}>
                   {activeStep.status}
                 </span>
               </div>
-            </div>
-            <div className="step-body-card">
-              <ActiveStepComponent />
+              <div className="step-card-divider" />
+              <div className="step-card-body">
+                <ActiveStepComponent />
+              </div>
             </div>
           </section>
 

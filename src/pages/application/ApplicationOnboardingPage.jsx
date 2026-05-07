@@ -79,6 +79,11 @@ const ChevronRightIcon = () => (
     <path d="m9 18 6-6-6-6" />
   </svg>
 );
+const ChevronLeftIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="m15 18-6-6 6-6" />
+  </svg>
+);
 
 // ─── Step config — NO status here; all status lives in state ─────────────────
 const STEPS = [
@@ -233,13 +238,9 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
             <span className="topbar-progress-label">{completedCount} of {STEPS.length} steps</span>
           </div>
           <div className="topbar-divider" />
-          <div className="app-topbar-actions">
-            <button className="secondary-button" type="button"><SaveIcon /> Save Draft</button>
-            <button className="primary-button" type="button" onClick={saveAndContinue} disabled={isLastStep && activeStatus === "Completed"}>
-              {isLastStep ? "Complete" : "Continue"} <ChevronRightIcon />
-            </button>
-            <button className="record-action-logout" type="button" onClick={handleLogout}><LogoutIcon /> Sign Out</button>
-          </div>
+          <button className="record-action-logout" type="button" onClick={handleLogout}>
+            <LogoutIcon /> Sign Out
+          </button>
         </div>
       </header>
 
@@ -409,19 +410,13 @@ function ApplicationOnboardingPage({ leads, onLogout }) {
 
       {/* ─── Bottom Action Bar ─── */}
       <footer className="application-action-bar">
-        <div className="footer-status">
-          <span className="footer-status-dot" />
-          <div>
-            <strong>
-              {completedCount === STEPS.length
-                ? "All steps complete — ready to submit"
-                : `${STEPS.length - completedCount} step${STEPS.length - completedCount !== 1 ? "s" : ""} remaining`}
-            </strong>
-          </div>
+        <div className="footer-step-info">
+          <span className="footer-step-pos">Step {activeStepIndex + 1} of {STEPS.length}</span>
+          <span className="footer-step-name">{activeStep.title}</span>
         </div>
         <div className="footer-actions">
-          <button className="btn-ghost" type="button" onClick={previousStep} disabled={activeStepIndex === 0}>
-            ← Previous
+          <button className="btn-prev" type="button" onClick={previousStep} disabled={activeStepIndex === 0}>
+            <ChevronLeftIcon /> Previous
           </button>
           <button className="secondary-button" type="button"><SaveIcon /> Save Draft</button>
           <span className="footer-action-sep" />

@@ -159,11 +159,6 @@
   height: 24px;
   background: var(--los-border);
 }
-.app-topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
 /* ═══════════════════════════════════════════════════
    BUTTONS
@@ -207,8 +202,8 @@
   opacity: .45; cursor: not-allowed; transform: none;
 }
 
-/* Ghost button — for low-priority actions like "Previous" */
-.btn-ghost {
+/* Previous step button — outlined, clearly secondary */
+.btn-prev {
   height: 36px;
   border-radius: 9px;
   padding: 0 14px;
@@ -217,20 +212,23 @@
   font-family: inherit;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   cursor: pointer;
   transition: all .15s ease;
   white-space: nowrap;
-  background: transparent;
-  border: none;
+  background: #fff;
+  border: 1px solid var(--los-border);
   color: var(--los-muted);
 }
-.btn-ghost:hover:not(:disabled) {
-  color: var(--los-text);
+.btn-prev:hover:not(:disabled) {
   background: var(--los-bg);
-  border-radius: 9px;
+  border-color: #b8cade;
+  color: var(--los-text);
 }
-.btn-ghost:disabled { opacity: .35; cursor: not-allowed; }
+.btn-prev:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
 .record-action-logout {
   height: 36px;
   padding: 0 12px;
@@ -362,8 +360,12 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  /* stop well above the fixed footer: topbar-offset(80) + footer(68) + gap(20) */
-  max-height: calc(100vh - 168px);
+  /*
+   * Fixed height so the panel always ends visibly above the footer.
+   * Breakdown: 100vh - sticky-top(80) - footer-height(68) - bottom-gap(16)
+   */
+  height: calc(100vh - 164px);
+  max-height: calc(100vh - 164px);
   display: flex;
   flex-direction: column;
 }
@@ -766,30 +768,27 @@
   gap: 18px;
   box-shadow: 0 -6px 20px rgba(15,33,64,.08);
 }
-.footer-status {
+/* Footer left: current step context */
+.footer-step-info {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
-.footer-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--los-green-mid);
-  flex: 0 0 auto;
-  box-shadow: 0 0 0 3px var(--los-green-bg);
-  animation: pulse-dot 3s ease-in-out infinite;
+.footer-step-pos {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--los-soft);
 }
-@keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 3px var(--los-green-bg); }
-  50%       { box-shadow: 0 0 0 5px rgba(37,160,90,.15); }
-}
-.application-action-bar strong {
-  font-size: 12.5px;
-  font-weight: 700;
+.footer-step-name {
+  font-size: 13.5px;
+  font-weight: 650;
   color: var(--los-text);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .footer-actions {
   display: flex;

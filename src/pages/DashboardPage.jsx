@@ -247,7 +247,6 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
       handleCloseCreatePanel();
 
       const newLeadId = onCreateLead ? onCreateLead(newLead) : newLead.id;
-      alert("Lead created successfully");
       navigate(`/leads/${newLeadId}`);
     } catch (err) {
       alert(err.message || "An error occurred while creating the lead");

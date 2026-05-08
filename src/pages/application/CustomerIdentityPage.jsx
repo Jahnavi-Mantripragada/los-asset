@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import "./CustomerIdentityPage.css";
-import { removeUploadedDocument, saveUploadedDocument } from "../../utils/documentStore";
+import {
+  removeUploadedDocument,
+  saveUploadedDocument
+} from "../../utils/documentStore";
+
+/* ── AWS S3 Upload API ─────────────────────────────────────────────── */
+const GENERATE_UPLOAD_URL_API = import.meta.env.VITE_GENERATE_UPLOAD_URL_API;
+
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+
+const ALLOWED_FILE_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png"
+];
 
 /* ── Icons ───────────────────────────────────────────────────────────── */
 const CheckIcon = () => (
@@ -8,60 +22,76 @@ const CheckIcon = () => (
     <path d="M20 6 9 17l-5-5" />
   </svg>
 );
+
 const AlertIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-    <path d="M12 9v4" /><path d="M12 17h.01" />
+    <path d="M12 9v4" />
+    <path d="M12 17h.01" />
   </svg>
 );
+
 const ClockIcon = () => (
   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
   </svg>
 );
+
 const UploadIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <path d="M17 8 12 3 7 8" /><path d="M12 3v12" />
+    <path d="M17 8 12 3 7 8" />
+    <path d="M12 3v12" />
   </svg>
 );
+
 const RefreshIcon = () => (
   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M21 12a9 9 0 0 1-15.2 6.5" />
     <path d="M3 12A9 9 0 0 1 18.2 5.5" />
-    <path d="M18 3v5h-5" /><path d="M6 21v-5h5" />
+    <path d="M18 3v5h-5" />
+    <path d="M6 21v-5h5" />
   </svg>
 );
+
 const ShieldIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     <path d="m9 12 2 2 4-5" />
   </svg>
 );
+
 const ScanIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M4 7V5a1 1 0 0 1 1-1h2" /><path d="M17 4h2a1 1 0 0 1 1 1v2" />
-    <path d="M20 17v2a1 1 0 0 1-1 1h-2" /><path d="M7 20H5a1 1 0 0 1-1-1v-2" />
+    <path d="M4 7V5a1 1 0 0 1 1-1h2" />
+    <path d="M17 4h2a1 1 0 0 1 1 1v2" />
+    <path d="M20 17v2a1 1 0 0 1-1 1h-2" />
+    <path d="M7 20H5a1 1 0 0 1-1-1v-2" />
     <path d="M7 12h10" />
   </svg>
 );
+
 const DocumentIcon = () => (
   <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.4">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-    <path d="M14 2v6h6" /><path d="M16 13H8M16 17H8M10 9H8" />
+    <path d="M14 2v6h6" />
+    <path d="M16 13H8M16 17H8M10 9H8" />
   </svg>
 );
+
 const PencilIcon = () => (
   <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
   </svg>
 );
+
 const SpinnerIcon = () => (
   <svg className="cid-spin-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
-// Smaller, cleaner consent confirmed mark
+
 const ConsentCheckIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.8">
     <path d="M20 6 9 17l-5-5" />
@@ -70,56 +100,142 @@ const ConsentCheckIcon = () => (
 
 /* ── Constants ───────────────────────────────────────────────────────── */
 const OCR_RESULT = {
-  panNumber:   "ABCDE1234F",
-  firstName:   "Rahul",
-  lastName:    "Sharma",
-  fatherName:  "Mahesh Sharma",
-  dateOfBirth: "1992-08-14",
+  panNumber: "ABCDE1234F",
+  firstName: "Rahul",
+  lastName: "Sharma",
+  fatherName: "Mahesh Sharma",
+  dateOfBirth: "1992-08-14"
 };
 
 const VERIFY_SCENARIOS = [
-  { status: "Verified",  variant: "success", headline: "Identity confirmed",        subline: "Name, date of birth and PAN number match NSDL records." },
-  { status: "Mismatch",  variant: "warning", headline: "Name on PAN differs",       subline: `NSDL records show "Rahul Sharma" — the application name does not match. Please review and correct before proceeding.` },
-  { status: "Mismatch",  variant: "warning", headline: "Date of birth mismatch",    subline: "The date of birth on record does not match NSDL data. Confirm with the customer and update before re-submitting." },
-  { status: "NotFound",  variant: "error",   headline: "PAN not found in database", subline: "No records were returned for the entered PAN number. Verify the PAN and ensure the document is legible." },
+  {
+    status: "Verified",
+    variant: "success",
+    headline: "Identity confirmed",
+    subline: "Name, date of birth and PAN number match NSDL records."
+  },
+  {
+    status: "Mismatch",
+    variant: "warning",
+    headline: "Name on PAN differs",
+    subline: `NSDL records show "Rahul Sharma" — the application name does not match. Please review and correct before proceeding.`
+  },
+  {
+    status: "Mismatch",
+    variant: "warning",
+    headline: "Date of birth mismatch",
+    subline: "The date of birth on record does not match NSDL data. Confirm with the customer and update before re-submitting."
+  },
+  {
+    status: "NotFound",
+    variant: "error",
+    headline: "PAN not found in database",
+    subline: "No records were returned for the entered PAN number. Verify the PAN and ensure the document is legible."
+  }
 ];
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 const formatDob = (iso) => {
   if (!iso) return "";
+
   const [y, m, d] = iso.split("-");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
   return `${+d} ${months[+m - 1]} ${y}`;
 };
 
 const buildInitialData = (stepData = {}, lead = {}) => ({
-  consentStatus:         stepData.consentStatus         || "Not Sent",
-  consentLinkSentAt:     stepData.consentLinkSentAt     || "",
-  consentCapturedAt:     stepData.consentCapturedAt     || "",
-  panDocumentName:       stepData.panDocumentName       || "",
-  panDocumentPreview:    stepData.panDocumentPreview    || "",
-  panOcrStatus:          stepData.panOcrStatus          || "Pending",
+  consentStatus: stepData.consentStatus || "Not Sent",
+  consentLinkSentAt: stepData.consentLinkSentAt || "",
+  consentCapturedAt: stepData.consentCapturedAt || "",
+  panDocumentName: stepData.panDocumentName || "",
+  panDocumentPreview: stepData.panDocumentPreview || "",
+  panDocumentS3ObjectKey: stepData.panDocumentS3ObjectKey || "",
+  panOcrStatus: stepData.panOcrStatus || "Pending",
   panVerificationStatus: stepData.panVerificationStatus || "Pending",
-  panNumber:             stepData.panNumber             || "",
-  firstName:             stepData.firstName             || lead.firstName || "",
-  lastName:              stepData.lastName              || lead.lastName  || "",
-  fatherName:            stepData.fatherName            || "",
-  dateOfBirth:           stepData.dateOfBirth           || "",
-  mobileNumber:          stepData.mobileNumber          || lead.mobile   || "",
-  email:                 stepData.email                || "",
-  mobileVerified:        stepData.mobileVerified        || false,
-  emailVerified:         stepData.emailVerified         || false,
-  panVerified:           stepData.panVerified           || false,
-  nsdlReferenceNumber:   stepData.nsdlReferenceNumber   || "",
-  nsdlVerifiedAt:        stepData.nsdlVerifiedAt        || "",
+  panNumber: stepData.panNumber || "",
+  firstName: stepData.firstName || lead.firstName || "",
+  lastName: stepData.lastName || lead.lastName || "",
+  fatherName: stepData.fatherName || "",
+  dateOfBirth: stepData.dateOfBirth || "",
+  mobileNumber: stepData.mobileNumber || lead.mobile || "",
+  email: stepData.email || "",
+  mobileVerified: stepData.mobileVerified || false,
+  emailVerified: stepData.emailVerified || false,
+  panVerified: stepData.panVerified || false,
+  nsdlReferenceNumber: stepData.nsdlReferenceNumber || "",
+  nsdlVerifiedAt: stepData.nsdlVerifiedAt || ""
 });
+
+const validateFile = (file) => {
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    return "Invalid file type. Please upload only PDF, JPG, JPEG or PNG files.";
+  }
+
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return "File size is too large. Please upload a file up to 5 MB.";
+  }
+
+  return "";
+};
+
+const readFileAsDataUrl = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Unable to read selected file."));
+
+    reader.readAsDataURL(file);
+  });
+};
+
+const uploadFileToS3 = (uploadUrl, file, contentType, onProgress) => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", contentType);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        onProgress?.(progress);
+      }
+    };
+
+    xhr.onload = () => {
+      console.log("S3 upload response status:", xhr.status);
+      console.log("S3 upload response body:", xhr.responseText);
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`S3 upload failed with status ${xhr.status}`));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Network error while uploading file to S3."));
+    };
+
+    xhr.send(file);
+  });
+};
 
 /* ── Field component ─────────────────────────────────────────────────── */
 const Field = ({ label, value, placeholder, type = "text", onChange, editing, wide }) => (
   <div className={`cid-field${wide ? " wide" : ""}`}>
     <span className="cid-field-label">{label}</span>
+
     {editing ? (
-      <input type={type} value={value} placeholder={placeholder} onChange={onChange} className="cid-field-input" />
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={onChange}
+        className="cid-field-input"
+      />
     ) : (
       <div className="cid-field-readonly">
         {value || <span className="cid-field-empty">—</span>}
@@ -134,118 +250,316 @@ function CustomerIdentityPage({
   stepData = {},
   sectionKey = "customerIdentity",
   updateApplicationData,
-  updateStepStatus,
+  updateStepStatus
 }) {
   const fileInputRef = useRef(null);
-  const [formData,          setFormData]          = useState(() => buildInitialData(stepData, lead));
-  const [notice,            setNotice]            = useState("");
-  const [isConsentWaiting,  setIsConsentWaiting]  = useState(false);
+
+  const [formData, setFormData] = useState(() => buildInitialData(stepData, lead));
+  const [notice, setNotice] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [isConsentWaiting, setIsConsentWaiting] = useState(false);
   const [isReadingDocument, setIsReadingDocument] = useState(false);
-  const [isVerifyingPan,    setIsVerifyingPan]    = useState(false);
-  const [isEditing,         setIsEditing]         = useState(false);
-  const [ocrDone,           setOcrDone]           = useState(false);
-  const [verifyResult,      setVerifyResult]      = useState(null);
-  const [verifyAttempts,    setVerifyAttempts]    = useState(0);
+  const [isUploadingToS3, setIsUploadingToS3] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isVerifyingPan, setIsVerifyingPan] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [ocrDone, setOcrDone] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null);
+  const [verifyAttempts, setVerifyAttempts] = useState(0);
 
   const consentCaptured = formData.consentStatus === "Captured";
-  const consentSent     = formData.consentStatus === "Sent";
-  const panUploaded     = Boolean(formData.panDocumentPreview);
-  const panVerified     = formData.panVerificationStatus === "Verified";
-  const isPdf           = formData.panDocumentName?.toLowerCase().endsWith(".pdf") ||
-                          String(formData.panDocumentPreview).startsWith("data:application/pdf");
-  const isImage         = String(formData.panDocumentPreview).startsWith("data:image");
+  const consentSent = formData.consentStatus === "Sent";
+  const panUploaded = Boolean(formData.panDocumentPreview);
+  const panVerified = formData.panVerificationStatus === "Verified";
+
+  const isPdf =
+    formData.panDocumentName?.toLowerCase().endsWith(".pdf") ||
+    String(formData.panDocumentPreview).startsWith("data:application/pdf");
+
+  const isImage = String(formData.panDocumentPreview).startsWith("data:image");
 
   const syncParent = (updates) => updateApplicationData?.(sectionKey, updates);
-  const setValues  = (updates) => setFormData((prev) => { const next = { ...prev, ...updates }; syncParent(updates); return next; });
-  const setField   = (name, value) => setValues({ [name]: value });
-  const showNotice = (msg) => { setNotice(msg); window.setTimeout(() => setNotice(""), 2800); };
-  const getTimestamp = () => new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  const setValues = (updates) =>
+    setFormData((prev) => {
+      const next = { ...prev, ...updates };
+      syncParent(updates);
+      return next;
+    });
+
+  const setField = (name, value) => setValues({ [name]: value });
+
+  const showNotice = (msg) => {
+    setNotice(msg);
+    window.setTimeout(() => setNotice(""), 2800);
+  };
+
+  const getTimestamp = () =>
+    new Date().toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
 
   /* ── Consent ── */
   const sendConsent = () => {
-    setValues({ consentStatus: "Sent", consentLinkSentAt: getTimestamp(), consentCapturedAt: "" });
+    setValues({
+      consentStatus: "Sent",
+      consentLinkSentAt: getTimestamp(),
+      consentCapturedAt: ""
+    });
+
     setIsConsentWaiting(true);
   };
 
   useEffect(() => {
     if (!isConsentWaiting) return undefined;
-    const t = window.setTimeout(() => {
-      setValues({ consentStatus: "Captured", consentCapturedAt: getTimestamp() });
+
+    const timer = window.setTimeout(() => {
+      setValues({
+        consentStatus: "Captured",
+        consentCapturedAt: getTimestamp()
+      });
+
       setIsConsentWaiting(false);
       showNotice("Customer consent received.");
     }, 5000);
-    return () => window.clearTimeout(t);
+
+    return () => window.clearTimeout(timer);
   }, [isConsentWaiting]); // eslint-disable-line
 
   /* ── Step status ── */
   useEffect(() => {
-    if (consentCaptured && panVerified) { updateStepStatus?.("customer-identity", "Completed"); return; }
-    if (consentCaptured || panUploaded || ocrDone) updateStepStatus?.("customer-identity", "In Progress");
+    if (consentCaptured && panVerified) {
+      updateStepStatus?.("customer-identity", "Completed");
+      return;
+    }
+
+    if (consentCaptured || panUploaded || ocrDone) {
+      updateStepStatus?.("customer-identity", "In Progress");
+    }
   }, [consentCaptured, panUploaded, ocrDone, panVerified, updateStepStatus]); // eslint-disable-line
 
-  /* ── File upload → auto-extract ── */
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
+  /* ── Generate pre-signed URL from Lambda ── */
+  const generateUploadUrl = async (file) => {
+    console.log("Calling Lambda API to generate S3 pre-signed URL...");
+    console.log("Lambda API URL:", GENERATE_UPLOAD_URL_API);
+
+    if (!GENERATE_UPLOAD_URL_API) {
+      throw new Error("Upload API URL is missing. Please check VITE_GENERATE_UPLOAD_URL_API in .env file.");
+    }
+
+    const applicantId = lead?.applicantId || lead?.id || "APP-1001";
+
+    const response = await fetch(GENERATE_UPLOAD_URL_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        documentType: "PAN",
+        applicantId
+      })
+    });
+
+    const data = await response.json();
+
+    console.log("Lambda response status:", response.status);
+    console.log("Lambda response data:", data);
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Unable to generate S3 upload URL.");
+    }
+
+    return data;
+  };
+
+  /* ── File upload → S3 → local preview → auto-extract ── */
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+
+    console.log("PAN file selected:", file);
+
+    setUploadError("");
+    setUploadProgress(0);
+
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const previewValue = reader.result;
-      setValues({
-        panDocumentName:       file.name,
-        panDocumentPreview:    previewValue,
-        panOcrStatus:          "Ready",
-        panVerificationStatus: "Pending",
-        panVerified:           false,
-        nsdlReferenceNumber:   "",
-        nsdlVerifiedAt:        "",
-      });
+
+    const validationError = validateFile(file);
+
+    if (validationError) {
+      setUploadError(validationError);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      return;
+    }
+
+    try {
+      setIsUploadingToS3(true);
+      setIsReadingDocument(false);
       setOcrDone(false);
       setVerifyResult(null);
       setIsEditing(false);
-      saveUploadedDocument({
-        applicant: "Primary Applicant", type: "Identity Proof", subtype: "PAN Card",
-        source: "Customer Identity", fileName: file.name,
-        fileType: file.type.startsWith("image/") ? "Image" : "PDF / Document",
-        previewUrl: previewValue, ocrStatus: "Ready", verificationStatus: "Pending Review",
+
+      setValues({
+        panDocumentName: "",
+        panDocumentPreview: "",
+        panDocumentS3ObjectKey: "",
+        panOcrStatus: "Pending",
+        panVerificationStatus: "Pending",
+        panVerified: false,
+        nsdlReferenceNumber: "",
+        nsdlVerifiedAt: ""
       });
-      // Auto-start extraction after document renders
+
+      console.log("Step 1: Generate S3 upload URL");
+      const presignData = await generateUploadUrl(file);
+
+      console.log("Step 2: Upload file to S3");
+      await uploadFileToS3(
+        presignData.uploadUrl,
+        file,
+        file.type,
+        setUploadProgress
+      );
+
+      console.log("S3 upload successful");
+      console.log("S3 object key:", presignData.objectKey);
+
+      console.log("Step 3: Creating local preview");
+      const previewValue = await readFileAsDataUrl(file);
+
+      setValues({
+        panDocumentName: file.name,
+        panDocumentPreview: previewValue,
+        panDocumentS3ObjectKey: presignData.objectKey,
+        panOcrStatus: "Ready",
+        panVerificationStatus: "Pending",
+        panVerified: false,
+        nsdlReferenceNumber: "",
+        nsdlVerifiedAt: ""
+      });
+
+      saveUploadedDocument({
+        applicant: "Primary Applicant",
+        type: "Identity Proof",
+        subtype: "PAN Card",
+        source: "Customer Identity",
+        fileName: file.name,
+        fileType: file.type.startsWith("image/") ? "Image" : "PDF / Document",
+        previewUrl: previewValue,
+        s3ObjectKey: presignData.objectKey,
+        ocrStatus: "Ready",
+        verificationStatus: "Pending Review"
+      });
+
+      showNotice("PAN document uploaded successfully to S3.");
+
+      console.log("Step 4: Starting mock OCR extraction");
+
       window.setTimeout(() => {
         setIsReadingDocument(true);
+
         window.setTimeout(() => {
-          setValues({ ...OCR_RESULT, panOcrStatus: "Completed", panVerificationStatus: "Pending", panVerified: false });
-          saveUploadedDocument({
-            applicant: "Primary Applicant", type: "Identity Proof", subtype: "PAN Card",
-            source: "Customer Identity", fileName: file.name,
-            fileType: file.type.startsWith("image/") ? "Image" : "PDF / Document",
-            previewUrl: previewValue, ocrStatus: "Completed", verificationStatus: "Pending Review",
+          setValues({
+            ...OCR_RESULT,
+            panOcrStatus: "Completed",
+            panVerificationStatus: "Pending",
+            panVerified: false
           });
+
+          saveUploadedDocument({
+            applicant: "Primary Applicant",
+            type: "Identity Proof",
+            subtype: "PAN Card",
+            source: "Customer Identity",
+            fileName: file.name,
+            fileType: file.type.startsWith("image/") ? "Image" : "PDF / Document",
+            previewUrl: previewValue,
+            s3ObjectKey: presignData.objectKey,
+            ocrStatus: "Completed",
+            verificationStatus: "Pending Review"
+          });
+
           setIsReadingDocument(false);
           setOcrDone(true);
           setIsEditing(true);
         }, 2800);
       }, 500);
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("PAN S3 upload failed:", error);
+
+      setUploadError(
+        error.message ||
+          "PAN document upload failed. Please check API Gateway CORS, S3 CORS and Lambda logs."
+      );
+
+      setValues({
+        panDocumentName: "",
+        panDocumentPreview: "",
+        panDocumentS3ObjectKey: "",
+        panOcrStatus: "Pending",
+        panVerificationStatus: "Pending",
+        panVerified: false,
+        nsdlReferenceNumber: "",
+        nsdlVerifiedAt: ""
+      });
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } finally {
+      setIsUploadingToS3(false);
+    }
   };
 
   /* ── Verification ── */
   const verifyPan = () => {
     setIsVerifyingPan(true);
     setVerifyResult(null);
+
     window.setTimeout(() => {
       const scenario = VERIFY_SCENARIOS[verifyAttempts % VERIFY_SCENARIOS.length];
+
       setVerifyAttempts((n) => n + 1);
-      const nsdlRef    = `NSDL-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      const nsdlRef = `NSDL-${Math.floor(100000 + Math.random() * 900000)}`;
       const verifiedAt = getTimestamp();
       const isVerified = scenario.status === "Verified";
-      setValues({ panVerificationStatus: isVerified ? "Verified" : "Mismatch", panVerified: isVerified, nsdlReferenceNumber: nsdlRef, nsdlVerifiedAt: verifiedAt });
-      saveUploadedDocument({
-        applicant: "Primary Applicant", type: "Identity Proof", subtype: "PAN Card",
-        source: "Customer Identity", fileName: formData.panDocumentName,
-        fileType: isImage ? "Image" : "PDF / Document", previewUrl: formData.panDocumentPreview,
-        ocrStatus: "Completed", verificationStatus: isVerified ? "Verified" : "Mismatch",
+
+      setValues({
+        panVerificationStatus: isVerified ? "Verified" : "Mismatch",
+        panVerified: isVerified,
+        nsdlReferenceNumber: nsdlRef,
+        nsdlVerifiedAt: verifiedAt
       });
-      setVerifyResult({ ...scenario, nsdlRef, verifiedAt });
+
+      saveUploadedDocument({
+        applicant: "Primary Applicant",
+        type: "Identity Proof",
+        subtype: "PAN Card",
+        source: "Customer Identity",
+        fileName: formData.panDocumentName,
+        fileType: isImage ? "Image" : "PDF / Document",
+        previewUrl: formData.panDocumentPreview,
+        s3ObjectKey: formData.panDocumentS3ObjectKey,
+        ocrStatus: "Completed",
+        verificationStatus: isVerified ? "Verified" : "Mismatch"
+      });
+
+      setVerifyResult({
+        ...scenario,
+        nsdlRef,
+        verifiedAt
+      });
+
       setIsVerifyingPan(false);
     }, 3000);
   };
@@ -253,14 +567,33 @@ function CustomerIdentityPage({
   /* ── Remove PAN ── */
   const removePan = () => {
     setValues({
-      panDocumentName: "", panDocumentPreview: "", panOcrStatus: "Pending",
-      panVerificationStatus: "Pending", panNumber: "",
-      firstName: lead?.firstName || "", lastName: lead?.lastName || "",
-      fatherName: "", dateOfBirth: "", panVerified: false,
-      nsdlReferenceNumber: "", nsdlVerifiedAt: "",
+      panDocumentName: "",
+      panDocumentPreview: "",
+      panDocumentS3ObjectKey: "",
+      panOcrStatus: "Pending",
+      panVerificationStatus: "Pending",
+      panNumber: "",
+      firstName: lead?.firstName || "",
+      lastName: lead?.lastName || "",
+      fatherName: "",
+      dateOfBirth: "",
+      panVerified: false,
+      nsdlReferenceNumber: "",
+      nsdlVerifiedAt: ""
     });
-    removeUploadedDocument({ applicant: "Primary Applicant", type: "Identity Proof", subtype: "PAN Card" });
-    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    removeUploadedDocument({
+      applicant: "Primary Applicant",
+      type: "Identity Proof",
+      subtype: "PAN Card"
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    setUploadError("");
+    setUploadProgress(0);
     setOcrDone(false);
     setVerifyResult(null);
     setIsEditing(false);
@@ -269,23 +602,24 @@ function CustomerIdentityPage({
   /* ── Render ── */
   return (
     <div className="cid-page">
-
-      {/* Toast */}
-      {notice && <div className="cid-toast"><CheckIcon /> {notice}</div>}
+      {notice && (
+        <div className="cid-toast">
+          <CheckIcon /> {notice}
+        </div>
+      )}
 
       <div className="cid-steps">
-
         {/* ── Step 1: Consent ──────────────────────────────────────────── */}
         <div className="cid-step">
           <div className="cid-step-track">
             <div className={`cid-step-node ${consentCaptured ? "complete" : consentSent ? "active" : "idle"}`}>
               {consentCaptured ? <CheckIcon /> : <span>1</span>}
             </div>
+
             <div className={`cid-step-line ${consentCaptured ? "filled" : ""}`} />
           </div>
 
           <div className="cid-step-panel">
-            {/* Title row */}
             <div className="cid-panel-head">
               <div>
                 <span className="cid-panel-title">Customer Consent</span>
@@ -293,20 +627,20 @@ function CustomerIdentityPage({
                   Obtain authorization before processing identity documents
                 </span>
               </div>
+
               <span className={`cid-badge ${consentCaptured ? "green" : consentSent ? "amber" : "gray"}`}>
                 {consentCaptured ? <CheckIcon /> : <ClockIcon />}
                 {consentCaptured ? "Captured" : consentSent ? "Awaiting" : "Pending"}
               </span>
             </div>
 
-            {/* Content */}
             <div className="cid-panel-body">
               {consentCaptured ? (
-                /* ── Captured state ── */
                 <div className="cid-consent-confirmed">
                   <div className="cid-check-badge">
                     <ConsentCheckIcon />
                   </div>
+
                   <div className="cid-consent-confirmed-body">
                     <span className="cid-consent-confirmed-title">Consent received</span>
                     <span className="cid-consent-confirmed-meta">
@@ -314,31 +648,40 @@ function CustomerIdentityPage({
                       {formData.mobileNumber && <> &nbsp;·&nbsp; {formData.mobileNumber}</>}
                     </span>
                   </div>
+
                   <button className="cid-btn-ghost small" type="button" onClick={sendConsent}>
                     <RefreshIcon /> Resend
                   </button>
                 </div>
               ) : (
-                /* ── Send state ── */
                 <div className="cid-consent-send-area">
                   <div>
-                    <div className="cid-copy-main">Send a secure consent link to the customer</div>
+                    <div className="cid-copy-main">
+                      Send a secure consent link to the customer
+                    </div>
+
                     <div className="cid-copy-sub">
-                      Delivered to <strong>{formData.mobileNumber || "the registered mobile number"}</strong>
+                      Delivered to{" "}
+                      <strong>{formData.mobileNumber || "the registered mobile number"}</strong>
                     </div>
                   </div>
+
                   <button className="cid-btn-primary" type="button" onClick={sendConsent} disabled={isConsentWaiting}>
-                    {isConsentWaiting
-                      ? <><SpinnerIcon /> Sending…</>
-                      : consentSent
-                        ? <><RefreshIcon /> Resend Link</>
-                        : "Send Link"
-                    }
+                    {isConsentWaiting ? (
+                      <>
+                        <SpinnerIcon /> Sending…
+                      </>
+                    ) : consentSent ? (
+                      <>
+                        <RefreshIcon /> Resend Link
+                      </>
+                    ) : (
+                      "Send Link"
+                    )}
                   </button>
                 </div>
               )}
 
-              {/* Timeline — only shown while waiting */}
               {formData.consentLinkSentAt && !consentCaptured && (
                 <div className="cid-timeline">
                   <div className="cid-tl-item">
@@ -348,7 +691,6 @@ function CustomerIdentityPage({
                 </div>
               )}
 
-              {/* Awaiting pulse */}
               {consentSent && !consentCaptured && (
                 <div className="cid-alert amber">
                   <SpinnerIcon /> Awaiting customer response on their registered device
@@ -364,11 +706,9 @@ function CustomerIdentityPage({
             <div className={`cid-step-node ${panVerified ? "complete" : panUploaded ? "active" : "idle"}`}>
               {panVerified ? <CheckIcon /> : <span>2</span>}
             </div>
-            {/* No connector line on last step */}
           </div>
 
           <div className="cid-step-panel">
-            {/* Title row */}
             <div className="cid-panel-head">
               <div>
                 <span className="cid-panel-title">PAN Verification</span>
@@ -376,53 +716,74 @@ function CustomerIdentityPage({
                   Upload PAN document, extract details, and verify with NSDL
                 </span>
               </div>
+
               <span className={`cid-badge ${panVerified ? "green" : panUploaded ? "amber" : "gray"}`}>
                 {panVerified ? <CheckIcon /> : <ClockIcon />}
                 {panVerified ? "Verified" : panUploaded ? "In progress" : "Pending"}
               </span>
             </div>
 
-            {/* Lock note */}
             {!consentCaptured && (
               <div className="cid-lock-note">
                 Complete consent capture to enable PAN verification
               </div>
             )}
 
-            {/* Content */}
             <div className={`cid-panel-body${!consentCaptured ? " locked" : ""}`}>
               <div className="cid-pan-layout">
-
                 {/* ── Upload column ── */}
                 <div className="cid-upload-col">
                   <input
                     ref={fileInputRef}
                     type="file"
                     hidden
-                    accept="image/*,.pdf"
+                    accept=".pdf,.jpg,.jpeg,.png"
                     onChange={handleFileUpload}
-                    disabled={!consentCaptured}
+                    disabled={!consentCaptured || isUploadingToS3 || isReadingDocument}
                   />
+
                   <div
                     className={`cid-upload-zone${!panUploaded && consentCaptured ? " clickable" : ""}`}
-                    onClick={!panUploaded && consentCaptured ? () => fileInputRef.current?.click() : undefined}
+                    onClick={
+                      !panUploaded && consentCaptured && !isUploadingToS3 && !isReadingDocument
+                        ? () => fileInputRef.current?.click()
+                        : undefined
+                    }
                   >
-                    {isReadingDocument && (
+                    {(isUploadingToS3 || isReadingDocument) && (
                       <div className="cid-ocr-overlay">
                         <div className="cid-scan-beam" />
-                        <div className="cid-scan-status"><SpinnerIcon /> Reading document</div>
+
+                        <div className="cid-scan-status">
+                          <SpinnerIcon />
+                          {isUploadingToS3
+                            ? `Uploading to S3${uploadProgress ? ` ${uploadProgress}%` : ""}`
+                            : "Reading document"}
+                        </div>
                       </div>
                     )}
+
                     {!panUploaded ? (
                       <div className="cid-upload-placeholder">
-                        <div className="cid-upload-icon-wrap"><UploadIcon /></div>
+                        <div className="cid-upload-icon-wrap">
+                          <UploadIcon />
+                        </div>
+
                         <span className="cid-upload-label">Upload PAN document</span>
-                        <span className="cid-upload-hint">JPG, PNG or PDF</span>
+                        <span className="cid-upload-hint">JPG, PNG or PDF · Max 5 MB</span>
                       </div>
                     ) : isImage ? (
-                      <img src={formData.panDocumentPreview} alt="PAN preview" className="cid-preview-img" />
+                      <img
+                        src={formData.panDocumentPreview}
+                        alt="PAN preview"
+                        className="cid-preview-img"
+                      />
                     ) : isPdf ? (
-                      <iframe src={formData.panDocumentPreview} title="PAN Document" className="cid-preview-pdf" />
+                      <iframe
+                        src={formData.panDocumentPreview}
+                        title="PAN Document"
+                        className="cid-preview-pdf"
+                      />
                     ) : (
                       <div className="cid-upload-placeholder">
                         <DocumentIcon />
@@ -431,44 +792,81 @@ function CustomerIdentityPage({
                     )}
                   </div>
 
+                  {uploadProgress > 0 && uploadProgress < 100 && (
+                    <div className="cid-upload-progress">
+                      <div className="cid-upload-progress-head">
+                        <span>Uploading</span>
+                        <strong>{uploadProgress}%</strong>
+                      </div>
+
+                      <div className="cid-upload-progress-bar">
+                        <div style={{ width: `${uploadProgress}%` }} />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="cid-upload-actions">
                     <button
                       className="cid-btn-secondary small"
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={!consentCaptured}
+                      disabled={!consentCaptured || isUploadingToS3 || isReadingDocument}
                     >
                       <UploadIcon /> {panUploaded ? "Replace" : "Upload"}
                     </button>
+
                     {panUploaded && (
-                      <button className="cid-btn-ghost danger" type="button" onClick={removePan}>
+                      <button
+                        className="cid-btn-ghost danger"
+                        type="button"
+                        onClick={removePan}
+                        disabled={isUploadingToS3 || isReadingDocument}
+                      >
                         Remove
                       </button>
                     )}
                   </div>
+
                 </div>
 
                 {/* ── Form column ── */}
                 <div className="cid-form-col">
-
-                  {/* Edit toolbar */}
                   <div className="cid-fields-toolbar">
                     <span className="cid-fields-label">PAN Details</span>
+
                     {consentCaptured && (
                       <button
                         className={`cid-edit-toggle${isEditing ? " active" : ""}`}
                         type="button"
-                        onClick={() => setIsEditing((v) => !v)}
+                        onClick={() => setIsEditing((value) => !value)}
                       >
-                        {isEditing ? <><CheckIcon /> Done</> : <><PencilIcon /> Edit</>}
+                        {isEditing ? (
+                          <>
+                            <CheckIcon /> Done
+                          </>
+                        ) : (
+                          <>
+                            <PencilIcon /> Edit
+                          </>
+                        )}
                       </button>
                     )}
                   </div>
 
-                  {/* OCR result banner — includes extracted values */}
+                  {uploadError && (
+                    <div className="cid-banner error">
+                      <AlertIcon />
+                      <div className="cid-banner-body">
+                        <strong>Document upload failed</strong>
+                        <p>{uploadError}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {ocrDone && !isReadingDocument && (
                     <div className="cid-banner info">
                       <ScanIcon />
+
                       <div className="cid-banner-body">
                         <strong>Details read from document</strong>
                         <p>
@@ -481,7 +879,6 @@ function CustomerIdentityPage({
                     </div>
                   )}
 
-                  {/* Verification in-progress */}
                   {isVerifyingPan && (
                     <div className="cid-banner info">
                       <SpinnerIcon />
@@ -489,13 +886,14 @@ function CustomerIdentityPage({
                     </div>
                   )}
 
-                  {/* Verification result */}
                   {verifyResult && !isVerifyingPan && (
                     <div className={`cid-banner ${verifyResult.variant}`}>
                       {verifyResult.variant === "success" ? <CheckIcon /> : <AlertIcon />}
+
                       <div className="cid-banner-body">
                         <strong>{verifyResult.headline}</strong>
                         {verifyResult.subline && <p>{verifyResult.subline}</p>}
+
                         <span className="cid-banner-meta">
                           Ref {verifyResult.nsdlRef} &nbsp;·&nbsp; {verifyResult.verifiedAt}
                         </span>
@@ -503,18 +901,65 @@ function CustomerIdentityPage({
                     </div>
                   )}
 
-                  {/* Fields grid */}
                   <div className="cid-form-grid">
-                    <Field label="PAN Number"           value={formData.panNumber}    placeholder="ABCDE1234F"      editing={isEditing} onChange={(e) => setField("panNumber",    e.target.value.toUpperCase())} />
-                    <Field label="Date of Birth"        value={formData.dateOfBirth}  type="date"                  editing={isEditing} onChange={(e) => setField("dateOfBirth",  e.target.value)} />
-                    <Field label="First Name"           value={formData.firstName}    placeholder="First name"     editing={isEditing} onChange={(e) => setField("firstName",    e.target.value)} />
-                    <Field label="Last Name"            value={formData.lastName}     placeholder="Last name"      editing={isEditing} onChange={(e) => setField("lastName",     e.target.value)} />
-                    <Field label="Father / Spouse Name" value={formData.fatherName}   placeholder="As on PAN card" editing={isEditing} wide onChange={(e) => setField("fatherName",   e.target.value)} />
-                    <Field label="Mobile"               value={formData.mobileNumber} placeholder="Mobile"         editing={isEditing} onChange={(e) => setField("mobileNumber", e.target.value)} />
-                    <Field label="Email"                value={formData.email}        placeholder="Email"          editing={isEditing} onChange={(e) => setField("email",        e.target.value)} />
+                    <Field
+                      label="PAN Number"
+                      value={formData.panNumber}
+                      placeholder="ABCDE1234F"
+                      editing={isEditing}
+                      onChange={(event) => setField("panNumber", event.target.value.toUpperCase())}
+                    />
+
+                    <Field
+                      label="Date of Birth"
+                      value={formData.dateOfBirth}
+                      type="date"
+                      editing={isEditing}
+                      onChange={(event) => setField("dateOfBirth", event.target.value)}
+                    />
+
+                    <Field
+                      label="First Name"
+                      value={formData.firstName}
+                      placeholder="First name"
+                      editing={isEditing}
+                      onChange={(event) => setField("firstName", event.target.value)}
+                    />
+
+                    <Field
+                      label="Last Name"
+                      value={formData.lastName}
+                      placeholder="Last name"
+                      editing={isEditing}
+                      onChange={(event) => setField("lastName", event.target.value)}
+                    />
+
+                    <Field
+                      label="Father / Spouse Name"
+                      value={formData.fatherName}
+                      placeholder="As on PAN card"
+                      editing={isEditing}
+                      wide
+                      onChange={(event) => setField("fatherName", event.target.value)}
+                    />
+
+                    <Field
+                      label="Mobile"
+                      value={formData.mobileNumber}
+                      placeholder="Mobile"
+                      editing={isEditing}
+                      onChange={(event) => setField("mobileNumber", event.target.value)}
+                    />
+
+                    <Field
+                      label="Email"
+                      value={formData.email}
+                      placeholder="Email"
+                      editing={isEditing}
+                      onChange={(event) => setField("email", event.target.value)}
+                    />
                   </div>
 
-                  {/* Verify row */}
                   <div className="cid-verify-row">
                     {panVerified ? (
                       <div className="cid-verified-status">
@@ -523,21 +968,37 @@ function CustomerIdentityPage({
                       </div>
                     ) : (
                       <span className="cid-copy-sub">
-                        {ocrDone ? "Confirm the details above, then verify" : "Upload a document to proceed"}
+                        {ocrDone
+                          ? "Confirm the details above, then verify"
+                          : "Upload a document to proceed"}
                       </span>
                     )}
+
                     <button
                       className={`cid-btn-primary${panVerified ? " verified" : ""}`}
                       type="button"
                       onClick={verifyPan}
-                      disabled={!consentCaptured || isVerifyingPan || !ocrDone}
-                    >
-                      {isVerifyingPan
-                        ? <><SpinnerIcon /> Verifying…</>
-                        : panVerified
-                          ? <><RefreshIcon /> Re-verify</>
-                          : <><ShieldIcon /> Verify PAN</>
+                      disabled={
+                        !consentCaptured ||
+                        isVerifyingPan ||
+                        isUploadingToS3 ||
+                        isReadingDocument ||
+                        !ocrDone
                       }
+                    >
+                      {isVerifyingPan ? (
+                        <>
+                          <SpinnerIcon /> Verifying…
+                        </>
+                      ) : panVerified ? (
+                        <>
+                          <RefreshIcon /> Re-verify
+                        </>
+                      ) : (
+                        <>
+                          <ShieldIcon /> Verify PAN
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -545,8 +1006,7 @@ function CustomerIdentityPage({
             </div>
           </div>
         </div>
-
-      </div>
+      </div> 
     </div>
   );
 }

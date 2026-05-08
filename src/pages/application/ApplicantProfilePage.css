@@ -24,7 +24,6 @@
   padding: 0;
 }
 
-/* ── Horizontal divider between sections ─────────────────────────── */
 .ap-divider {
   height: 1px;
   background: var(--los-border-soft);
@@ -39,7 +38,6 @@
   padding: 20px 24px 24px;
 }
 
-/* ── Section header row ───────────────────────────────────────────── */
 .ap-section-head {
   display: flex;
   align-items: flex-start;
@@ -80,9 +78,7 @@
   min-width: 0;
 }
 
-.ap-field.wide {
-  grid-column: 1 / -1;
-}
+.ap-field.wide { grid-column: 1 / -1; }
 
 .ap-field-label {
   font-size: 10px;
@@ -91,7 +87,6 @@
   letter-spacing: .01em;
 }
 
-/* Editable input */
 .ap-input {
   height: 32px;
   width: 100%;
@@ -114,9 +109,15 @@
 
 .ap-input::placeholder { color: var(--los-soft); font-weight: 400; }
 
-.ap-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; padding-right: 26px; cursor: pointer; }
+.ap-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  padding-right: 26px;
+  cursor: pointer;
+}
 
-/* Read-only: plain text with subtle bottom rule */
 .ap-field-readonly {
   font-size: 12.5px;
   font-weight: 600;
@@ -132,7 +133,6 @@
 
 .ap-field-empty { color: var(--los-soft); font-weight: 400; }
 
-/* ── Field grids ──────────────────────────────────────────────────── */
 .ap-field-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -174,7 +174,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   STATUS BADGES
+   BADGES
 ═══════════════════════════════════════════════════════════════════ */
 .ap-badge {
   display: inline-flex;
@@ -193,7 +193,6 @@
 .ap-badge.amber { background: var(--los-amber-bg); color: var(--los-amber); border-color: rgba(146,82,7,.14); }
 .ap-badge.gray  { background: var(--los-blue-light); color: var(--los-muted); border-color: rgba(77,104,130,.12); }
 
-/* pill badge used inside address group titles */
 .ap-badge-pill {
   display: inline-flex;
   align-items: center;
@@ -209,7 +208,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   INLINE BANNERS
+   BANNERS
 ═══════════════════════════════════════════════════════════════════ */
 .ap-banner {
   display: flex;
@@ -237,7 +236,7 @@
 .ap-banner-body p { margin: 0 0 3px; font-size: 11.5px; font-weight: 400; opacity: .85; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PHOTOGRAPH SECTION
+   PHOTOGRAPH
 ═══════════════════════════════════════════════════════════════════ */
 .ap-photo-row {
   display: flex;
@@ -245,7 +244,6 @@
   gap: 20px;
 }
 
-/* ── Avatar ────────────────────────────────────────────────────────── */
 .ap-photo-avatar {
   width: 84px;
   height: 84px;
@@ -272,7 +270,6 @@
   display: block;
 }
 
-/* ── Text info ─────────────────────────────────────────────────────── */
 .ap-photo-info {
   display: flex;
   flex-direction: column;
@@ -289,18 +286,8 @@
   text-overflow: ellipsis;
 }
 
-.ap-copy-main {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--los-text);
-}
-
-.ap-copy-sub {
-  font-size: 11.5px;
-  color: var(--los-muted);
-  font-weight: 400;
-  line-height: 1.4;
-}
+.ap-copy-main { font-size: 13px; font-weight: 600; color: var(--los-text); }
+.ap-copy-sub  { font-size: 11.5px; color: var(--los-muted); font-weight: 400; line-height: 1.4; }
 
 .ap-photo-actions {
   display: flex;
@@ -311,32 +298,26 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ADDRESS PROOF SECTION
+   ADDRESS PROOF
 ═══════════════════════════════════════════════════════════════════ */
 .ap-proof-layout {
   display: grid;
   grid-template-columns: 220px 1fr;
-  gap: 0;
   background: #f7f9fc;
   border-radius: 8px;
   overflow: hidden;
 }
 
-/* Controls column */
 .ap-proof-controls {
-  padding: 14px 14px;
+  padding: 14px;
   border-right: 1px solid rgba(0,0,0,.04);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.upload-label {
-  width: 100%;
-  justify-content: center;
-}
+.upload-label { width: 100%; justify-content: center; }
 
-/* File badge */
 .ap-file-badge {
   display: inline-flex;
   align-items: center;
@@ -354,7 +335,6 @@
   border: 1px solid rgba(26,122,66,.14);
 }
 
-/* Helper text */
 .ap-helper-text {
   font-size: 10.5px;
   color: var(--los-soft);
@@ -362,7 +342,6 @@
   line-height: 1.4;
 }
 
-/* Preview column */
 .ap-proof-preview {
   position: relative;
   min-height: 160px;
@@ -389,12 +368,10 @@
   gap: 6px;
   color: var(--los-soft);
   font-size: 12px;
-  font-weight: 400;
   padding: 24px;
   text-align: center;
 }
 
-/* OCR scanning overlay */
 .ap-ocr-overlay {
   position: absolute;
   inset: 0;
@@ -434,7 +411,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ADDRESS GROUP
+   ADDRESS GROUPS
 ═══════════════════════════════════════════════════════════════════ */
 .ap-addr-group {
   background: #f7f9fc;
@@ -464,7 +441,6 @@
   color: var(--los-text);
 }
 
-/* ── Same-as-permanent toggle ─────────────────────────────────────── */
 .ap-same-toggle {
   display: inline-flex;
   align-items: center;
@@ -487,7 +463,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   COMMUNICATION ADDRESS TOGGLE
+   COMMUNICATION TOGGLE
 ═══════════════════════════════════════════════════════════════════ */
 .ap-comm-toggle {
   display: inline-flex;
@@ -517,10 +493,7 @@
   white-space: nowrap;
 }
 
-.ap-comm-option:hover:not(.active) {
-  background: rgba(255,255,255,.6);
-  color: var(--los-text);
-}
+.ap-comm-option:hover:not(.active) { background: rgba(255,255,255,.6); color: var(--los-text); }
 
 .ap-comm-option.active {
   background: #fff;
@@ -529,7 +502,6 @@
   box-shadow: 0 1px 4px rgba(0,0,0,.1);
 }
 
-/* Radio dot inside option */
 .ap-comm-dot {
   width: 6px;
   height: 6px;
@@ -539,17 +511,9 @@
   transition: background .14s;
 }
 
-.ap-comm-option.active .ap-comm-dot {
-  background: var(--los-blue);
-  border-color: var(--los-blue);
-}
+.ap-comm-option.active .ap-comm-dot { background: var(--los-blue); border-color: var(--los-blue); }
 
-/* Selected address preview */
-.ap-comm-address-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
+.ap-comm-address-preview { display: flex; flex-direction: column; gap: 3px; }
 
 .ap-comm-address-text {
   font-size: 12.5px;
@@ -652,7 +616,6 @@
   overflow: hidden;
 }
 
-/* Modal header */
 .ap-crop-header {
   display: flex;
   align-items: baseline;
@@ -661,28 +624,19 @@
   border-bottom: 1px solid var(--los-border-soft);
 }
 
-.ap-crop-title {
-  font-size: 13.5px;
-  font-weight: 650;
-  color: var(--los-text);
-}
+.ap-crop-title { font-size: 13.5px; font-weight: 650; color: var(--los-text); }
+.ap-crop-hint  { font-size: 10.5px; color: var(--los-soft); font-weight: 400; }
 
-.ap-crop-hint {
-  font-size: 10.5px;
-  color: var(--los-soft);
-  font-weight: 400;
-}
-
-/* Crop frame — fixed 240×240 */
+/* Passport size 7:9 (210×270 px) */
 .ap-crop-frame {
-  width: 240px;
-  height: 240px;
+  width: 210px;
+  height: 270px;
   align-self: center;
   margin: 14px auto;
-  border-radius: 50%;
+  border-radius: 4px;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 0 0 2px var(--los-border), 0 0 0 9999px rgba(0,0,0,.28);
+  box-shadow: 0 0 0 2px var(--los-blue), 0 0 0 9999px rgba(0,0,0,.36);
   flex-shrink: 0;
   touch-action: none;
   user-select: none;
@@ -690,13 +644,11 @@
 
 .ap-crop-img {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0; left: 0;
   transform-origin: 0 0;
   pointer-events: none;
 }
 
-/* Zoom row */
 .ap-crop-zoom-row {
   display: flex;
   align-items: center;
@@ -707,14 +659,8 @@
   font-weight: 500;
 }
 
-.ap-crop-range {
-  flex: 1;
-  accent-color: var(--los-blue);
-  cursor: pointer;
-  height: 4px;
-}
+.ap-crop-range { flex: 1; accent-color: var(--los-blue); cursor: pointer; height: 4px; }
 
-/* Actions row */
 .ap-crop-actions {
   display: flex;
   align-items: center;
@@ -747,5 +693,5 @@
   .ap-comm-option { flex: 1; justify-content: center; }
   .ap-addr-group-head { flex-direction: column; align-items: flex-start; gap: 6px; }
   .ap-crop-dialog { width: calc(100vw - 32px); }
-  .ap-crop-frame { width: 200px; height: 200px; }
+  .ap-crop-frame { width: 175px; height: 225px; }
 }

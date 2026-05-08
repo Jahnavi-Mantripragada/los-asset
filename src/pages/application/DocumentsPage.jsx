@@ -1,406 +1,537 @@
-import { useMemo, useState } from "react";
-import "./EligibilityOfferPage.css";
+import { useEffect, useMemo, useState } from "react";
+import "./DocumentsPage.css";
+import {
+  DOCUMENT_UPLOAD_EVENT,
+  getUploadedDocuments,
+  saveUploadedDocument,
+} from "../../utils/documentStore";
 
-/* ── Icons ───────────────────────────────────────────────────────── */
-const PencilIcon = () => (
-  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+/* ── Icons ───────────────────────────────────────────────────────────── */
+const FileIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+    <path d="M14 2v6h6" />
+    <path d="M8 13h8" />
+    <path d="M8 17h5" />
   </svg>
 );
+
+const UploadIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="M17 8l-5-5-5 5" />
+    <path d="M12 3v12" />
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.1">
+    <path d="M21 12a9 9 0 0 1-15.5 6.3" />
+    <path d="M3 12A9 9 0 0 1 18.5 5.7" />
+    <path d="M18 2v4h4" />
+    <path d="M6 22v-4H2" />
+  </svg>
+);
+
 const CheckIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5">
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5">
     <path d="M20 6 9 17l-5-5" />
   </svg>
 );
-const AlertIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-    <path d="M12 9v4" /><path d="M12 17h.01" />
-  </svg>
-);
-const RefreshIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.1">
-    <path d="M21 12a9 9 0 0 1-15.5 6.3" /><path d="M3 12A9 9 0 0 1 18.5 5.7" />
-    <path d="M18 2v4h4" /><path d="M6 22v-4H2" />
-  </svg>
-);
-const PlayIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <polygon points="5 3 19 12 5 21 5 3" />
+
+const XIcon = () => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4">
+    <path d="M18 6 6 18" />
+    <path d="M6 6l12 12" />
   </svg>
 );
 
-/* ── Data ────────────────────────────────────────────────────────── */
-const initialInputs = {
-  product:              "Home Loan",
-  loanType:             "New Loan",
-  loanPurpose:          "Purchase of New Property",
-  requestedLoanAmount:  "4500000",
-  requestedTenureYears: "20",
-  applicantCategory:    "Salaried",
-  monthlyIncome:        "85000",
-  existingObligations:  "18000",
-  bureauScore:          "748",
-  bureauStatus:         "Bureau Pulled",
-  collateralValue:      "8400000",
-  documentStatus:       "Partially Complete",
-};
-
-const breScenarioOptions = [
-  { value: "green", label: "Green",  desc: "No policy blockers, full eligibility." },
-  { value: "amber", label: "Amber",  desc: "Eligible with pending prerequisites." },
-  { value: "red",   label: "Red",    desc: "Hard policy blocker at this stage." },
+/* ── Data ────────────────────────────────────────────────────────────── */
+const applicants = [
+  { key: "Primary Applicant", name: "Rahul Sharma", role: "Primary Applicant" },
+  { key: "Priya Sharma", name: "Priya Sharma", role: "Co-Applicant" },
+  { key: "Mahesh Sharma", name: "Mahesh Sharma", role: "Guarantor" },
 ];
 
-const ruleSets = {
-  green: [
-    { id: "BRE-G-001", category: "Identity",   ruleName: "PAN verification completed",                    result: "Green", severity: "High",   value: "Verified",                                   expected: "PAN must be verified before eligibility calculation" },
-    { id: "BRE-G-002", category: "Bureau",     ruleName: "Bureau report available",                       result: "Green", severity: "High",   value: "Bureau pulled successfully",                 expected: "Bureau report should be available" },
-    { id: "BRE-G-003", category: "Bureau",     ruleName: "Bureau score acceptable",                       result: "Green", severity: "High",   value: "748",                                        expected: "Acceptable as per product policy" },
-    { id: "BRE-G-004", category: "Income",     ruleName: "Income details captured",                       result: "Green", severity: "High",   value: "Salary income captured",                     expected: "Income details should be available" },
-    { id: "BRE-G-005", category: "Documents",  ruleName: "Minimum documents available",                   result: "Green", severity: "Medium", value: "Minimum documents available",                expected: "Minimum KYC and income documents required" },
-    { id: "BRE-G-006", category: "Collateral", ruleName: "Collateral details captured",                   result: "Green", severity: "High",   value: "Property identified and valuation captured", expected: "Collateral details required for secured loan" },
-    { id: "BRE-G-007", category: "Product",    ruleName: "Requested product and tenure allowed",           result: "Green", severity: "Low",    value: "Home Loan · 20 years",                       expected: "Within product policy" },
-  ],
-  amber: [
-    { id: "BRE-A-001", category: "Identity",   ruleName: "PAN verification completed",                    result: "Green", severity: "High",   value: "Verified",                                   expected: "PAN must be verified before eligibility calculation" },
-    { id: "BRE-A-002", category: "Bureau",     ruleName: "Bureau report available",                       result: "Green", severity: "High",   value: "Bureau pulled successfully",                 expected: "Bureau report should be available" },
-    { id: "BRE-A-003", category: "Bureau",     ruleName: "Bureau score acceptable",                       result: "Green", severity: "High",   value: "748",                                        expected: "Acceptable as per product policy" },
-    { id: "BRE-A-004", category: "Income",     ruleName: "Income details captured",                       result: "Green", severity: "High",   value: "Salary income captured",                     expected: "Income details should be available" },
-    { id: "BRE-A-005", category: "Documents",  ruleName: "All mandatory documents uploaded",              result: "Amber", severity: "Medium", value: "Some mandatory documents pending",            expected: "Required before application submission" },
-    { id: "BRE-A-006", category: "Collateral", ruleName: "Legal and technical reports available",         result: "Amber", severity: "High",   value: "Not initiated",                              expected: "Required before credit appraisal / sanction" },
-    { id: "BRE-A-007", category: "Product",    ruleName: "Requested product and tenure allowed",           result: "Green", severity: "Low",    value: "Home Loan · 20 years",                       expected: "Within product policy" },
-  ],
-  red: [
-    { id: "BRE-R-001", category: "Identity",   ruleName: "PAN verification completed",                    result: "Green", severity: "High",   value: "Verified",                                   expected: "PAN must be verified before eligibility calculation" },
-    { id: "BRE-R-002", category: "Bureau",     ruleName: "Bureau report available",                       result: "Green", severity: "High",   value: "Bureau pulled successfully",                 expected: "Bureau report should be available" },
-    { id: "BRE-R-003", category: "Bureau",     ruleName: "Bureau score acceptable",                       result: "Red",   severity: "High",   value: "598",                                        expected: "Acceptable as per product policy" },
-    { id: "BRE-R-004", category: "Income",     ruleName: "Income details captured",                       result: "Amber", severity: "High",   value: "Income available but bank statement pending", expected: "Income and supporting documents should be available" },
-    { id: "BRE-R-005", category: "Documents",  ruleName: "Minimum documents available",                   result: "Amber", severity: "Medium", value: "Some documents pending",                     expected: "Minimum KYC and income documents required" },
-    { id: "BRE-R-006", category: "Collateral", ruleName: "Collateral details captured",                   result: "Green", severity: "High",   value: "Property identified and valuation captured", expected: "Collateral details required for secured loan" },
-    { id: "BRE-R-007", category: "Product",    ruleName: "Product policy hard stop check",                result: "Red",   severity: "High",   value: "Bureau policy blocker",                      expected: "No hard policy blocker" },
-  ],
-};
+const baseChecklist = [
+  { type: "Identity Proof", subtype: "PAN Card", mandatory: true, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Photograph", subtype: "Applicant Photo", mandatory: true, ocrStatus: "Not Applicable", verificationStatus: "Pending" },
+  { type: "Address Proof", subtype: "Aadhaar", mandatory: true, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Address Proof", subtype: "Driving License", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Address Proof", subtype: "Voter ID", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Income Proof", subtype: "Salary Slip - Latest Month", mandatory: true, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Income Proof", subtype: "Bank Statement - 6 Months", mandatory: true, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Income Proof", subtype: "Form 16", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Application Document", subtype: "Generated Application Form", mandatory: true, ocrStatus: "Not Applicable", verificationStatus: "Pending" },
+  { type: "Application Document", subtype: "Signed Application Form", mandatory: true, ocrStatus: "Not Applicable", verificationStatus: "Pending" },
+];
 
-const offerOptionsByBre = {
-  green: [
-    { id: "OFFER-G-001", name: "Recommended Offer", tag: "Best Fit",      preliminaryAmount: "4300000", tenureYears: "20", roi: "8.80", processingFee: "0.70", emi: "37920", marginMoney: "550000", decision: "Preliminarily Eligible", referrals: [],                                                                              nextActions: ["Confirm customer acceptance", "Generate application form", "Proceed to review and submission"] },
-    { id: "OFFER-G-002", name: "Requested Amount",  tag: "Customer Ask",  preliminaryAmount: "4500000", tenureYears: "20", roi: "8.95", processingFee: "0.75", emi: "40100", marginMoney: "500000", decision: "Preliminarily Eligible", referrals: [],                                                                              nextActions: ["Confirm customer acceptance", "Generate application form", "Proceed to application package review"] },
-  ],
-  amber: [
-    { id: "OFFER-A-001", name: "Recommended Offer", tag: "Best Fit",      preliminaryAmount: "4200000", tenureYears: "20", roi: "8.85", processingFee: "0.75", emi: "37180", marginMoney: "600000", decision: "Preliminarily Eligible", referrals: [],                                                                              nextActions: ["Complete pending documents", "Initiate legal and technical verification", "Generate application form"] },
-    { id: "OFFER-A-002", name: "Requested Amount",  tag: "Needs Review",  preliminaryAmount: "4500000", tenureYears: "20", roi: "9.10", processingFee: "0.85", emi: "40725", marginMoney: "500000", decision: "Refer for Review",       referrals: ["Requested amount is higher than recommended", "Pending documentation must be completed"], nextActions: ["Upload pending bank statement", "Confirm collateral verification status", "Submit for credit review"] },
-    { id: "OFFER-A-003", name: "Conservative Offer",tag: "Lowest Risk",   preliminaryAmount: "3850000", tenureYears: "18", roi: "8.75", processingFee: "0.70", emi: "35990", marginMoney: "950000", decision: "Preliminarily Eligible", referrals: [],                                                                              nextActions: ["Confirm customer acceptance", "Complete application package", "Proceed to form generation"] },
-  ],
-  red: [
-    { id: "OFFER-R-001", name: "No Preliminary Offer", tag: "Policy Blocker", preliminaryAmount: "0", tenureYears: "-", roi: "-", processingFee: "-", emi: "0", marginMoney: "-", decision: "Not Eligible", referrals: ["Bureau policy blocker identified", "Minimum policy criteria not met"], nextActions: ["Re-pull bureau if data is stale", "Review bureau details with applicant", "Do not proceed until blocker is resolved"] },
-  ],
-};
+const primaryOnlyChecklist = [
+  { type: "Property Document", subtype: "Property Title / Chain Document", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Property Document", subtype: "Agreement to Sale", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+];
 
-const categoryOptions = ["All", "Identity", "Bureau", "Income", "Collateral", "Documents", "Product"];
+const filterOptions = ["All", "Pending", "Uploaded", "Verified", "Mandatory"];
 
-/* ── Helpers ─────────────────────────────────────────────────────── */
-function formatCurrency(value) {
-  if (!value || value === "0") return "₹0";
-  return `₹ ${Number(value).toLocaleString("en-IN")}`;
+/* ── Helpers ─────────────────────────────────────────────────────────── */
+function getChecklistForApplicant(applicant) {
+  const checklist =
+    applicant.key === "Primary Applicant"
+      ? [...baseChecklist, ...primaryOnlyChecklist]
+      : baseChecklist;
+
+  return checklist.map((item, index) => ({
+    ...item,
+    id: `${applicant.key}-${item.type}-${item.subtype}-${index}`,
+    applicantKey: applicant.key,
+    applicantName: applicant.name,
+    applicantRole: applicant.role,
+    documentKey: `${applicant.key}__${item.type}__${item.subtype}`,
+    status: "Pending",
+    source: "",
+    uploadedBy: "",
+    uploadedOn: "",
+    fileName: "",
+    fileType: "",
+    previewUrl: "",
+  }));
 }
 
-function getTimestamp() {
-  return new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+function buildDocumentsFromChecklist() {
+  const actualUploads = getUploadedDocuments();
+
+  return applicants.flatMap((applicant) => {
+    const checklist = getChecklistForApplicant(applicant);
+
+    return checklist.map((ci) => {
+      const up = actualUploads.find((u) => u.documentKey === ci.documentKey);
+
+      if (!up) return ci;
+
+      return {
+        ...ci,
+        ...up,
+        applicantKey: ci.applicantKey,
+        applicantName: ci.applicantName,
+        applicantRole: ci.applicantRole,
+        documentKey: ci.documentKey,
+        status: "Uploaded",
+        source: up.source || "Internal Upload",
+      };
+    });
+  });
 }
 
-/* ── Field components ───────────────────────────────────────────── */
-function FieldRow({ label, value, onChange, editing, type = "text", placeholder }) {
-  return (
-    <div className="eo-field">
-      <span className="eo-field-label">{label}</span>
-      {editing ? (
-        <input className="eo-input" type={type} value={value || ""} placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)} />
-      ) : (
-        <div className={`eo-field-ro${!value ? " empty" : ""}`}>{value || "—"}</div>
-      )}
-    </div>
+function getStatusClass(status) {
+  if (status === "Uploaded") return "uploaded";
+  if (status === "Verified") return "verified";
+  if (status === "Rejected") return "rejected";
+  return "pending";
+}
+
+/* ── Component ───────────────────────────────────────────────────────── */
+function DocumentsPage() {
+  const [documents, setDocuments] = useState(buildDocumentsFromChecklist);
+  const [selectedApplicantKey, setSelectedApplicantKey] = useState(applicants[0].key);
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [searchText, setSearchText] = useState("");
+  const [previewDoc, setPreviewDoc] = useState(null);
+
+  const refreshDocuments = () => setDocuments(buildDocumentsFromChecklist());
+
+  useEffect(() => {
+    refreshDocuments();
+
+    window.addEventListener(DOCUMENT_UPLOAD_EVENT, refreshDocuments);
+    window.addEventListener("storage", refreshDocuments);
+
+    return () => {
+      window.removeEventListener(DOCUMENT_UPLOAD_EVENT, refreshDocuments);
+      window.removeEventListener("storage", refreshDocuments);
+    };
+  }, []);
+
+  const applicantStats = useMemo(
+    () =>
+      applicants.map((ap) => {
+        const docs = documents.filter((d) => d.applicantKey === ap.key);
+        const uploaded = docs.filter((d) => d.status === "Uploaded").length;
+        const mandatory = docs.filter((d) => d.mandatory).length;
+        const mandatoryUploaded = docs.filter((d) => d.mandatory && d.status === "Uploaded").length;
+
+        return {
+          ...ap,
+          total: docs.length,
+          uploaded,
+          mandatory,
+          mandatoryUploaded,
+        };
+      }),
+    [documents]
   );
-}
 
-function CurrencyField({ label, value, onChange, editing }) {
-  const formatted = value ? `₹ ${Number(value).toLocaleString("en-IN")}` : "—";
-  return (
-    <div className="eo-field">
-      <span className="eo-field-label">{label}</span>
-      {editing ? (
-        <div className="eo-currency-wrap">
-          <span>₹</span>
-          <input className="eo-currency-inner" type="number" value={value || ""}
-            onChange={(e) => onChange(e.target.value)} />
-        </div>
-      ) : (
-        <div className={`eo-field-ro${!value ? " empty" : ""}`}>{formatted}</div>
-      )}
-    </div>
+  const applicantDocuments = useMemo(
+    () => documents.filter((d) => d.applicantKey === selectedApplicantKey),
+    [documents, selectedApplicantKey]
   );
-}
 
-/* ── Component ───────────────────────────────────────────────────── */
-function EligibilityOfferPage() {
-  const [inputs, setInputs]               = useState(initialInputs);
-  const [editingInputs, setEditingInputs] = useState(false);
-  const [breScenario, setBreScenario]     = useState("amber");
-  const [breStatus, setBreStatus]         = useState("Not Run");
-  const [breRunAt, setBreRunAt]           = useState("");
-  const [isRunning, setIsRunning]         = useState(false);
-  const [rules, setRules]                 = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [offerOptions, setOfferOptions]   = useState([]);
-  const [selectedOfferId, setSelectedOfferId] = useState("");
+  const filteredDocuments = useMemo(
+    () =>
+      applicantDocuments.filter((doc) => {
+        const matchesFilter =
+          activeFilter === "All" ||
+          (activeFilter === "Mandatory" && doc.mandatory) ||
+          doc.status === activeFilter ||
+          doc.verificationStatus === activeFilter;
 
-  const selectedOffer  = offerOptions.find((o) => o.id === selectedOfferId);
-  const breCompleted   = breStatus === "Completed";
+        const s = searchText.trim().toLowerCase();
 
-  const updateInput = (key, val) => setInputs((p) => ({ ...p, [key]: val }));
+        const matchesSearch =
+          !s ||
+          doc.type.toLowerCase().includes(s) ||
+          doc.subtype.toLowerCase().includes(s) ||
+          String(doc.source || "").toLowerCase().includes(s);
 
-  const runBre = () => {
-    setIsRunning(true);
-    setBreStatus("Running");
-    window.setTimeout(() => {
-      const nextRules  = ruleSets[breScenario];
-      const nextOffers = offerOptionsByBre[breScenario];
-      setRules(nextRules);
-      setOfferOptions(nextOffers);
-      setBreStatus("Completed");
-      setBreRunAt(getTimestamp());
-      setSelectedOfferId(nextOffers[0]?.id || "");
-      setIsRunning(false);
-    }, 1100);
+        return matchesFilter && matchesSearch;
+      }),
+    [applicantDocuments, activeFilter, searchText]
+  );
+
+  const stats = useMemo(() => {
+    const uploaded = applicantDocuments.filter((d) => d.status === "Uploaded").length;
+    const pending = applicantDocuments.filter((d) => d.status === "Pending").length;
+    const mandatory = applicantDocuments.filter((d) => d.mandatory).length;
+    const mandatoryUploaded = applicantDocuments.filter((d) => d.mandatory && d.status === "Uploaded").length;
+
+    return {
+      total: applicantDocuments.length,
+      uploaded,
+      pending,
+      mandatory,
+      mandatoryUploaded,
+      completion: applicantDocuments.length
+        ? Math.round((uploaded / applicantDocuments.length) * 100)
+        : 0,
+    };
+  }, [applicantDocuments]);
+
+  const groupedDocuments = useMemo(
+    () =>
+      filteredDocuments.reduce((acc, doc) => {
+        if (!acc[doc.type]) acc[doc.type] = [];
+        acc[doc.type].push(doc);
+        return acc;
+      }, {}),
+    [filteredDocuments]
+  );
+
+  const handleUpload = (event, doc) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith("image/");
+    const previewUrl = isImage ? URL.createObjectURL(file) : "";
+
+    saveUploadedDocument({
+      applicant: doc.applicantKey,
+      applicantName: doc.applicantName,
+      applicantRole: doc.applicantRole,
+      type: doc.type,
+      subtype: doc.subtype,
+      source: "Internal Upload",
+      fileName: file.name,
+      fileType: isImage ? "Image" : "PDF / Document",
+      previewUrl,
+      ocrStatus:
+        doc.type === "Identity Proof" || doc.type === "Address Proof"
+          ? "Captured"
+          : doc.ocrStatus === "Not Applicable"
+            ? "Not Applicable"
+            : "Pending Review",
+      verificationStatus: doc.type === "Photograph" ? "Captured" : "Pending Review",
+    });
+
+    refreshDocuments();
   };
 
-  const clearBre = () => {
-    setBreStatus("Not Run");
-    setBreRunAt("");
-    setRules([]);
-    setOfferOptions([]);
-    setSelectedOfferId("");
+  const handleMarkVerified = (id) => {
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              verificationStatus: "Verified",
+            }
+          : d
+      )
+    );
   };
 
-  const filteredRules = useMemo(() => {
-    if (selectedCategory === "All") return rules;
-    return rules.filter((r) => r.category === selectedCategory);
-  }, [rules, selectedCategory]);
-
-  const ruleStats = useMemo(() => ({
-    green: rules.filter((r) => r.result === "Green").length,
-    amber: rules.filter((r) => r.result === "Amber").length,
-    red:   rules.filter((r) => r.result === "Red").length,
-  }), [rules]);
-
-  const breColor = useMemo(() => {
-    if (!breCompleted) return "gray";
-    if (ruleStats.red > 0)   return "red";
-    if (ruleStats.amber > 0) return "amber";
-    return "green";
-  }, [breCompleted, ruleStats]);
-
   return (
-    <div className="eo-page">
+    <div className="dp-page">
 
-      {/* ── Main panel ────────────────────────────────────────────── */}
-      <div className="eo-panel">
+      {/* ── Applicant tab bar ────────────────────────────────────────── */}
+      <nav className="dp-tab-bar">
+        {applicantStats.map((ap) => {
+          const initials = ap.name
+            .split(" ")
+            .map((n) => n[0])
+            .slice(0, 2)
+            .join("");
 
-        {/* ── Input Snapshot ── */}
-        <div className="eo-section">
-          <div className="eo-section-head">
-            <div>
-              <span className="eo-section-title">Input Snapshot</span>
-              <span className="eo-section-sub">Application data used for eligibility calculation</span>
-            </div>
-            <button className="eo-edit-btn" type="button" onClick={() => setEditingInputs((p) => !p)}>
-              <PencilIcon /> {editingInputs ? "Done" : "Edit"}
-            </button>
-          </div>
-          <div className="eo-field-grid-3">
-            <FieldRow      label="Product"              value={inputs.product}              onChange={(v) => updateInput("product", v)}              editing={editingInputs} />
-            <FieldRow      label="Loan Type"            value={inputs.loanType}             onChange={(v) => updateInput("loanType", v)}             editing={editingInputs} />
-            <FieldRow      label="Loan Purpose"         value={inputs.loanPurpose}          onChange={(v) => updateInput("loanPurpose", v)}          editing={editingInputs} />
-            <CurrencyField label="Requested Amount"     value={inputs.requestedLoanAmount}  onChange={(v) => updateInput("requestedLoanAmount", v)}  editing={editingInputs} />
-            <FieldRow      label="Tenure (Years)"       value={inputs.requestedTenureYears} onChange={(v) => updateInput("requestedTenureYears", v)} editing={editingInputs} type="number" />
-            <FieldRow      label="Applicant Category"   value={inputs.applicantCategory}    onChange={(v) => updateInput("applicantCategory", v)}    editing={editingInputs} />
-            <CurrencyField label="Monthly Income"       value={inputs.monthlyIncome}        onChange={(v) => updateInput("monthlyIncome", v)}        editing={editingInputs} />
-            <CurrencyField label="Existing Obligations" value={inputs.existingObligations}  onChange={(v) => updateInput("existingObligations", v)}  editing={editingInputs} />
-            <FieldRow      label="Bureau Score"         value={inputs.bureauScore}          onChange={(v) => updateInput("bureauScore", v)}          editing={editingInputs} type="number" />
-            <FieldRow      label="Bureau Status"        value={inputs.bureauStatus}         onChange={(v) => updateInput("bureauStatus", v)}         editing={editingInputs} />
-            <CurrencyField label="Collateral Value"     value={inputs.collateralValue}      onChange={(v) => updateInput("collateralValue", v)}      editing={editingInputs} />
-            <FieldRow      label="Document Status"      value={inputs.documentStatus}       onChange={(v) => updateInput("documentStatus", v)}       editing={editingInputs} />
-          </div>
-        </div>
+          const isActive = selectedApplicantKey === ap.key;
+          const allDone = ap.mandatoryUploaded === ap.mandatory && ap.mandatory > 0;
 
-        <div className="eo-divider" />
-
-        {/* ── BRE Engine ── */}
-        <div className="eo-section">
-          <div className="eo-section-head no-btn">
-            <span className="eo-section-title">BRE Engine</span>
-            <span className="eo-section-sub">Select a demo scenario and run the eligibility engine</span>
-          </div>
-
-          {/* Run row */}
-          <div className="eo-run-row">
-            <button className="eo-run-btn" type="button" onClick={runBre} disabled={isRunning}>
-              {isRunning ? <RefreshIcon /> : <PlayIcon />}
-              {isRunning ? "Running BRE…" : breCompleted ? "Re-run BRE" : "Run BRE"}
-            </button>
-            {breRunAt && (
-              <span className="eo-run-meta">Last run: {breRunAt}</span>
-            )}
-            {breCompleted && (
-              <button className="eo-clear-btn" type="button" onClick={clearBre}>Clear</button>
-            )}
-          </div>
-
-          {/* Processing banner */}
-          {isRunning && (
-            <div className="eo-processing-msg">
-              <RefreshIcon />
-              Pulling application, bureau, income, document and collateral data…
-            </div>
-          )}
-
-          {/* BRE result strip */}
-          {breCompleted && (
-            <div className={`eo-bre-result-strip ${breColor}`}>
-              <span className="eo-bre-result-dot" />
-              <span className="eo-bre-result-label">{breColor.toUpperCase()} BRE</span>
-              <span className="eo-bre-result-counts">
-                {ruleStats.green} green · {ruleStats.amber} amber · {ruleStats.red} red
+          return (
+            <button
+              key={ap.key}
+              type="button"
+              className={`dp-tab${isActive ? " active" : ""}`}
+              onClick={() => {
+                setSelectedApplicantKey(ap.key);
+                setActiveFilter("All");
+                setSearchText("");
+              }}
+            >
+              <span className={`dp-tab-av${allDone ? " done" : ""}`}>
+                {initials}
               </span>
-            </div>
-          )}
+
+              <span className="dp-tab-info">
+                <span className="dp-tab-name">{ap.name}</span>
+                <span className="dp-tab-meta">
+                  {ap.role} · {ap.uploaded}/{ap.total} docs
+                </span>
+              </span>
+
+              <span className={`dp-tab-badge${allDone ? " done" : ap.uploaded > 0 ? " partial" : ""}`}>
+                {ap.mandatoryUploaded}/{ap.mandatory}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* ── Toolbar ──────────────────────────────────────────────────── */}
+      <div className="dp-toolbar">
+        <div className="dp-filters">
+          {filterOptions.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`dp-filter-btn${activeFilter === f ? " active" : ""}`}
+              onClick={() => setActiveFilter(f)}
+            >
+              {f}
+            </button>
+          ))}
         </div>
 
-        {/* ── Rule Outcomes ── */}
-        {breCompleted && (
-          <>
-            <div className="eo-divider" />
-            <div className="eo-section">
-              <div className="eo-section-head no-btn">
-                <span className="eo-section-title">Rule Outcomes</span>
-                <span className="eo-section-sub">Policy check results from this BRE run</span>
-              </div>
-
-              {/* Category filter */}
-              <div className="eo-filter-bar">
-                {categoryOptions.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={`eo-filter-pill${selectedCategory === cat ? " active" : ""}`}
-                    onClick={() => setSelectedCategory(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              {/* Rule rows */}
-              <div className="eo-rule-list">
-                {filteredRules.map((rule) => (
-                  <div className={`eo-rule-row ${rule.result.toLowerCase()}`} key={rule.id}>
-                    <div className="eo-rule-body">
-                      <div className="eo-rule-name-row">
-                        <span className="eo-rule-name">{rule.ruleName}</span>
-                        <span className="eo-rule-cat">{rule.category}</span>
-                        <span className="eo-rule-sev">{rule.severity}</span>
-                      </div>
-                      <div className="eo-rule-detail">
-                        <span>Actual: <strong>{rule.value}</strong></span>
-                        <span>Expected: <strong>{rule.expected}</strong></span>
-                      </div>
-                    </div>
-                    <span className={`eo-rule-badge ${rule.result.toLowerCase()}`}>
-                      {rule.result === "Green" ? <CheckIcon /> : <AlertIcon />}
-                      {rule.result}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ── Offer Options ── */}
-        {breCompleted && offerOptions.length > 0 && (
-          <>
-            <div className="eo-divider" />
-            <div className="eo-section">
-              <div className="eo-section-head no-btn">
-                <span className="eo-section-title">Preliminary Offer Options</span>
-                <span className="eo-section-sub">{offerOptions.length} option{offerOptions.length !== 1 ? "s" : ""} generated · select one to proceed</span>
-              </div>
-
-              <div className="eo-offer-list">
-                {offerOptions.map((offer) => {
-                  const isSelected = selectedOfferId === offer.id;
-                  const hasAmount  = offer.preliminaryAmount !== "0";
-
-                  return (
-                    <button
-                      key={offer.id}
-                      type="button"
-                      className={`eo-offer-card${isSelected ? " selected" : ""}${!hasAmount ? " blocked" : ""}`}
-                      onClick={() => setSelectedOfferId(offer.id)}
-                    >
-                      {/* Header */}
-                      <div className="eo-offer-header">
-                        <div>
-                          <span className="eo-offer-tag">{offer.tag}</span>
-                          <span className="eo-offer-name">{offer.name}</span>
-                        </div>
-                        <span className={`eo-offer-decision-badge ${hasAmount ? (offer.referrals.length ? "amber" : "green") : "red"}`}>
-                          {offer.decision}
-                        </span>
-                      </div>
-
-                      {/* Amount */}
-                      <div className={`eo-offer-amount${!hasAmount ? " blocked" : ""}`}>
-                        <span>Preliminary Amount</span>
-                        <strong>{hasAmount ? formatCurrency(offer.preliminaryAmount) : "No Offer"}</strong>
-                      </div>
-
-                      {/* Metrics row */}
-                      {hasAmount && (
-                        <div className="eo-offer-metrics">
-                          <div><span>ROI</span><strong>{offer.roi}%</strong></div>
-                          <div><span>Tenure</span><strong>{offer.tenureYears} yrs</strong></div>
-                          <div><span>EMI</span><strong>{formatCurrency(offer.emi)}</strong></div>
-                          <div><span>Fee</span><strong>{offer.processingFee}%</strong></div>
-                          <div><span>Margin</span><strong>{formatCurrency(offer.marginMoney)}</strong></div>
-                        </div>
-                      )}
-
-                      {/* Observations */}
-                      {offer.referrals.length > 0 && (
-                        <div className="eo-offer-obs warn">
-                          <AlertIcon />
-                          <span>{offer.referrals.join(" · ")}</span>
-                        </div>
-                      )}
-                      {offer.referrals.length === 0 && hasAmount && (
-                        <div className="eo-offer-obs ok">
-                          <CheckIcon />
-                          <span>No referral observations at preliminary stage</span>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        )}
-
+        <input
+          className="dp-search"
+          value={searchText}
+          placeholder="Search documents…"
+          onChange={(e) => setSearchText(e.target.value)}
+        />
       </div>
+
+      {/* ── Stats strip ──────────────────────────────────────────────── */}
+      <div className="dp-stats-strip">
+        <div className="dp-stat">
+          <strong>{stats.total}</strong>
+          <span>Total</span>
+        </div>
+
+        <div className="dp-stat green">
+          <strong>{stats.uploaded}</strong>
+          <span>Uploaded</span>
+        </div>
+
+        <div className="dp-stat amber">
+          <strong>{stats.pending}</strong>
+          <span>Pending</span>
+        </div>
+
+        <div className="dp-stat">
+          <strong>{stats.mandatoryUploaded}/{stats.mandatory}</strong>
+          <span>Mandatory</span>
+        </div>
+
+        <div className="dp-stat-progress">
+          <div className="dp-progress-track">
+            <div className="dp-progress-fill" style={{ width: `${stats.completion}%` }} />
+          </div>
+          <span>{stats.completion}%</span>
+        </div>
+      </div>
+
+      {/* ── Document layout ───────────────────────────────────────────── */}
+      <div className="dp-layout">
+        <main className="dp-main">
+          {Object.keys(groupedDocuments).length === 0 ? (
+            <div className="dp-empty">No documents match the current filter.</div>
+          ) : (
+            Object.entries(groupedDocuments).map(([type, docs]) => (
+              <section className="dp-group" key={type}>
+                <div className="dp-group-head">
+                  <span className="dp-group-title">{type}</span>
+                  <span className="dp-group-count">
+                    {docs.filter((d) => d.status === "Uploaded").length}/{docs.length} uploaded
+                  </span>
+                </div>
+
+                <div className="dp-doc-list">
+                  {docs.map((doc) => {
+                    const isUploaded = doc.status === "Uploaded";
+                    const isVerified = doc.verificationStatus === "Verified";
+                    const sc = getStatusClass(doc.status);
+
+                    return (
+                      <div className={`dp-doc-row ${sc}`} key={doc.id}>
+
+                        {/* Info */}
+                        <div className="dp-row-info">
+                          <div className="dp-row-title-line">
+                            <span className="dp-row-name">{doc.subtype}</span>
+                            {doc.mandatory && <span className="dp-req-badge">Required</span>}
+                          </div>
+
+                          {isUploaded ? (
+                            <span className="dp-row-filemeta">
+                              {doc.fileName} · {doc.source || "Internal Upload"}
+                            </span>
+                          ) : (
+                            <span className="dp-row-pending">Not yet uploaded</span>
+                          )}
+                        </div>
+
+                        {/* Status chips */}
+                        <div className="dp-row-chips">
+                          <span className={`dp-chip ${sc}`}>{doc.status}</span>
+
+                          {doc.verificationStatus !== "Pending" && (
+                            <span className={`dp-chip${isVerified ? " verified" : ""}`}>
+                              {doc.verificationStatus}
+                            </span>
+                          )}
+
+                          {doc.ocrStatus !== "Pending" && doc.ocrStatus !== "Not Applicable" && (
+                            <span className="dp-chip ocr">{doc.ocrStatus}</span>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="dp-row-actions">
+                          {isUploaded && (
+                            <button
+                              type="button"
+                              className="dp-icon-btn"
+                              title="View"
+                              onClick={() => setPreviewDoc(doc)}
+                            >
+                              <EyeIcon />
+                            </button>
+                          )}
+
+                          {isUploaded && !isVerified && (
+                            <button
+                              type="button"
+                              className="dp-icon-btn verify"
+                              title="Mark verified"
+                              onClick={() => handleMarkVerified(doc.id)}
+                            >
+                              <CheckIcon />
+                            </button>
+                          )}
+
+                          <label className={`dp-upload-btn${isUploaded ? " reupload" : ""}`}>
+                            {isUploaded ? <RefreshIcon /> : <UploadIcon />}
+                            <span>{isUploaded ? "Re-upload" : "Upload"}</span>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf,.doc,.docx"
+                              onChange={(e) => handleUpload(e, doc)}
+                            />
+                          </label>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))
+          )}
+        </main>
+      </div>
+
+      {/* ── Preview modal ─────────────────────────────────────────────── */}
+      {previewDoc && (
+        <div
+          className="dp-preview-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPreviewDoc(null);
+          }}
+        >
+          <div className="dp-preview-modal">
+            <header className="dp-preview-hdr">
+              <div>
+                <span className="dp-preview-title">{previewDoc.subtype}</span>
+                <span className="dp-preview-sub">{previewDoc.fileName}</span>
+              </div>
+
+              <button
+                type="button"
+                className="dp-preview-close"
+                onClick={() => setPreviewDoc(null)}
+              >
+                <XIcon />
+              </button>
+            </header>
+
+            <div className="dp-preview-body">
+              {previewDoc.previewUrl ? (
+                <img src={previewDoc.previewUrl} alt={previewDoc.subtype} />
+              ) : (
+                <div className="dp-preview-empty">
+                  <FileIcon />
+                  <strong>{previewDoc.fileName}</strong>
+                  <p>
+                    Preview is available for image files only. PDF and document files are shown as metadata.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <footer className="dp-preview-ftr">
+              <div>
+                <span>Applicant</span>
+                <strong>{previewDoc.applicantName}</strong>
+              </div>
+
+              <div>
+                <span>Source</span>
+                <strong>{previewDoc.source || "Internal Upload"}</strong>
+              </div>
+
+              <div>
+                <span>Uploaded by</span>
+                <strong>{previewDoc.uploadedBy || "—"}</strong>
+              </div>
+            </footer>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
-export default EligibilityOfferPage;
+export default DocumentsPage;

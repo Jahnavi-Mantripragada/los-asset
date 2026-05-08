@@ -1,1027 +1,385 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import "./CollateralPage.css";
-import { saveUploadedDocument } from "../../utils/documentStore";
 
-const HomeIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="m3 11 9-8 9 8" />
-    <path d="M5 10v10h14V10" />
-    <path d="M9 20v-6h6v6" />
+/* ── Icons ───────────────────────────────────────────────────────────── */
+const PencilIcon = () => (
+  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+  </svg>
+);
+const PlusIcon = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4">
+    <path d="M12 5v14" /><path d="M5 12h14" />
+  </svg>
+);
+const XIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4">
+    <path d="M18 6 6 18" /><path d="M6 6l12 12" />
   </svg>
 );
 
-const BuildingIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
-    <path d="M16 8h2a2 2 0 0 1 2 2v11" />
-    <path d="M8 7h2" />
-    <path d="M8 11h2" />
-    <path d="M8 15h2" />
-    <path d="M4 21h17" />
-  </svg>
-);
-
-const UploadIcon = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <path d="M17 8l-5-5-5 5" />
-    <path d="M12 3v12" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-);
-
-const FileIcon = () => (
-  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-    <path d="M14 2v6h6" />
-    <path d="M8 13h8" />
-    <path d="M8 17h5" />
-  </svg>
-);
-
-const ShieldIcon = () => (
-  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-  </svg>
-);
-
-const RupeeIcon = () => (
-  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M6 3h12" />
-    <path d="M6 8h12" />
-    <path d="M6 13h7a5 5 0 0 0 0-10" />
-    <path d="m6 13 8 8" />
-  </svg>
-);
-
-const MapIcon = () => (
-  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z" />
-    <path d="M9 3v15" />
-    <path d="M15 6v15" />
-  </svg>
-);
-
+/* ── Data ────────────────────────────────────────────────────────────── */
 const initialCollateral = {
-  propertyIdentified: "Yes",
-  collateralType: "Residential Property",
-  propertyType: "Flat / Apartment",
-  propertyUsage: "Self Occupied",
-  propertyStage: "Ready to Move",
-  occupancyStatus: "Occupied by Applicant",
-  propertyOwnershipType: "Owned",
-  projectName: "Shree Heights",
-  builderName: "Shree Developers",
-  towerBlock: "Tower A",
-  unitNumber: "402",
-  floorNumber: "4",
-  totalFloors: "18",
-  carpetArea: "820",
-  builtUpArea: "1040",
-  areaUnit: "Sq. Ft.",
-  propertyAgeYears: "5",
-  agreementValue: "7800000",
-  estimatedMarketValue: "8600000",
-  valuationAmount: "8400000",
-  existingMortgage: "No",
-  mortgageBankName: "",
-  outstandingLoanAmount: "",
-  legalStatus: "Pending",
-  technicalStatus: "Pending",
-  valuationStatus: "Pending",
-  titleClearanceStatus: "Pending",
+  propertyIdentified:      "Yes",
+  collateralType:          "Residential Property",
+  propertyType:            "Flat / Apartment",
+  propertyUsage:           "Self Occupied",
+  propertyStage:           "Ready to Move",
+  occupancyStatus:         "Occupied by Applicant",
+  propertyOwnershipType:   "Owned",
+  projectName:             "Shree Heights",
+  builderName:             "Shree Developers",
+  towerBlock:              "Tower A",
+  unitNumber:              "402",
+  floorNumber:             "4",
+  totalFloors:             "18",
+  carpetArea:              "820",
+  builtUpArea:             "1040",
+  areaUnit:                "Sq. Ft.",
+  propertyAgeYears:        "5",
+  agreementValue:          "7800000",
+  estimatedMarketValue:    "8600000",
+  valuationAmount:         "8400000",
+  existingMortgage:        "No",
+  mortgageBankName:        "",
+  outstandingLoanAmount:   "",
 };
 
 const initialAddress = {
-  line1: "Flat 402, Shree Heights",
-  line2: "Andheri Kurla Road",
+  line1:    "Flat 402, Shree Heights",
+  line2:    "Andheri Kurla Road",
   landmark: "Near Metro Station",
-  city: "Mumbai",
+  city:     "Mumbai",
   district: "Mumbai Suburban",
-  state: "Maharashtra",
-  pincode: "400059",
-  country: "India",
+  state:    "Maharashtra",
+  pincode:  "400059",
+  country:  "India",
 };
 
 const initialOwners = [
-  {
-    id: "OWN-001",
-    name: "Rahul Sharma",
-    role: "Primary Applicant",
-    ownershipShare: "70",
-    pan: "ABCDE1234F",
-  },
-  {
-    id: "OWN-002",
-    name: "Priya Sharma",
-    role: "Co-Applicant",
-    ownershipShare: "30",
-    pan: "BCDEF2345G",
-  },
+  { id: "OWN-001", name: "Rahul Sharma",  role: "Primary Applicant", ownershipShare: "70", pan: "ABCDE1234F" },
+  { id: "OWN-002", name: "Priya Sharma",  role: "Co-Applicant",      ownershipShare: "30", pan: "BCDEF2345G" },
 ];
 
-const documentChecklist = [
-  {
-    id: "PROP-DOC-001",
-    type: "Property Document",
-    subtype: "Property Title / Chain Document",
-    mandatory: true,
-  },
-  {
-    id: "PROP-DOC-002",
-    type: "Property Document",
-    subtype: "Agreement to Sale",
-    mandatory: true,
-  },
-  {
-    id: "PROP-DOC-003",
-    type: "Property Document",
-    subtype: "Index II",
-    mandatory: false,
-  },
-  {
-    id: "PROP-DOC-004",
-    type: "Property Document",
-    subtype: "Property Tax Receipt",
-    mandatory: false,
-  },
-  {
-    id: "PROP-DOC-005",
-    type: "Property Document",
-    subtype: "Approved Building Plan",
-    mandatory: false,
-  },
-  {
-    id: "PROP-DOC-006",
-    type: "Property Document",
-    subtype: "Occupancy Certificate",
-    mandatory: false,
-  },
-  {
-    id: "PROP-DOC-007",
-    type: "Property Document",
-    subtype: "NOC from Society / Builder",
-    mandatory: false,
-  },
-];
-
-const propertyIdentifiedOptions = ["Yes", "No"];
-const collateralTypeOptions = ["Residential Property", "Commercial Property", "Plot / Land", "Industrial Property"];
-const propertyTypeOptions = ["Flat / Apartment", "Independent House", "Villa", "Row House", "Shop", "Office", "Plot", "Warehouse"];
-const propertyUsageOptions = ["Self Occupied", "Rented", "Vacant", "Under Construction", "Business Use"];
-const propertyStageOptions = ["Ready to Move", "Under Construction", "Resale", "New Booking"];
+const collateralTypeOptions  = ["Residential Property", "Commercial Property", "Plot / Land", "Industrial Property"];
+const propertyTypeOptions    = ["Flat / Apartment", "Independent House", "Villa", "Row House", "Shop", "Office", "Plot", "Warehouse"];
+const propertyUsageOptions   = ["Self Occupied", "Rented", "Vacant", "Under Construction", "Business Use"];
+const propertyStageOptions   = ["Ready to Move", "Under Construction", "Resale", "New Booking"];
 const occupancyStatusOptions = ["Occupied by Applicant", "Occupied by Tenant", "Vacant", "Builder Possession", "Seller Possession"];
-const ownershipTypeOptions = ["Owned", "Jointly Owned", "Ancestral", "Leasehold", "Under Transfer"];
-const statusOptions = ["Pending", "Initiated", "Completed", "Sent Back", "Waived"];
+const ownershipTypeOptions   = ["Owned", "Jointly Owned", "Ancestral", "Leasehold", "Under Transfer"];
+const areaUnitOptions        = ["Sq. Ft.", "Sq. Meter", "Acre", "Guntha"];
 
-function Field({ label, children, required }) {
+/* ── Field components ───────────────────────────────────────────────── */
+function FieldRow({ label, value, onChange, editing, type = "text", placeholder }) {
   return (
-    <label className="coll-field">
-      <span>
-        {label}
-        {required && <em>*</em>}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function TextInput({ value, onChange, placeholder, type = "text" }) {
-  return (
-    <input
-      className="coll-input"
-      type={type}
-      value={value}
-      placeholder={placeholder}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  );
-}
-
-function SelectInput({ value, onChange, children }) {
-  return (
-    <select
-      className="coll-input coll-select"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    >
-      {children}
-    </select>
-  );
-}
-
-function CurrencyInput({ value, onChange, placeholder }) {
-  return (
-    <div className="coll-currency-input">
-      <span>₹</span>
-      <input
-        type="number"
-        value={value}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-      />
+    <div className="cp-field">
+      <span className="cp-field-label">{label}</span>
+      {editing ? (
+        <input
+          className="cp-input"
+          type={type}
+          value={value || ""}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : (
+        <div className={`cp-field-ro${!value ? " empty" : ""}`}>{value || "—"}</div>
+      )}
     </div>
   );
 }
 
-function AddressBlock({ address, onChange }) {
-  const updateAddress = (key, value) => {
-    onChange({
-      ...address,
-      [key]: value,
-    });
-  };
-
+function SelectField({ label, value, onChange, editing, options }) {
   return (
-    <div className="coll-address-card">
-      <div className="coll-address-title">
-        <span>
-          <MapIcon />
-        </span>
-        <div>
-          <h4>Property Address</h4>
-          <p>Capture exact collateral location for technical and legal verification.</p>
+    <div className="cp-field">
+      <span className="cp-field-label">{label}</span>
+      {editing ? (
+        <select className="cp-input cp-select" value={value} onChange={(e) => onChange(e.target.value)}>
+          {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      ) : (
+        <div className={`cp-field-ro${!value ? " empty" : ""}`}>{value || "—"}</div>
+      )}
+    </div>
+  );
+}
+
+function CurrencyField({ label, value, onChange, editing }) {
+  const formatted = value ? `₹ ${Number(value).toLocaleString("en-IN")}` : "—";
+  return (
+    <div className="cp-field">
+      <span className="cp-field-label">{label}</span>
+      {editing ? (
+        <div className="cp-currency-wrap">
+          <span>₹</span>
+          <input
+            className="cp-currency-inner"
+            type="number"
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+          />
         </div>
-      </div>
-
-      <div className="coll-field-grid two">
-        <Field label="Address Line 1" required>
-          <TextInput
-            value={address.line1}
-            placeholder="Flat / house / building"
-            onChange={(value) => updateAddress("line1", value)}
-          />
-        </Field>
-
-        <Field label="Address Line 2">
-          <TextInput
-            value={address.line2}
-            placeholder="Street / area"
-            onChange={(value) => updateAddress("line2", value)}
-          />
-        </Field>
-
-        <Field label="Landmark">
-          <TextInput
-            value={address.landmark}
-            placeholder="Nearby landmark"
-            onChange={(value) => updateAddress("landmark", value)}
-          />
-        </Field>
-
-        <Field label="City" required>
-          <TextInput
-            value={address.city}
-            placeholder="City"
-            onChange={(value) => updateAddress("city", value)}
-          />
-        </Field>
-
-        <Field label="District">
-          <TextInput
-            value={address.district}
-            placeholder="District"
-            onChange={(value) => updateAddress("district", value)}
-          />
-        </Field>
-
-        <Field label="State" required>
-          <TextInput
-            value={address.state}
-            placeholder="State"
-            onChange={(value) => updateAddress("state", value)}
-          />
-        </Field>
-
-        <Field label="PIN Code" required>
-          <TextInput
-            value={address.pincode}
-            placeholder="PIN code"
-            onChange={(value) => updateAddress("pincode", value)}
-          />
-        </Field>
-
-        <Field label="Country">
-          <TextInput
-            value={address.country}
-            placeholder="Country"
-            onChange={(value) => updateAddress("country", value)}
-          />
-        </Field>
-      </div>
+      ) : (
+        <div className={`cp-field-ro${!value ? " empty" : ""}`}>{formatted}</div>
+      )}
     </div>
   );
 }
 
-function StatusSelect({ label, value, onChange }) {
+function SectionHead({ title, sub, editing, onEdit, action }) {
   return (
-    <div className="coll-status-control">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {statusOptions.map((status) => (
-          <option key={status} value={status}>{status}</option>
-        ))}
-      </select>
+    <div className="cp-section-head">
+      <div>
+        <span className="cp-section-title">{title}</span>
+        {sub && <span className="cp-section-sub">{sub}</span>}
+      </div>
+      {action || (
+        <button className="cp-edit-btn" type="button" onClick={onEdit}>
+          <PencilIcon /> {editing ? "Done" : "Edit"}
+        </button>
+      )}
     </div>
   );
 }
 
+/* ── Component ───────────────────────────────────────────────────────── */
 function CollateralPage() {
   const [collateral, setCollateral] = useState(initialCollateral);
-  const [propertyAddress, setPropertyAddress] = useState(initialAddress);
-  const [owners, setOwners] = useState(initialOwners);
-  const [documents, setDocuments] = useState(
-    documentChecklist.map((doc) => ({
-      ...doc,
-      status: "Pending",
-      fileName: "",
-      uploadedBy: "",
-      uploadedOn: "",
-      fileType: "",
-      previewUrl: "",
-    }))
-  );
+  const [address,    setAddress]    = useState(initialAddress);
+  const [owners,     setOwners]     = useState(initialOwners);
+  const [editing,    setEditing]    = useState({ basic: false, unit: false, addr: false, valuation: false });
 
-  const updateCollateral = (key, value) => {
-    setCollateral((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
-  };
+  const upd      = (key, val) => setCollateral((p) => ({ ...p, [key]: val }));
+  const updAddr  = (key, val) => setAddress((p) => ({ ...p, [key]: val }));
+  const updOwner = (id, key, val) => setOwners((p) => p.map((o) => o.id === id ? { ...o, [key]: val } : o));
+  const toggle   = (s) => setEditing((p) => ({ ...p, [s]: !p[s] }));
 
-  const updateOwner = (ownerId, key, value) => {
-    setOwners((previous) =>
-      previous.map((owner) =>
-        owner.id === ownerId
-          ? {
-              ...owner,
-              [key]: value,
-            }
-          : owner
-      )
-    );
-  };
-
-  const addOwner = () => {
-    setOwners((previous) => [
-      ...previous,
-      {
-        id: `OWN-${Date.now()}`,
-        name: "",
-        role: "Property Owner",
-        ownershipShare: "",
-        pan: "",
-      },
-    ]);
-  };
-
-  const removeOwner = (ownerId) => {
-    setOwners((previous) => previous.filter((owner) => owner.id !== ownerId));
-  };
-
-  const handleDocumentUpload = (event, documentId) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const isImage = file.type.startsWith("image/");
-    const previewUrl = isImage ? URL.createObjectURL(file) : "";
-    const uploadedOn = new Date().toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    setDocuments((previous) =>
-      previous.map((doc) =>
-        doc.id === documentId
-          ? {
-              ...doc,
-              status: "Uploaded",
-              fileName: file.name,
-              fileType: isImage ? "Image" : "PDF / Document",
-              previewUrl,
-              uploadedBy: "Sales User",
-              uploadedOn,
-            }
-          : doc
-      )
-    );
-
-    const currentDoc = documents.find((doc) => doc.id === documentId);
-
-    if (currentDoc) {
-      saveUploadedDocument({
-        applicant: "Primary Applicant",
-        applicantName: "Rahul Sharma",
-        applicantRole: "Primary Applicant",
-        type: currentDoc.type,
-        subtype: currentDoc.subtype,
-        source: "Collateral",
-        fileName: file.name,
-        fileType: isImage ? "Image" : "PDF / Document",
-        previewUrl,
-        ocrStatus: "Pending Review",
-        verificationStatus: "Pending Review",
-      });
-    }
-  };
-
-  const completionItems = useMemo(() => {
-    return [
-      {
-        label: "Property identified",
-        complete: collateral.propertyIdentified === "Yes",
-      },
-      {
-        label: "Property details captured",
-        complete: Boolean(collateral.propertyType && collateral.projectName && collateral.unitNumber),
-      },
-      {
-        label: "Property address captured",
-        complete: Boolean(propertyAddress.line1 && propertyAddress.city && propertyAddress.pincode),
-      },
-      {
-        label: "Owner details captured",
-        complete: owners.length > 0 && owners.every((owner) => owner.name && owner.ownershipShare),
-      },
-      {
-        label: "Valuation captured",
-        complete: Boolean(collateral.estimatedMarketValue && collateral.valuationAmount),
-      },
-      {
-        label: "Mandatory property docs uploaded",
-        complete: documents
-          .filter((doc) => doc.mandatory)
-          .every((doc) => doc.status === "Uploaded"),
-      },
-    ];
-  }, [collateral, propertyAddress, owners, documents]);
-
-  const uploadedDocCount = documents.filter((doc) => doc.status === "Uploaded").length;
-  const mandatoryDocs = documents.filter((doc) => doc.mandatory);
-  const mandatoryUploadedCount = mandatoryDocs.filter((doc) => doc.status === "Uploaded").length;
-  const completedCount = completionItems.filter((item) => item.complete).length;
+  const addOwner = () => setOwners((p) => [...p, { id: `OWN-${Date.now()}`, name: "", role: "Property Owner", ownershipShare: "", pan: "" }]);
+  const removeOwner = (id) => setOwners((p) => p.filter((o) => o.id !== id));
 
   return (
-    <div className="collateral-page">
-      <section className="coll-hero-card">
-        <div className="coll-hero-left">
-          <div className="coll-icon-wrap">
-            <HomeIcon />
+    <div className="cp-page">
+
+      {/* ── Page bar ────────────────────────────────────────────────── */}
+      <div className="cp-page-bar">
+        <span className="cp-page-title">Collateral Details</span>
+        <span className="cp-page-sub">Property information, ownership and valuation for this application</span>
+      </div>
+
+      {/* ── Layout ──────────────────────────────────────────────────── */}
+      <div className="cp-layout">
+
+        {/* ── Main ── */}
+        <div className="cp-main">
+
+          {/* ── Basic Information ── */}
+          <div className="cp-section">
+            <SectionHead
+              title="Basic Information"
+              sub="Property type, usage and classification"
+              editing={editing.basic}
+              onEdit={() => toggle("basic")}
+            />
+            <div className="cp-field-grid-3">
+              <SelectField label="Property Identified"  value={collateral.propertyIdentified}    onChange={(v) => upd("propertyIdentified", v)}    editing={editing.basic} options={["Yes", "No"]} />
+              <SelectField label="Collateral Type"      value={collateral.collateralType}         onChange={(v) => upd("collateralType", v)}         editing={editing.basic} options={collateralTypeOptions} />
+              <SelectField label="Property Type"        value={collateral.propertyType}           onChange={(v) => upd("propertyType", v)}           editing={editing.basic} options={propertyTypeOptions} />
+              <SelectField label="Property Usage"       value={collateral.propertyUsage}          onChange={(v) => upd("propertyUsage", v)}          editing={editing.basic} options={propertyUsageOptions} />
+              <SelectField label="Property Stage"       value={collateral.propertyStage}          onChange={(v) => upd("propertyStage", v)}          editing={editing.basic} options={propertyStageOptions} />
+              <SelectField label="Occupancy Status"     value={collateral.occupancyStatus}        onChange={(v) => upd("occupancyStatus", v)}        editing={editing.basic} options={occupancyStatusOptions} />
+              <SelectField label="Ownership Type"       value={collateral.propertyOwnershipType}  onChange={(v) => upd("propertyOwnershipType", v)}  editing={editing.basic} options={ownershipTypeOptions} />
+            </div>
           </div>
-          <div>
-            <span className="coll-eyebrow">Step 06</span>
-            <h3>Collateral Details</h3>
-            <p>
-              Capture property information, ownership, valuation, legal/technical status and property documents.
-            </p>
+
+          <div className="cp-divider" />
+
+          {/* ── Unit Details ── */}
+          <div className="cp-section">
+            <SectionHead
+              title="Unit Details"
+              sub="Project name, floor, area and age"
+              editing={editing.unit}
+              onEdit={() => toggle("unit")}
+            />
+            <div className="cp-field-grid-3">
+              <FieldRow label="Project / Property Name" value={collateral.projectName}    onChange={(v) => upd("projectName", v)}    editing={editing.unit} placeholder="Project name" />
+              <FieldRow label="Builder Name"            value={collateral.builderName}    onChange={(v) => upd("builderName", v)}    editing={editing.unit} placeholder="Builder / seller name" />
+              <FieldRow label="Tower / Block"           value={collateral.towerBlock}     onChange={(v) => upd("towerBlock", v)}     editing={editing.unit} placeholder="Tower / block" />
+              <FieldRow label="Unit Number"             value={collateral.unitNumber}     onChange={(v) => upd("unitNumber", v)}     editing={editing.unit} placeholder="Flat / unit number" />
+              <FieldRow label="Floor Number"            value={collateral.floorNumber}    onChange={(v) => upd("floorNumber", v)}    editing={editing.unit} placeholder="Floor" type="number" />
+              <FieldRow label="Total Floors"            value={collateral.totalFloors}    onChange={(v) => upd("totalFloors", v)}    editing={editing.unit} placeholder="Total floors" type="number" />
+              <FieldRow label="Carpet Area"             value={collateral.carpetArea}     onChange={(v) => upd("carpetArea", v)}     editing={editing.unit} placeholder="Carpet area" type="number" />
+              <FieldRow label="Built-up Area"           value={collateral.builtUpArea}    onChange={(v) => upd("builtUpArea", v)}    editing={editing.unit} placeholder="Built-up area" type="number" />
+              <SelectField label="Area Unit"            value={collateral.areaUnit}       onChange={(v) => upd("areaUnit", v)}       editing={editing.unit} options={areaUnitOptions} />
+              <FieldRow label="Property Age (years)"    value={collateral.propertyAgeYears} onChange={(v) => upd("propertyAgeYears", v)} editing={editing.unit} placeholder="Age in years" type="number" />
+            </div>
           </div>
-        </div>
 
-        <div className="coll-completion-box">
-          <strong>{completedCount}/{completionItems.length}</strong>
-          <span>Collateral checks completed</span>
-        </div>
-      </section>
+          <div className="cp-divider" />
 
-      <section className="coll-kpi-grid">
-        <div className="coll-kpi-card">
-          <span>Property Status</span>
-          <strong>{collateral.propertyIdentified}</strong>
-        </div>
-
-        <div className="coll-kpi-card">
-          <span>Valuation Amount</span>
-          <strong>₹{Number(collateral.valuationAmount || 0).toLocaleString("en-IN")}</strong>
-        </div>
-
-        <div className="coll-kpi-card success">
-          <span>Uploaded Docs</span>
-          <strong>{uploadedDocCount}/{documents.length}</strong>
-        </div>
-
-        <div className="coll-kpi-card warning">
-          <span>Mandatory Docs</span>
-          <strong>{mandatoryUploadedCount}/{mandatoryDocs.length}</strong>
-        </div>
-      </section>
-
-      <section className="coll-layout">
-        <main className="coll-main">
-          <section className="coll-card">
-            <div className="coll-section-header">
-              <div>
-                <span className="coll-eyebrow">Property Identification</span>
-                <h4>Basic Collateral Information</h4>
-              </div>
+          {/* ── Property Address ── */}
+          <div className="cp-section">
+            <SectionHead
+              title="Property Address"
+              sub="Exact location for technical and legal verification"
+              editing={editing.addr}
+              onEdit={() => toggle("addr")}
+            />
+            <div className="cp-field-grid-2">
+              <FieldRow label="Address Line 1" value={address.line1}    onChange={(v) => updAddr("line1", v)}    editing={editing.addr} placeholder="Flat / house / building" />
+              <FieldRow label="Address Line 2" value={address.line2}    onChange={(v) => updAddr("line2", v)}    editing={editing.addr} placeholder="Street / area" />
+              <FieldRow label="Landmark"       value={address.landmark} onChange={(v) => updAddr("landmark", v)} editing={editing.addr} placeholder="Nearby landmark" />
+              <FieldRow label="City"           value={address.city}     onChange={(v) => updAddr("city", v)}     editing={editing.addr} placeholder="City" />
+              <FieldRow label="District"       value={address.district} onChange={(v) => updAddr("district", v)} editing={editing.addr} placeholder="District" />
+              <FieldRow label="State"          value={address.state}    onChange={(v) => updAddr("state", v)}    editing={editing.addr} placeholder="State" />
+              <FieldRow label="PIN Code"       value={address.pincode}  onChange={(v) => updAddr("pincode", v)}  editing={editing.addr} placeholder="PIN code" />
+              <FieldRow label="Country"        value={address.country}  onChange={(v) => updAddr("country", v)}  editing={editing.addr} placeholder="Country" />
             </div>
+          </div>
 
-            <div className="coll-field-grid three">
-              <Field label="Property Identified" required>
-                <SelectInput
-                  value={collateral.propertyIdentified}
-                  onChange={(value) => updateCollateral("propertyIdentified", value)}
-                >
-                  {propertyIdentifiedOptions.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </SelectInput>
-              </Field>
+          <div className="cp-divider" />
 
-              <Field label="Collateral Type" required>
-                <SelectInput
-                  value={collateral.collateralType}
-                  onChange={(value) => updateCollateral("collateralType", value)}
-                >
-                  {collateralTypeOptions.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </SelectInput>
-              </Field>
-
-              <Field label="Property Type" required>
-                <SelectInput
-                  value={collateral.propertyType}
-                  onChange={(value) => updateCollateral("propertyType", value)}
-                >
-                  {propertyTypeOptions.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </SelectInput>
-              </Field>
-
-              <Field label="Property Usage">
-                <SelectInput
-                  value={collateral.propertyUsage}
-                  onChange={(value) => updateCollateral("propertyUsage", value)}
-                >
-                  {propertyUsageOptions.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </SelectInput>
-              </Field>
-
-              <Field label="Property Stage">
-                <SelectInput
-                  value={collateral.propertyStage}
-                  onChange={(value) => updateCollateral("propertyStage", value)}
-                >
-                  {propertyStageOptions.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </SelectInput>
-              </Field>
-
-              <Field label="Occupancy Status">
-                <SelectInput
-                  value={collateral.occupancyStatus}
-                  onChange={(value) => updateCollateral("occupancyStatus", value)}
-                >
-                  {occupancyStatusOptions.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </SelectInput>
-              </Field>
-
-              <Field label="Ownership Type">
-                <SelectInput
-                  value={collateral.propertyOwnershipType}
-                  onChange={(value) => updateCollateral("propertyOwnershipType", value)}
-                >
-                  {ownershipTypeOptions.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </SelectInput>
-              </Field>
-            </div>
-          </section>
-
-          <section className="coll-card">
-            <div className="coll-section-header">
-              <div>
-                <span className="coll-eyebrow">Project / Unit Details</span>
-                <h4>Property Unit Information</h4>
-              </div>
-            </div>
-
-            <div className="coll-field-grid three">
-              <Field label="Project / Property Name" required>
-                <TextInput
-                  value={collateral.projectName}
-                  placeholder="Project / property name"
-                  onChange={(value) => updateCollateral("projectName", value)}
-                />
-              </Field>
-
-              <Field label="Builder Name">
-                <TextInput
-                  value={collateral.builderName}
-                  placeholder="Builder / seller name"
-                  onChange={(value) => updateCollateral("builderName", value)}
-                />
-              </Field>
-
-              <Field label="Tower / Block">
-                <TextInput
-                  value={collateral.towerBlock}
-                  placeholder="Tower / block"
-                  onChange={(value) => updateCollateral("towerBlock", value)}
-                />
-              </Field>
-
-              <Field label="Unit Number" required>
-                <TextInput
-                  value={collateral.unitNumber}
-                  placeholder="Flat / unit number"
-                  onChange={(value) => updateCollateral("unitNumber", value)}
-                />
-              </Field>
-
-              <Field label="Floor Number">
-                <TextInput
-                  value={collateral.floorNumber}
-                  placeholder="Floor number"
-                  onChange={(value) => updateCollateral("floorNumber", value)}
-                />
-              </Field>
-
-              <Field label="Total Floors">
-                <TextInput
-                  value={collateral.totalFloors}
-                  placeholder="Total floors"
-                  onChange={(value) => updateCollateral("totalFloors", value)}
-                />
-              </Field>
-
-              <Field label="Carpet Area">
-                <TextInput
-                  type="number"
-                  value={collateral.carpetArea}
-                  placeholder="Carpet area"
-                  onChange={(value) => updateCollateral("carpetArea", value)}
-                />
-              </Field>
-
-              <Field label="Built-up Area">
-                <TextInput
-                  type="number"
-                  value={collateral.builtUpArea}
-                  placeholder="Built-up area"
-                  onChange={(value) => updateCollateral("builtUpArea", value)}
-                />
-              </Field>
-
-              <Field label="Area Unit">
-                <SelectInput
-                  value={collateral.areaUnit}
-                  onChange={(value) => updateCollateral("areaUnit", value)}
-                >
-                  <option value="Sq. Ft.">Sq. Ft.</option>
-                  <option value="Sq. Meter">Sq. Meter</option>
-                  <option value="Acre">Acre</option>
-                  <option value="Guntha">Guntha</option>
-                </SelectInput>
-              </Field>
-
-              <Field label="Property Age Years">
-                <TextInput
-                  type="number"
-                  value={collateral.propertyAgeYears}
-                  placeholder="Age in years"
-                  onChange={(value) => updateCollateral("propertyAgeYears", value)}
-                />
-              </Field>
-            </div>
-          </section>
-
-          <section className="coll-card">
-            <div className="coll-section-header">
-              <div>
-                <span className="coll-eyebrow">Location</span>
-                <h4>Property Address</h4>
-              </div>
-            </div>
-
-            <AddressBlock address={propertyAddress} onChange={setPropertyAddress} />
-          </section>
-
-          <section className="coll-card">
-            <div className="coll-section-header">
-              <div>
-                <span className="coll-eyebrow">Ownership</span>
-                <h4>Property Owner Details</h4>
-              </div>
-
-              <button type="button" className="coll-outline-btn" onClick={addOwner}>
-                + Add Owner
-              </button>
-            </div>
-
-            <div className="coll-owner-list">
-              {owners.map((owner) => (
-                <div className="coll-owner-card" key={owner.id}>
-                  <div className="coll-owner-avatar">
-                    {owner.name
-                      ? owner.name
-                          .split(" ")
-                          .map((item) => item[0])
-                          .slice(0, 2)
-                          .join("")
-                      : "OW"}
-                  </div>
-
-                  <div className="coll-owner-fields">
-                    <div className="coll-field-grid four">
-                      <Field label="Owner Name" required>
-                        <TextInput
-                          value={owner.name}
-                          placeholder="Owner name"
-                          onChange={(value) => updateOwner(owner.id, "name", value)}
-                        />
-                      </Field>
-
-                      <Field label="Role">
-                        <TextInput
-                          value={owner.role}
-                          placeholder="Role"
-                          onChange={(value) => updateOwner(owner.id, "role", value)}
-                        />
-                      </Field>
-
-                      <Field label="Ownership Share %" required>
-                        <TextInput
-                          type="number"
-                          value={owner.ownershipShare}
-                          placeholder="Share %"
-                          onChange={(value) => updateOwner(owner.id, "ownershipShare", value)}
-                        />
-                      </Field>
-
-                      <Field label="PAN">
-                        <TextInput
-                          value={owner.pan}
-                          placeholder="PAN"
-                          onChange={(value) => updateOwner(owner.id, "pan", value.toUpperCase())}
-                        />
-                      </Field>
-                    </div>
-                  </div>
-
-                  {owners.length > 1 && (
-                    <button
-                      type="button"
-                      className="coll-owner-remove"
-                      onClick={() => removeOwner(owner.id)}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="coll-card">
-            <div className="coll-section-header">
-              <div>
-                <span className="coll-eyebrow">Valuation</span>
-                <h4>Property Value & Mortgage Details</h4>
-              </div>
-            </div>
-
-            <div className="coll-field-grid three">
-              <Field label="Agreement Value">
-                <CurrencyInput
-                  value={collateral.agreementValue}
-                  placeholder="Agreement value"
-                  onChange={(value) => updateCollateral("agreementValue", value)}
-                />
-              </Field>
-
-              <Field label="Estimated Market Value" required>
-                <CurrencyInput
-                  value={collateral.estimatedMarketValue}
-                  placeholder="Estimated value"
-                  onChange={(value) => updateCollateral("estimatedMarketValue", value)}
-                />
-              </Field>
-
-              <Field label="Valuation Amount" required>
-                <CurrencyInput
-                  value={collateral.valuationAmount}
-                  placeholder="Valuation amount"
-                  onChange={(value) => updateCollateral("valuationAmount", value)}
-                />
-              </Field>
-
-              <Field label="Existing Mortgage">
-                <SelectInput
-                  value={collateral.existingMortgage}
-                  onChange={(value) => updateCollateral("existingMortgage", value)}
-                >
-                  <option value="No">No</option>
-                  <option value="Yes">Yes</option>
-                </SelectInput>
-              </Field>
-
-              {collateral.existingMortgage === "Yes" && (
-                <>
-                  <Field label="Mortgage Bank Name">
-                    <TextInput
-                      value={collateral.mortgageBankName}
-                      placeholder="Bank / FI name"
-                      onChange={(value) => updateCollateral("mortgageBankName", value)}
-                    />
-                  </Field>
-
-                  <Field label="Outstanding Loan Amount">
-                    <CurrencyInput
-                      value={collateral.outstandingLoanAmount}
-                      placeholder="Outstanding amount"
-                      onChange={(value) => updateCollateral("outstandingLoanAmount", value)}
-                    />
-                  </Field>
-                </>
-              )}
-            </div>
-          </section>
-
-          <section className="coll-card">
-            <div className="coll-section-header">
-              <div>
-                <span className="coll-eyebrow">Verification</span>
-                <h4>Legal, Technical & Valuation Status</h4>
-              </div>
-            </div>
-
-            <div className="coll-verification-grid">
-              <div className="coll-verification-card">
-                <span className="coll-verification-icon">
-                  <ShieldIcon />
-                </span>
-                <StatusSelect
-                  label="Legal Status"
-                  value={collateral.legalStatus}
-                  onChange={(value) => updateCollateral("legalStatus", value)}
-                />
-              </div>
-
-              <div className="coll-verification-card">
-                <span className="coll-verification-icon">
-                  <BuildingIcon />
-                </span>
-                <StatusSelect
-                  label="Technical Status"
-                  value={collateral.technicalStatus}
-                  onChange={(value) => updateCollateral("technicalStatus", value)}
-                />
-              </div>
-
-              <div className="coll-verification-card">
-                <span className="coll-verification-icon">
-                  <RupeeIcon />
-                </span>
-                <StatusSelect
-                  label="Valuation Status"
-                  value={collateral.valuationStatus}
-                  onChange={(value) => updateCollateral("valuationStatus", value)}
-                />
-              </div>
-
-              <div className="coll-verification-card">
-                <span className="coll-verification-icon">
-                  <FileIcon />
-                </span>
-                <StatusSelect
-                  label="Title Clearance"
-                  value={collateral.titleClearanceStatus}
-                  onChange={(value) => updateCollateral("titleClearanceStatus", value)}
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="coll-card">
-            <div className="coll-section-header">
-              <div>
-                <span className="coll-eyebrow">Documents</span>
-                <h4>Collateral Document Checklist</h4>
-              </div>
-            </div>
-
-            <div className="coll-doc-list">
-              {documents.map((doc) => {
-                const isUploaded = doc.status === "Uploaded";
-
+          {/* ── Property Owners ── */}
+          <div className="cp-section">
+            <SectionHead
+              title="Property Owners"
+              sub="Ownership share and identification"
+              action={
+                <button className="cp-edit-btn" type="button" onClick={addOwner}>
+                  <PlusIcon /> Add Owner
+                </button>
+              }
+            />
+            <div className="cp-owner-list">
+              {owners.map((owner) => {
+                const initials = owner.name
+                  ? owner.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
+                  : "OW";
                 return (
-                  <div className="coll-doc-row" key={doc.id}>
-                    <div className={`coll-doc-icon ${isUploaded ? "uploaded" : ""}`}>
-                      {isUploaded ? <CheckIcon /> : <FileIcon />}
-                    </div>
-
-                    <div className="coll-doc-main">
-                      <div className="coll-doc-title">
-                        <strong>{doc.subtype}</strong>
-                        {doc.mandatory && <span>Mandatory</span>}
+                  <div className="cp-owner-row" key={owner.id}>
+                    <div className="cp-owner-av">{initials}</div>
+                    <div className="cp-owner-fields">
+                      <div className="cp-field-grid-4">
+                        <div className="cp-field">
+                          <span className="cp-field-label">Owner Name</span>
+                          <input className="cp-input" value={owner.name} placeholder="Owner name" onChange={(e) => updOwner(owner.id, "name", e.target.value)} />
+                        </div>
+                        <div className="cp-field">
+                          <span className="cp-field-label">Role</span>
+                          <input className="cp-input" value={owner.role} placeholder="Role" onChange={(e) => updOwner(owner.id, "role", e.target.value)} />
+                        </div>
+                        <div className="cp-field">
+                          <span className="cp-field-label">Share %</span>
+                          <input className="cp-input" type="number" value={owner.ownershipShare} placeholder="Share %" onChange={(e) => updOwner(owner.id, "ownershipShare", e.target.value)} />
+                        </div>
+                        <div className="cp-field">
+                          <span className="cp-field-label">PAN</span>
+                          <input className="cp-input" value={owner.pan} placeholder="PAN" onChange={(e) => updOwner(owner.id, "pan", e.target.value.toUpperCase())} />
+                        </div>
                       </div>
-
-                      {isUploaded ? (
-                        <p>
-                          {doc.fileName} · Uploaded by {doc.uploadedBy} · {doc.uploadedOn}
-                        </p>
-                      ) : (
-                        <p>Pending upload</p>
-                      )}
                     </div>
-
-                    <label className={`coll-upload-btn ${isUploaded ? "secondary" : ""}`}>
-                      <UploadIcon />
-                      {isUploaded ? "Re-upload" : "Upload"}
-                      <input
-                        type="file"
-                        accept="image/*,.pdf,.doc,.docx"
-                        onChange={(event) => handleDocumentUpload(event, doc.id)}
-                      />
-                    </label>
+                    {owners.length > 1 && (
+                      <button className="cp-remove-btn" type="button" onClick={() => removeOwner(owner.id)}>
+                        <XIcon />
+                      </button>
+                    )}
                   </div>
                 );
               })}
             </div>
-          </section>
-        </main>
+          </div>
 
-        <aside className="coll-side">
-          <section className="coll-side-card">
-            <h4>Collateral Readiness</h4>
+          <div className="cp-divider" />
 
-            <div className="coll-checklist">
-              {completionItems.map((item) => (
-                <div key={item.label} className={item.complete ? "done" : ""}>
-                  <span>{item.complete ? <CheckIcon /> : "•"}</span>
-                  <strong>{item.label}</strong>
-                </div>
-              ))}
+          {/* ── Valuation & Mortgage ── */}
+          <div className="cp-section">
+            <SectionHead
+              title="Valuation & Mortgage"
+              sub="Property value and existing loan details"
+              editing={editing.valuation}
+              onEdit={() => toggle("valuation")}
+            />
+            <div className="cp-field-grid-3">
+              <CurrencyField label="Agreement Value"        value={collateral.agreementValue}       onChange={(v) => upd("agreementValue", v)}       editing={editing.valuation} />
+              <CurrencyField label="Estimated Market Value" value={collateral.estimatedMarketValue} onChange={(v) => upd("estimatedMarketValue", v)} editing={editing.valuation} />
+              <CurrencyField label="Valuation Amount"       value={collateral.valuationAmount}      onChange={(v) => upd("valuationAmount", v)}      editing={editing.valuation} />
+              <SelectField   label="Existing Mortgage"      value={collateral.existingMortgage}     onChange={(v) => upd("existingMortgage", v)}     editing={editing.valuation} options={["No", "Yes"]} />
+              {collateral.existingMortgage === "Yes" && (
+                <>
+                  <FieldRow      label="Mortgage Bank Name"       value={collateral.mortgageBankName}     onChange={(v) => upd("mortgageBankName", v)}     editing={editing.valuation} placeholder="Bank / FI name" />
+                  <CurrencyField label="Outstanding Loan Amount"  value={collateral.outstandingLoanAmount} onChange={(v) => upd("outstandingLoanAmount", v)} editing={editing.valuation} />
+                </>
+              )}
             </div>
-          </section>
+          </div>
 
-          <section className="coll-side-card soft">
-            <h4>Property Summary</h4>
+        </div>
 
-            <div className="coll-summary-list">
+        {/* ── Sidebar ── */}
+        <aside className="cp-side">
+
+          {/* Property summary */}
+          <div className="cp-side-card">
+            <span className="cp-side-title">Property</span>
+            <div className="cp-side-rows">
+              <div><span>Name</span><strong>{collateral.projectName || "—"}</strong></div>
+              <div><span>Type</span><strong>{collateral.propertyType}</strong></div>
+              <div><span>Stage</span><strong>{collateral.propertyStage}</strong></div>
+              <div><span>City</span><strong>{address.city || "—"}</strong></div>
               <div>
-                <span>Property</span>
-                <strong>{collateral.projectName || "—"}</strong>
+                <span>Area</span>
+                <strong>{collateral.carpetArea ? `${collateral.carpetArea} ${collateral.areaUnit}` : "—"}</strong>
+              </div>
+              <div><span>Ownership</span><strong>{collateral.propertyOwnershipType}</strong></div>
+            </div>
+          </div>
+
+          {/* Valuation summary */}
+          <div className="cp-side-card">
+            <span className="cp-side-title">Valuation</span>
+            <div className="cp-side-rows">
+              <div>
+                <span>Agreement</span>
+                <strong>₹{Number(collateral.agreementValue || 0).toLocaleString("en-IN")}</strong>
               </div>
               <div>
-                <span>Type</span>
-                <strong>{collateral.propertyType}</strong>
-              </div>
-              <div>
-                <span>Usage</span>
-                <strong>{collateral.propertyUsage}</strong>
-              </div>
-              <div>
-                <span>City</span>
-                <strong>{propertyAddress.city || "—"}</strong>
+                <span>Market Value</span>
+                <strong>₹{Number(collateral.estimatedMarketValue || 0).toLocaleString("en-IN")}</strong>
               </div>
               <div>
                 <span>Valuation</span>
                 <strong>₹{Number(collateral.valuationAmount || 0).toLocaleString("en-IN")}</strong>
               </div>
-            </div>
-          </section>
-
-          <section className="coll-side-card soft">
-            <h4>Verification Summary</h4>
-
-            <div className="coll-status-list">
               <div>
-                <span>Legal</span>
-                <strong>{collateral.legalStatus}</strong>
-              </div>
-              <div>
-                <span>Technical</span>
-                <strong>{collateral.technicalStatus}</strong>
-              </div>
-              <div>
-                <span>Valuation</span>
-                <strong>{collateral.valuationStatus}</strong>
-              </div>
-              <div>
-                <span>Title</span>
-                <strong>{collateral.titleClearanceStatus}</strong>
+                <span>Mortgage</span>
+                <strong>{collateral.existingMortgage}</strong>
               </div>
             </div>
-          </section>
+          </div>
+
+          {/* Ownership summary */}
+          <div className="cp-side-card">
+            <span className="cp-side-title">Owners</span>
+            <div className="cp-owner-summary">
+              {owners.map((owner) => {
+                const initials = owner.name
+                  ? owner.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
+                  : "OW";
+                return (
+                  <div key={owner.id} className="cp-owner-summary-row">
+                    <span className="cp-owner-av small">{initials}</span>
+                    <div>
+                      <span className="cp-owner-summary-name">{owner.name || "New Owner"}</span>
+                      <span className="cp-owner-summary-meta">{owner.role}{owner.ownershipShare ? ` · ${owner.ownershipShare}%` : ""}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </aside>
-      </section>
+      </div>
     </div>
   );
 }

@@ -204,12 +204,6 @@ function EligibilityOfferPage() {
   return (
     <div className="eo-page">
 
-      {/* ── Page bar ──────────────────────────────────────────────── */}
-      <div className="eo-page-bar">
-        <span className="eo-page-title">Eligibility &amp; Offer</span>
-        <span className="eo-page-sub">Run BRE, review rule outcomes and select a preliminary offer</span>
-      </div>
-
       {/* ── Main panel ────────────────────────────────────────────── */}
       <div className="eo-panel">
 
@@ -247,23 +241,6 @@ function EligibilityOfferPage() {
           <div className="eo-section-head no-btn">
             <span className="eo-section-title">BRE Engine</span>
             <span className="eo-section-sub">Select a demo scenario and run the eligibility engine</span>
-          </div>
-
-          {/* RAG scenario selector */}
-          <div className="eo-rag-tabs">
-            {breScenarioOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={`eo-rag-tab ${opt.value}${breScenario === opt.value ? " active" : ""}`}
-                onClick={() => setBreScenario(opt.value)}
-                disabled={isRunning}
-              >
-                <span className="eo-rag-dot" />
-                <span className="eo-rag-label">{opt.label}</span>
-                <span className="eo-rag-desc">{opt.desc}</span>
-              </button>
-            ))}
           </div>
 
           {/* Run row */}

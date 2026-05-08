@@ -282,7 +282,7 @@ function CoApplicantsPage() {
       )}
 
       {/* ── Two-column layout ────────────────────────────────────────── */}
-      <div className="co-layout">
+      <div className={`co-layout${isPanelOpen ? " co-layout--panel" : ""}`}>
         <main className="co-main">
           {parties.length === 0 ? (
             <div className="co-empty-state">
@@ -299,45 +299,42 @@ function CoApplicantsPage() {
           )}
         </main>
 
-        <aside className="co-side">
-          {/* Stats */}
-          <div className="co-side-stats">
-            <div>
-              <strong>{stats.total}</strong>
-              <span>Total</span>
+        {/* ── Right column: sidebar or side panel ─────────────────── */}
+        {!isPanelOpen ? (
+          <aside className="co-side">
+            {/* Stats */}
+            <div className="co-side-stats">
+              <div>
+                <strong>{stats.total}</strong>
+                <span>Total</span>
+              </div>
+              <div>
+                <strong className={stats.completed > 0 ? "green" : ""}>{stats.completed}</strong>
+                <span>Completed</span>
+              </div>
+              <div>
+                <strong className={stats.pending > 0 ? "amber" : "green"}>{stats.pending}</strong>
+                <span>Pending</span>
+              </div>
             </div>
-            <div>
-              <strong className={stats.completed > 0 ? "green" : ""}>{stats.completed}</strong>
-              <span>Completed</span>
-            </div>
-            <div>
-              <strong className={stats.pending > 0 ? "amber" : "green"}>{stats.pending}</strong>
-              <span>Pending</span>
-            </div>
-          </div>
 
-          {/* Party type guidance */}
-          <div className="co-side-card">
-            <span className="co-side-card-title">Party Type Reference</span>
-            <div className="co-guidance-list">
-              {PARTY_GUIDE.map((item) => (
-                <div key={item.type} className="co-guide-row">
-                  <span className="co-guide-type">{item.type}</span>
-                  <span className="co-guide-desc">{item.desc}</span>
-                </div>
-              ))}
+            {/* Party type guidance */}
+            <div className="co-side-card">
+              <span className="co-side-card-title">Party Type Reference</span>
+              <div className="co-guidance-list">
+                {PARTY_GUIDE.map((item) => (
+                  <div key={item.type} className="co-guide-row">
+                    <span className="co-guide-type">{item.type}</span>
+                    <span className="co-guide-desc">{item.desc}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </aside>
-      </div>
-
-      {/* ── Drawer ──────────────────────────────────────────────────── */}
-      {isPanelOpen && (
-        <div className="co-drawer-overlay" onClick={handleCloseDrawer}>
-          <aside className="co-drawer" onClick={(e) => e.stopPropagation()}>
-
-            {/* Header */}
-            <header className="co-drawer-header">
+          </aside>
+        ) : (
+          <aside className="co-panel">
+            {/* Panel header */}
+            <header className="co-panel-header">
               <div className="co-drawer-header-info">
                 <span className="co-drawer-title">
                   {editingPartyId ? "Edit" : "Add"} {form.partyType}
@@ -353,70 +350,70 @@ function CoApplicantsPage() {
               </button>
             </header>
 
-            {/* Body */}
-            <div className="co-drawer-body">
+            {/* Panel body */}
+            <div className="co-panel-body">
 
               {/* ── Minimal step ── */}
               {drawerStep === "minimal" && (
-                <div className="co-minimal-screen">
-                  <div className="co-minimal-form">
-                    <div className="co-field-grid-2">
-                      <FormSelect label="Party Type"                   value={form.partyType}                 onChange={(v) => updateForm("partyType", v)}                 options={partyTypes} />
-                      <FormSelect label="Relationship with Applicant"  value={form.relationshipWithApplicant} onChange={(v) => updateForm("relationshipWithApplicant", v)}  options={relationOptions} />
-                      <FormField  label="First Name"   value={form.firstName}  onChange={(v) => updateForm("firstName", v)}  placeholder="First name" />
-                      <FormField  label="Middle Name"  value={form.middleName} onChange={(v) => updateForm("middleName", v)} placeholder="Middle name" />
-                      <FormField  label="Last Name"    value={form.lastName}   onChange={(v) => updateForm("lastName", v)}   placeholder="Last name" />
+                <div className="co-minimal-form">
+                  <div className="co-field-grid-2">
+                    <FormSelect label="Party Type"                   value={form.partyType}                 onChange={(v) => updateForm("partyType", v)}                 options={partyTypes} />
+                    <FormSelect label="Relationship with Applicant"  value={form.relationshipWithApplicant} onChange={(v) => updateForm("relationshipWithApplicant", v)}  options={relationOptions} />
+                    <FormField  label="First Name"   value={form.firstName}  onChange={(v) => updateForm("firstName", v)}  placeholder="First name" />
+                    <FormField  label="Middle Name"  value={form.middleName} onChange={(v) => updateForm("middleName", v)} placeholder="Middle name" />
+                    <FormField  label="Last Name"    value={form.lastName}   onChange={(v) => updateForm("lastName", v)}   placeholder="Last name" />
+                  </div>
+
+                  <div className="co-contact-grid">
+                    <div className="co-field">
+                      <span className="co-field-label">Mobile Number</span>
+                      <div className="co-verify-row">
+                        <input
+                          className="co-input" type="tel"
+                          value={form.mobile} placeholder="10-digit mobile"
+                          onChange={(e) => updateForm("mobile", e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className={`co-verify-btn${form.mobileVerified ? " done" : ""}`}
+                          onClick={() => updateForm("mobileVerified", true)}
+                        >
+                          {form.mobileVerified ? <><CheckIcon /> Verified</> : "Verify"}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="co-contact-grid">
-                      <div className="co-field">
-                        <span className="co-field-label">Mobile Number</span>
-                        <div className="co-verify-row">
-                          <input
-                            className="co-input" type="tel"
-                            value={form.mobile} placeholder="10-digit mobile"
-                            onChange={(e) => updateForm("mobile", e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            className={`co-verify-btn${form.mobileVerified ? " done" : ""}`}
-                            onClick={() => updateForm("mobileVerified", true)}
-                          >
-                            {form.mobileVerified ? <><CheckIcon /> Verified</> : "Verify"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="co-field">
-                        <span className="co-field-label">Email Address</span>
-                        <div className="co-verify-row">
-                          <input
-                            className="co-input" type="email"
-                            value={form.email} placeholder="Email address"
-                            onChange={(e) => updateForm("email", e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            className={`co-verify-btn${form.emailVerified ? " done" : ""}`}
-                            onClick={() => updateForm("emailVerified", true)}
-                          >
-                            {form.emailVerified ? <><CheckIcon /> Verified</> : "Verify"}
-                          </button>
-                        </div>
+                    <div className="co-field">
+                      <span className="co-field-label">Email Address</span>
+                      <div className="co-verify-row">
+                        <input
+                          className="co-input" type="email"
+                          value={form.email} placeholder="Email address"
+                          onChange={(e) => updateForm("email", e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className={`co-verify-btn${form.emailVerified ? " done" : ""}`}
+                          onClick={() => updateForm("emailVerified", true)}
+                        >
+                          {form.emailVerified ? <><CheckIcon /> Verified</> : "Verify"}
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Mini profile preview */}
-                  <div className="co-mini-profile">
+                  {/* Mini profile preview (inline below form in panel) */}
+                  <div className="co-mini-profile co-mini-profile--inline">
                     <div className="co-mini-avatar">
                       {form.firstName || form.lastName
                         ? `${form.firstName?.[0] || ""}${form.lastName?.[0] || ""}`
                         : "·"}
                     </div>
-                    <span className="co-mini-type">{form.partyType}</span>
-                    <span className="co-mini-name">{getFullName() || "New Party"}</span>
-                    <span className="co-mini-relation">{form.relationshipWithApplicant}</span>
+                    <div className="co-mini-info">
+                      <span className="co-mini-type">{form.partyType}</span>
+                      <span className="co-mini-name">{getFullName() || "New Party"}</span>
+                      <span className="co-mini-relation">{form.relationshipWithApplicant}</span>
+                    </div>
                     <div className="co-mini-checks">
                       <div className={`co-mini-check${form.firstName && form.lastName ? " done" : ""}`}>
                         <span>{form.firstName && form.lastName ? <CheckIcon /> : "·"}</span>
@@ -458,13 +455,13 @@ function CoApplicantsPage() {
                   {/* Tabs */}
                   <div className="co-panel-tabs">
                     <button type="button" className={`co-panel-tab${activeTab === "identity" ? " active" : ""}`} onClick={() => setActiveTab("identity")}>
-                      <ShieldIcon /> Customer Identity
+                      <ShieldIcon /> Identity
                     </button>
                     <button type="button" className={`co-panel-tab${activeTab === "profile" ? " active" : ""}`} onClick={() => setActiveTab("profile")}>
-                      <UserIcon /> Applicant Profile
+                      <UserIcon /> Profile
                     </button>
                     <button type="button" className={`co-panel-tab${activeTab === "employment" ? " active" : ""}`} onClick={() => setActiveTab("employment")}>
-                      <BriefcaseIcon /> Income & Employment
+                      <BriefcaseIcon /> Income
                     </button>
                   </div>
 
@@ -478,7 +475,7 @@ function CoApplicantsPage() {
               )}
             </div>
 
-            {/* Footer */}
+            {/* Panel footer */}
             <footer className="co-drawer-footer">
               <button className="co-btn-ghost" type="button" onClick={handleCloseDrawer}>
                 {drawerStep === "minimal" ? "Cancel" : "Close"}
@@ -499,8 +496,8 @@ function CoApplicantsPage() {
               )}
             </footer>
           </aside>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -29,35 +29,11 @@
   font-family: var(--los-font);
   font-size: 14px;
   color: var(--los-text-primary);
-  background: var(--los-bg-page);
-  min-height: 100vh;
   padding: 0 0 48px;
-}
-
-/* ── Page bar ────────────────────────────────────────────────────── */
-.eo-page-bar {
-  padding: 20px 24px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.eo-page-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--los-text-primary);
-  letter-spacing: -0.01em;
-}
-
-.eo-page-sub {
-  font-size: 13px;
-  color: var(--los-text-secondary);
-  font-weight: 400;
 }
 
 /* ── Main panel ─────────────────────────────────────────────────── */
 .eo-panel {
-  margin: 0 24px;
   background: var(--los-bg-white);
   border: 1px solid var(--los-border);
   border-radius: var(--los-radius);
@@ -233,64 +209,6 @@
   outline: none;
   min-width: 0;
 }
-
-/* ── RAG scenario tabs ──────────────────────────────────────────── */
-.eo-rag-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.eo-rag-tab {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
-  padding: 12px 14px;
-  background: #fafbfc;
-  border: 1px solid var(--los-border);
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.eo-rag-tab:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.eo-rag-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.eo-rag-tab.green .eo-rag-dot   { background: var(--los-green); }
-.eo-rag-tab.amber .eo-rag-dot   { background: var(--los-amber); }
-.eo-rag-tab.red   .eo-rag-dot   { background: var(--los-red);   }
-
-.eo-rag-label {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.eo-rag-tab.green .eo-rag-label { color: var(--los-green); }
-.eo-rag-tab.amber .eo-rag-label { color: var(--los-amber); }
-.eo-rag-tab.red   .eo-rag-label { color: var(--los-red);   }
-
-.eo-rag-desc {
-  font-size: 11.5px;
-  font-weight: 400;
-  color: var(--los-text-secondary);
-  line-height: 1.4;
-}
-
-.eo-rag-tab.green.active { background: var(--los-green-light); border-color: #86efac; }
-.eo-rag-tab.amber.active { background: var(--los-amber-light); border-color: #fde68a; }
-.eo-rag-tab.red.active   { background: var(--los-red-light);   border-color: #fecaca; }
 
 /* ── Run row ─────────────────────────────────────────────────────── */
 .eo-run-row {
@@ -668,10 +586,6 @@
 @media (max-width: 960px) {
   .eo-field-grid-3 {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .eo-rag-tabs {
-    grid-template-columns: 1fr;
   }
 }
 

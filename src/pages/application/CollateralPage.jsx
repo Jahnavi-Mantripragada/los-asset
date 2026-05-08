@@ -56,10 +56,7 @@ const initialAddress = {
   country:  "India",
 };
 
-const initialOwners = [
-  { id: "OWN-001", name: "Rahul Sharma",  role: "Primary Applicant", ownershipShare: "70", pan: "ABCDE1234F" },
-  { id: "OWN-002", name: "Priya Sharma",  role: "Co-Applicant",      ownershipShare: "30", pan: "BCDEF2345G" },
-];
+const initialOwners = [];
 
 const collateralTypeOptions  = ["Residential Property", "Commercial Property", "Plot / Land", "Industrial Property"];
 const propertyTypeOptions    = ["Flat / Apartment", "Independent House", "Villa", "Row House", "Shop", "Office", "Plot", "Warehouse"];
@@ -168,8 +165,6 @@ function CollateralPage() {
 
       {/* ── Layout ──────────────────────────────────────────────────── */}
       <div className="cp-layout">
-
-        {/* ── Main ── */}
         <div className="cp-main">
 
           {/* ── Basic Information ── */}
@@ -314,71 +309,6 @@ function CollateralPage() {
           </div>
 
         </div>
-
-        {/* ── Sidebar ── */}
-        <aside className="cp-side">
-
-          {/* Property summary */}
-          <div className="cp-side-card">
-            <span className="cp-side-title">Property</span>
-            <div className="cp-side-rows">
-              <div><span>Name</span><strong>{collateral.projectName || "—"}</strong></div>
-              <div><span>Type</span><strong>{collateral.propertyType}</strong></div>
-              <div><span>Stage</span><strong>{collateral.propertyStage}</strong></div>
-              <div><span>City</span><strong>{address.city || "—"}</strong></div>
-              <div>
-                <span>Area</span>
-                <strong>{collateral.carpetArea ? `${collateral.carpetArea} ${collateral.areaUnit}` : "—"}</strong>
-              </div>
-              <div><span>Ownership</span><strong>{collateral.propertyOwnershipType}</strong></div>
-            </div>
-          </div>
-
-          {/* Valuation summary */}
-          <div className="cp-side-card">
-            <span className="cp-side-title">Valuation</span>
-            <div className="cp-side-rows">
-              <div>
-                <span>Agreement</span>
-                <strong>₹{Number(collateral.agreementValue || 0).toLocaleString("en-IN")}</strong>
-              </div>
-              <div>
-                <span>Market Value</span>
-                <strong>₹{Number(collateral.estimatedMarketValue || 0).toLocaleString("en-IN")}</strong>
-              </div>
-              <div>
-                <span>Valuation</span>
-                <strong>₹{Number(collateral.valuationAmount || 0).toLocaleString("en-IN")}</strong>
-              </div>
-              <div>
-                <span>Mortgage</span>
-                <strong>{collateral.existingMortgage}</strong>
-              </div>
-            </div>
-          </div>
-
-          {/* Ownership summary */}
-          <div className="cp-side-card">
-            <span className="cp-side-title">Owners</span>
-            <div className="cp-owner-summary">
-              {owners.map((owner) => {
-                const initials = owner.name
-                  ? owner.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
-                  : "OW";
-                return (
-                  <div key={owner.id} className="cp-owner-summary-row">
-                    <span className="cp-owner-av small">{initials}</span>
-                    <div>
-                      <span className="cp-owner-summary-name">{owner.name || "New Owner"}</span>
-                      <span className="cp-owner-summary-meta">{owner.role}{owner.ownershipShare ? ` · ${owner.ownershipShare}%` : ""}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-        </aside>
       </div>
     </div>
   );

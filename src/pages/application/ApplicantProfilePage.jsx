@@ -1,745 +1,602 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import "./ApplicantProfilePage.css";
 import { saveUploadedDocument } from "../../utils/documentStore";
 
-const UploadIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <path d="M17 8l-5-5-5 5" />
-    <path d="M12 3v12" />
-  </svg>
-);
-
+/* ── Icons ───────────────────────────────────────────────────────────── */
 const CheckIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.7">
     <path d="M20 6 9 17l-5-5" />
   </svg>
 );
-
+const UploadIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="M17 8l-5-5-5 5" /><path d="M12 3v12" />
+  </svg>
+);
 const UserIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 21a8 8 0 0 0-16 0" />
-    <circle cx="12" cy="7" r="4" />
+  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M20 21a8 8 0 0 0-16 0" /><circle cx="12" cy="7" r="4" />
   </svg>
 );
-
-const HomeIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="m3 11 9-8 9 8" />
-    <path d="M5 10v10h14V10" />
-    <path d="M9 20v-6h6v6" />
-  </svg>
-);
-
 const FileIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-    <path d="M14 2v6h6" />
-    <path d="M8 13h8" />
-    <path d="M8 17h5" />
+    <path d="M14 2v6h6" /><path d="M8 13h8" /><path d="M8 17h5" />
+  </svg>
+);
+const PencilIcon = () => (
+  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+  </svg>
+);
+const CropIcon = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M6 2v14h14" /><path d="M2 6h14v14" />
+  </svg>
+);
+const ScanIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M4 7V5a1 1 0 0 1 1-1h2" /><path d="M17 4h2a1 1 0 0 1 1 1v2" />
+    <path d="M20 17v2a1 1 0 0 1-1 1h-2" /><path d="M7 20H5a1 1 0 0 1-1-1v-2" />
+    <path d="M7 12h10" />
+  </svg>
+);
+const SpinnerIcon = () => (
+  <svg className="ap-spin-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
 
+/* ── Mock data ───────────────────────────────────────────────────────── */
 const defaultProfile = {
-  firstName: "Rahul",
-  middleName: "",
-  lastName: "Sharma",
-  gender: "Male",
-  dateOfBirth: "1991-07-14",
-  maritalStatus: "Married",
-  fatherName: "Mahesh Sharma",
-  motherName: "Sunita Sharma",
-  spouseName: "Priya Sharma",
-  nationality: "Indian",
+  firstName: "Rahul", middleName: "", lastName: "Sharma",
+  gender: "Male", dateOfBirth: "1991-07-14", maritalStatus: "Married",
+  fatherName: "Mahesh Sharma", motherName: "Sunita Sharma",
+  spouseName: "Priya Sharma", nationality: "Indian",
   residentialStatus: "Resident Indian",
 };
 
 const emptyAddress = {
-  line1: "",
-  line2: "",
-  landmark: "",
-  city: "",
-  district: "",
-  state: "",
-  pincode: "",
-  country: "India",
+  line1: "", line2: "", landmark: "", city: "",
+  district: "", state: "", pincode: "", country: "India",
 };
 
 const mockAddressByProof = {
   Aadhaar: {
-    line1: "Flat 402, Shree Heights",
-    line2: "Andheri Kurla Road",
-    landmark: "Near Metro Station",
-    city: "Mumbai",
-    district: "Mumbai Suburban",
-    state: "Maharashtra",
-    pincode: "400059",
-    country: "India",
+    line1: "Flat 402, Shree Heights", line2: "Andheri Kurla Road",
+    landmark: "Near Metro Station", city: "Mumbai",
+    district: "Mumbai Suburban", state: "Maharashtra", pincode: "400059", country: "India",
   },
   "Driving License": {
-    line1: "B-1204, Lake View Residency",
-    line2: "Powai Main Road",
-    landmark: "Opposite Hiranandani Gardens",
-    city: "Mumbai",
-    district: "Mumbai Suburban",
-    state: "Maharashtra",
-    pincode: "400076",
-    country: "India",
+    line1: "B-1204, Lake View Residency", line2: "Powai Main Road",
+    landmark: "Opposite Hiranandani Gardens", city: "Mumbai",
+    district: "Mumbai Suburban", state: "Maharashtra", pincode: "400076", country: "India",
   },
   "Voter ID": {
-    line1: "12, Green Park Society",
-    line2: "MG Road",
-    landmark: "Near City Mall",
-    city: "Pune",
-    district: "Pune",
-    state: "Maharashtra",
-    pincode: "411001",
-    country: "India",
+    line1: "12, Green Park Society", line2: "MG Road",
+    landmark: "Near City Mall", city: "Pune",
+    district: "Pune", state: "Maharashtra", pincode: "411001", country: "India",
   },
   Passport: {
-    line1: "301, Orchid Enclave",
-    line2: "Linking Road",
-    landmark: "Near National College",
-    city: "Mumbai",
-    district: "Mumbai Suburban",
-    state: "Maharashtra",
-    pincode: "400050",
-    country: "India",
+    line1: "301, Orchid Enclave", line2: "Linking Road",
+    landmark: "Near National College", city: "Mumbai",
+    district: "Mumbai Suburban", state: "Maharashtra", pincode: "400050", country: "India",
   },
 };
 
-function Field({ label, children, required }) {
-  return (
-    <label className="ap-field">
-      <span>
-        {label}
-        {required && <em>*</em>}
-      </span>
-      {children}
-    </label>
-  );
-}
+/* ── Crop Modal ──────────────────────────────────────────────────────── */
+const FRAME = 240;
 
-function TextInput({ value, onChange, placeholder, type = "text" }) {
-  return (
-    <input
-      className="ap-input"
-      type={type}
-      value={value}
-      placeholder={placeholder}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  );
-}
+function CropModal({ imageSrc, onSave, onCancel }) {
+  const canvasRef = useRef(null);
+  const imgRef    = useRef(null);
 
-function SelectInput({ value, onChange, children }) {
-  return (
-    <select
-      className="ap-input ap-select"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    >
-      {children}
-    </select>
-  );
-}
+  const [isDragging, setIsDragging] = useState(false);
+  const [pos,        setPos]        = useState({ x: 0, y: 0 });
+  const [startDrag,  setStartDrag]  = useState({ x: 0, y: 0 });
+  const [scale,      setScale]      = useState(1);
 
-function AddressBlock({ title, badge, address, onChange, disabled }) {
-  const updateAddress = (key, value) => {
-    onChange({
-      ...address,
-      [key]: value,
-    });
+  const clamp = (p, s) => {
+    const img = imgRef.current;
+    if (!img) return p;
+    return {
+      x: Math.min(0, Math.max(FRAME - img.naturalWidth * s,  p.x)),
+      y: Math.min(0, Math.max(FRAME - img.naturalHeight * s, p.y)),
+    };
+  };
+
+  const onImgLoad = () => {
+    const img = imgRef.current;
+    if (!img) return;
+    const fit = Math.max(FRAME / img.naturalWidth, FRAME / img.naturalHeight);
+    const s = Math.max(fit, 1);
+    setScale(s);
+    setPos(clamp({ x: (FRAME - img.naturalWidth * s) / 2, y: (FRAME - img.naturalHeight * s) / 2 }, s));
+  };
+
+  const zoom = (newScale, pivotX = FRAME / 2, pivotY = FRAME / 2) => {
+    const s = Math.min(Math.max(newScale, 0.5), 5);
+    const r = s / scale;
+    setScale(s);
+    setPos(clamp({ x: pivotX - (pivotX - pos.x) * r, y: pivotY - (pivotY - pos.y) * r }, s));
+  };
+
+  const onMouseDown  = (e) => { e.preventDefault(); setIsDragging(true); setStartDrag({ x: e.clientX - pos.x, y: e.clientY - pos.y }); };
+  const onMouseMove  = (e) => { if (!isDragging) return; setPos(clamp({ x: e.clientX - startDrag.x, y: e.clientY - startDrag.y }, scale)); };
+  const onMouseUp    = ()  => setIsDragging(false);
+  const onTouchStart = (e) => { const t = e.touches[0]; setIsDragging(true); setStartDrag({ x: t.clientX - pos.x, y: t.clientY - pos.y }); };
+  const onTouchMove  = (e) => { if (!isDragging) return; const t = e.touches[0]; setPos(clamp({ x: t.clientX - startDrag.x, y: t.clientY - startDrag.y }, scale)); };
+  const onTouchEnd   = ()  => setIsDragging(false);
+  const onWheel      = (e) => { e.preventDefault(); zoom(scale * (e.deltaY > 0 ? 0.92 : 1.09)); };
+
+  const handleSave = () => {
+    const canvas = canvasRef.current;
+    const img    = imgRef.current;
+    if (!canvas || !img) return;
+    const OUT = 400;
+    canvas.width  = OUT;
+    canvas.height = OUT;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, -pos.x / scale, -pos.y / scale, FRAME / scale, FRAME / scale, 0, 0, OUT, OUT);
+    canvas.toBlob((blob) => { if (blob) onSave(URL.createObjectURL(blob)); }, "image/jpeg", 0.92);
   };
 
   return (
-    <div className={`ap-address-block ${disabled ? "disabled" : ""}`}>
-      <div className="ap-address-title">
-        <div>
-          <h4>{title}</h4>
-          {badge && <span>{badge}</span>}
+    <div className="ap-crop-backdrop" onClick={onCancel}>
+      <div className="ap-crop-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="ap-crop-header">
+          <span className="ap-crop-title">Crop Photo</span>
+          <span className="ap-crop-hint">Drag to reposition · scroll to zoom</span>
         </div>
-      </div>
-
-      <div className="ap-field-grid two">
-        <Field label="Address Line 1" required>
-          <TextInput
-            value={address.line1}
-            placeholder="House / flat / building"
-            onChange={(value) => updateAddress("line1", value)}
+        <div
+          className="ap-crop-frame"
+          style={{ cursor: isDragging ? "grabbing" : "grab" }}
+          onMouseDown={onMouseDown} onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}    onMouseLeave={onMouseUp}
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+          onWheel={onWheel}
+        >
+          <img
+            ref={imgRef} src={imageSrc} alt="" className="ap-crop-img"
+            style={{ transform: `translate(${pos.x}px,${pos.y}px) scale(${scale})`, transformOrigin: "0 0" }}
+            onLoad={onImgLoad} draggable={false}
           />
-        </Field>
-
-        <Field label="Address Line 2">
-          <TextInput
-            value={address.line2}
-            placeholder="Street / area"
-            onChange={(value) => updateAddress("line2", value)}
+        </div>
+        <div className="ap-crop-zoom-row">
+          <span>Zoom</span>
+          <input
+            type="range" min="0.5" max="4" step="0.02" value={scale}
+            className="ap-crop-range"
+            onChange={(e) => zoom(+e.target.value)}
           />
-        </Field>
-
-        <Field label="Landmark">
-          <TextInput
-            value={address.landmark}
-            placeholder="Nearby landmark"
-            onChange={(value) => updateAddress("landmark", value)}
-          />
-        </Field>
-
-        <Field label="City" required>
-          <TextInput
-            value={address.city}
-            placeholder="City"
-            onChange={(value) => updateAddress("city", value)}
-          />
-        </Field>
-
-        <Field label="District">
-          <TextInput
-            value={address.district}
-            placeholder="District"
-            onChange={(value) => updateAddress("district", value)}
-          />
-        </Field>
-
-        <Field label="State" required>
-          <TextInput
-            value={address.state}
-            placeholder="State"
-            onChange={(value) => updateAddress("state", value)}
-          />
-        </Field>
-
-        <Field label="PIN Code" required>
-          <TextInput
-            value={address.pincode}
-            placeholder="PIN code"
-            onChange={(value) => updateAddress("pincode", value)}
-          />
-        </Field>
-
-        <Field label="Country">
-          <TextInput
-            value={address.country}
-            placeholder="Country"
-            onChange={(value) => updateAddress("country", value)}
-          />
-        </Field>
+        </div>
+        <div className="ap-crop-actions">
+          <button className="ap-btn-ghost" type="button" onClick={onCancel}>Cancel</button>
+          <button className="ap-btn-primary" type="button" onClick={handleSave}>
+            <CheckIcon /> Save Photo
+          </button>
+        </div>
+        <canvas ref={canvasRef} style={{ display: "none" }} />
       </div>
     </div>
   );
 }
 
+/* ── Field components ────────────────────────────────────────────────── */
+function FieldRow({ label, value, editing, placeholder, type = "text", onChange, wide, children }) {
+  return (
+    <div className={`ap-field${wide ? " wide" : ""}`}>
+      <span className="ap-field-label">{label}</span>
+      {editing ? (
+        children || (
+          <input
+            className="ap-input" type={type}
+            value={value || ""} placeholder={placeholder}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        )
+      ) : (
+        <div className="ap-field-readonly">
+          {value || <span className="ap-field-empty">—</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SelectField({ label, value, editing, onChange, options, wide }) {
+  return (
+    <div className={`ap-field${wide ? " wide" : ""}`}>
+      <span className="ap-field-label">{label}</span>
+      {editing ? (
+        <select className="ap-input ap-select" value={value} onChange={(e) => onChange(e.target.value)}>
+          {options.map((o) => (
+            <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>
+          ))}
+        </select>
+      ) : (
+        <div className="ap-field-readonly">{value || <span className="ap-field-empty">—</span>}</div>
+      )}
+    </div>
+  );
+}
+
+/* ── Address group ───────────────────────────────────────────────────── */
+function AddressGroup({ title, badge, address, onChange, locked }) {
+  const [editing, setEditing] = useState(false);
+  const canEdit = !locked;
+  const upd     = (key, val) => onChange({ ...address, [key]: val });
+
+  return (
+    <div className="ap-addr-group">
+      <div className="ap-addr-group-head">
+        <div className="ap-addr-group-meta">
+          <span className="ap-addr-group-title">{title}</span>
+          {badge && <span className="ap-badge-pill">{badge}</span>}
+        </div>
+        {canEdit && (
+          <button className="ap-edit-btn" type="button" onClick={() => setEditing((v) => !v)}>
+            {editing ? <><CheckIcon /> Done</> : <><PencilIcon /> Edit</>}
+          </button>
+        )}
+      </div>
+      <div className="ap-field-grid-2">
+        <FieldRow label="Line 1"   value={address.line1}    editing={editing && canEdit} wide placeholder="House / flat / building" onChange={(v) => upd("line1",    v)} />
+        <FieldRow label="Line 2"   value={address.line2}    editing={editing && canEdit} wide placeholder="Street / area"            onChange={(v) => upd("line2",    v)} />
+        <FieldRow label="Landmark" value={address.landmark} editing={editing && canEdit} placeholder="Nearby landmark"               onChange={(v) => upd("landmark", v)} />
+        <FieldRow label="City"     value={address.city}     editing={editing && canEdit} placeholder="City"                          onChange={(v) => upd("city",     v)} />
+        <FieldRow label="District" value={address.district} editing={editing && canEdit} placeholder="District"                      onChange={(v) => upd("district", v)} />
+        <FieldRow label="State"    value={address.state}    editing={editing && canEdit} placeholder="State"                         onChange={(v) => upd("state",    v)} />
+        <FieldRow label="PIN Code" value={address.pincode}  editing={editing && canEdit} placeholder="PIN code"                      onChange={(v) => upd("pincode",  v)} />
+        <FieldRow label="Country"  value={address.country}  editing={editing && canEdit} placeholder="Country"                       onChange={(v) => upd("country",  v)} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Main component ──────────────────────────────────────────────────── */
 function ApplicantProfilePage() {
-  const [profile, setProfile] = useState(defaultProfile);
-  const [photoPreview, setPhotoPreview] = useState("");
-  const [photoName, setPhotoName] = useState("");
+  // Photo
+  const photoInputRef     = useRef(null);
+  const [photoPreview,    setPhotoPreview]    = useState("");
+  const [photoCropSrc,    setPhotoCropSrc]    = useState("");
+  const [photoName,       setPhotoName]       = useState("");
+  const [showCropModal,   setShowCropModal]   = useState(false);
 
-  const [permanentAddress, setPermanentAddress] = useState({
-    line1: "Flat 402, Shree Heights",
-    line2: "Andheri Kurla Road",
-    landmark: "Near Metro Station",
-    city: "Mumbai",
-    district: "Mumbai Suburban",
-    state: "Maharashtra",
-    pincode: "400059",
-    country: "India",
-  });
+  // Personal details
+  const [profile,         setProfile]         = useState(defaultProfile);
+  const [isEditingProfile,setIsEditingProfile] = useState(false);
 
-  const [residentialAddress, setResidentialAddress] = useState({
-    line1: "",
-    line2: "",
-    landmark: "",
-    city: "",
-    district: "",
-    state: "",
-    pincode: "",
-    country: "India",
-  });
-
-  const [sameAsPermanent, setSameAsPermanent] = useState(false);
-  const [preferredAddress, setPreferredAddress] = useState("Residential");
-  const [addressProofType, setAddressProofType] = useState("Aadhaar");
-  const [addressProofName, setAddressProofName] = useState("");
+  // Address proof
+  const [addressProofType,    setAddressProofType]    = useState("Aadhaar");
+  const [addressProofName,    setAddressProofName]    = useState("");
   const [addressProofPreview, setAddressProofPreview] = useState("");
-  const [addressProofCaptured, setAddressProofCaptured] = useState(false);
+  const [isOcrScanning,       setIsOcrScanning]       = useState(false);
+  const [ocrDone,             setOcrDone]             = useState(false);
+  const [ocrExtracted,        setOcrExtracted]        = useState(null);
+
+  // Addresses
+  const [permanentAddress,  setPermanentAddress]  = useState({
+    line1: "Flat 402, Shree Heights", line2: "Andheri Kurla Road",
+    landmark: "Near Metro Station", city: "Mumbai",
+    district: "Mumbai Suburban", state: "Maharashtra", pincode: "400059", country: "India",
+  });
+  const [residentialAddress, setResidentialAddress] = useState(emptyAddress);
+  const [sameAsPermanent,    setSameAsPermanent]    = useState(false);
+  const [preferredAddress,   setPreferredAddress]   = useState("Residential");
 
   const communicationAddress = useMemo(() => {
     if (preferredAddress === "Permanent") return permanentAddress;
     return sameAsPermanent ? permanentAddress : residentialAddress;
   }, [preferredAddress, permanentAddress, residentialAddress, sameAsPermanent]);
 
-  const updateProfile = (key, value) => {
-    setProfile((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
+  /* ── Photo handlers ── */
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoName(file.name);
+    setPhotoCropSrc(URL.createObjectURL(file));
+    setShowCropModal(true);
+    if (e.target) e.target.value = "";
   };
 
-  const handlePhotoUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const previewUrl = file.type.startsWith("image/")
-      ? URL.createObjectURL(file)
-      : "";
-
-    setPhotoName(file.name);
-    setPhotoPreview(previewUrl);
-
+  const handleCropSave = (croppedUrl) => {
+    setPhotoPreview(croppedUrl);
+    setShowCropModal(false);
     saveUploadedDocument({
-      applicant: "Primary Applicant",
-      type: "Photograph",
-      subtype: "Applicant Photo",
-      source: "Applicant Profile",
-      fileName: file.name,
-      fileType: file.type.startsWith("image/") ? "Image" : "PDF / Document",
-      previewUrl,
-      ocrStatus: "Not Applicable",
-      verificationStatus: "Captured",
+      applicant: "Primary Applicant", type: "Photograph", subtype: "Applicant Photo",
+      source: "Applicant Profile", fileName: photoName, fileType: "Image",
+      previewUrl: croppedUrl, ocrStatus: "Not Applicable", verificationStatus: "Captured",
     });
   };
 
-  const handleSameAsPermanent = (checked) => {
-    setSameAsPermanent(checked);
+  /* ── Profile handlers ── */
+  const updateProfile = (key, value) => setProfile((prev) => ({ ...prev, [key]: value }));
 
-    if (checked) {
-      setResidentialAddress(permanentAddress);
-      if (preferredAddress === "Residential") {
-        setPreferredAddress("Residential");
-      }
-    } else {
-      setResidentialAddress(emptyAddress);
-    }
-  };
-
-  const handlePermanentAddressChange = (nextAddress) => {
-    setPermanentAddress(nextAddress);
-
-    if (sameAsPermanent) {
-      setResidentialAddress(nextAddress);
-    }
-  };
-
-  const handleAddressProofUpload = (event) => {
-    const file = event.target.files?.[0];
+  /* ── Address proof upload → auto OCR ── */
+  const handleAddressProofUpload = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-
-    const isImage = file.type.startsWith("image/");
-    const previewUrl = isImage ? URL.createObjectURL(file) : "";
-
+    const isImg = file.type.startsWith("image/");
+    const previewUrl = isImg ? URL.createObjectURL(file) : "";
     setAddressProofName(file.name);
     setAddressProofPreview(previewUrl);
+    setOcrDone(false);
+    setOcrExtracted(null);
+    if (e.target) e.target.value = "";
 
-    const capturedAddress = mockAddressByProof[addressProofType] || mockAddressByProof.Aadhaar;
-
-    setPermanentAddress(capturedAddress);
-
-    if (sameAsPermanent || preferredAddress === "Residential") {
-      setResidentialAddress(capturedAddress);
-    }
-
-    setAddressProofCaptured(true);
-
-    saveUploadedDocument({
-      applicant: "Primary Applicant",
-      type: "Address Proof",
-      subtype: addressProofType,
-      source: "Applicant Profile",
-      fileName: file.name,
-      fileType: isImage ? "Image" : "PDF / Document",
-      previewUrl,
-      ocrStatus: "Captured",
-      verificationStatus: "Pending Review",
-    });
+    // Auto-start OCR
+    window.setTimeout(() => {
+      setIsOcrScanning(true);
+      window.setTimeout(() => {
+        const extracted = mockAddressByProof[addressProofType] || mockAddressByProof.Aadhaar;
+        setPermanentAddress(extracted);
+        if (sameAsPermanent) setResidentialAddress(extracted);
+        saveUploadedDocument({
+          applicant: "Primary Applicant", type: "Address Proof", subtype: addressProofType,
+          source: "Applicant Profile", fileName: file.name,
+          fileType: isImg ? "Image" : "PDF / Document",
+          previewUrl, ocrStatus: "Completed", verificationStatus: "Pending Review",
+        });
+        setIsOcrScanning(false);
+        setOcrDone(true);
+        setOcrExtracted(extracted);
+      }, 2800);
+    }, 500);
   };
 
-  const completionItems = [
-    {
-      label: "Photo captured",
-      complete: Boolean(photoName),
-    },
-    {
-      label: "Basic profile completed",
-      complete: Boolean(profile.firstName && profile.lastName && profile.gender && profile.fatherName),
-    },
-    {
-      label: "Permanent address available",
-      complete: Boolean(permanentAddress.line1 && permanentAddress.city && permanentAddress.pincode),
-    },
-    {
-      label: "Residential address available",
-      complete: Boolean((sameAsPermanent ? permanentAddress : residentialAddress).line1),
-    },
-    {
-      label: "Address proof uploaded",
-      complete: addressProofCaptured,
-    },
-  ];
+  /* ── Same-as-permanent ── */
+  const handleSameAsPermanent = (checked) => {
+    setSameAsPermanent(checked);
+    setResidentialAddress(checked ? permanentAddress : emptyAddress);
+  };
 
+  const handlePermanentChange = (next) => {
+    setPermanentAddress(next);
+    if (sameAsPermanent) setResidentialAddress(next);
+  };
+
+  /* ── Render ── */
   return (
-    <div className="applicant-profile-page">
-      <section className="ap-hero-card">
-        <div className="ap-hero-left">
-          <div className="ap-icon-wrap">
-            <UserIcon />
-          </div>
+    <div className="ap-page">
+
+      {/* ── Section: Photograph ──────────────────────────────────────── */}
+      <div className="ap-section">
+        <div className="ap-section-head">
           <div>
-            <span className="ap-eyebrow">Step 02</span>
-            <h3>Applicant Profile</h3>
-            <p>
-              Capture personal information, applicant photograph, address details and communication preference.
-            </p>
+            <span className="ap-section-title">Photograph</span>
+            <span className="ap-section-sub">Attach a recent passport-style photo of the applicant</span>
+          </div>
+          {photoPreview && <span className="ap-badge green"><CheckIcon /> Captured</span>}
+        </div>
+
+        <div className="ap-photo-row">
+          <div className="ap-photo-avatar">
+            {photoPreview
+              ? <img src={photoPreview} alt="Applicant" className="ap-photo-img" />
+              : <div className="ap-photo-placeholder"><UserIcon /></div>
+            }
+          </div>
+          <div className="ap-photo-info">
+            {photoPreview ? (
+              <span className="ap-photo-filename">{photoName}</span>
+            ) : (
+              <>
+                <span className="ap-copy-main">Upload applicant photograph</span>
+                <span className="ap-copy-sub">JPG or PNG · front-facing · plain background recommended</span>
+              </>
+            )}
+            <div className="ap-photo-actions">
+              <label className="ap-btn-secondary">
+                <UploadIcon /> {photoPreview ? "Replace" : "Choose Photo"}
+                <input ref={photoInputRef} type="file" accept="image/*" hidden onChange={handlePhotoSelect} />
+              </label>
+              {photoPreview && (
+                <button className="ap-btn-ghost" type="button" onClick={() => setShowCropModal(true)}>
+                  <CropIcon /> Crop & Adjust
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="ap-divider" />
+
+      {/* ── Section: Personal Details ─────────────────────────────────── */}
+      <div className="ap-section">
+        <div className="ap-section-head">
+          <div>
+            <span className="ap-section-title">Personal Details</span>
+            <span className="ap-section-sub">Basic applicant information, family details and demographics</span>
+          </div>
+          <button className="ap-edit-btn" type="button" onClick={() => setIsEditingProfile((v) => !v)}>
+            {isEditingProfile ? <><CheckIcon /> Done</> : <><PencilIcon /> Edit</>}
+          </button>
+        </div>
+
+        <div className="ap-field-grid-3">
+          <FieldRow     label="First Name"        value={profile.firstName}        editing={isEditingProfile} placeholder="First name"   onChange={(v) => updateProfile("firstName",        v)} />
+          <FieldRow     label="Middle Name"        value={profile.middleName}       editing={isEditingProfile} placeholder="Middle name"  onChange={(v) => updateProfile("middleName",       v)} />
+          <FieldRow     label="Last Name"          value={profile.lastName}         editing={isEditingProfile} placeholder="Last name"    onChange={(v) => updateProfile("lastName",         v)} />
+          <SelectField  label="Gender"             value={profile.gender}           editing={isEditingProfile} onChange={(v) => updateProfile("gender", v)}
+            options={["", "Male", "Female", "Other"].map(o => ({ value: o, label: o || "Select gender" }))} />
+          <FieldRow     label="Date of Birth"      value={profile.dateOfBirth}      editing={isEditingProfile} type="date"               onChange={(v) => updateProfile("dateOfBirth",      v)} />
+          <SelectField  label="Marital Status"     value={profile.maritalStatus}    editing={isEditingProfile} onChange={(v) => updateProfile("maritalStatus", v)}
+            options={["", "Single", "Married", "Divorced", "Widowed"].map(o => ({ value: o, label: o || "Select status" }))} />
+          <FieldRow     label="Father's Name"      value={profile.fatherName}       editing={isEditingProfile} placeholder="Father's full name"  onChange={(v) => updateProfile("fatherName",      v)} />
+          <FieldRow     label="Mother's Name"      value={profile.motherName}       editing={isEditingProfile} placeholder="Mother's full name"  onChange={(v) => updateProfile("motherName",      v)} />
+          <FieldRow     label="Spouse Name"        value={profile.spouseName}       editing={isEditingProfile} placeholder="Spouse name"        onChange={(v) => updateProfile("spouseName",       v)} />
+          <FieldRow     label="Nationality"        value={profile.nationality}      editing={isEditingProfile} placeholder="Nationality"        onChange={(v) => updateProfile("nationality",      v)} />
+          <SelectField  label="Residential Status" value={profile.residentialStatus} editing={isEditingProfile} onChange={(v) => updateProfile("residentialStatus", v)}
+            options={["Resident Indian", "Non Resident Indian"].map(o => ({ value: o, label: o }))} />
+        </div>
+      </div>
+
+      <div className="ap-divider" />
+
+      {/* ── Section: Address Proof ────────────────────────────────────── */}
+      <div className="ap-section">
+        <div className="ap-section-head">
+          <div>
+            <span className="ap-section-title">Address Proof</span>
+            <span className="ap-section-sub">Upload a document to automatically populate the permanent address</span>
+          </div>
+          {ocrDone && <span className="ap-badge green"><CheckIcon /> Extracted</span>}
+        </div>
+
+        {/* OCR result banner */}
+        {ocrDone && !isOcrScanning && ocrExtracted && (
+          <div className="ap-banner info">
+            <ScanIcon />
+            <div className="ap-banner-body">
+              <strong>Address extracted from {addressProofType}</strong>
+              <p>
+                {ocrExtracted.line1}
+                {ocrExtracted.city    ? `, ${ocrExtracted.city}`    : ""}
+                {ocrExtracted.state   ? `, ${ocrExtracted.state}`   : ""}
+                {ocrExtracted.pincode ? ` — ${ocrExtracted.pincode}`: ""}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="ap-proof-layout">
+          {/* Controls */}
+          <div className="ap-proof-controls">
+            <div className="ap-field">
+              <span className="ap-field-label">Document type</span>
+              <select
+                className="ap-input ap-select"
+                value={addressProofType}
+                onChange={(e) => { setAddressProofType(e.target.value); setOcrDone(false); setOcrExtracted(null); }}
+              >
+                <option>Aadhaar</option>
+                <option>Driving License</option>
+                <option>Voter ID</option>
+                <option>Passport</option>
+              </select>
+            </div>
+
+            <label className="ap-btn-secondary upload-label">
+              <UploadIcon /> Upload {addressProofType}
+              <input type="file" accept="image/*,.pdf" hidden onChange={handleAddressProofUpload} />
+            </label>
+
+            {addressProofName && (
+              <div className="ap-file-badge">
+                <CheckIcon /> {addressProofName}
+              </div>
+            )}
+
+            <span className="ap-helper-text">
+              Address fields are automatically populated from the uploaded document
+            </span>
+          </div>
+
+          {/* Preview */}
+          <div className="ap-proof-preview">
+            {isOcrScanning && (
+              <div className="ap-ocr-overlay">
+                <div className="ap-scan-beam" />
+                <div className="ap-scan-status"><SpinnerIcon /> Reading document</div>
+              </div>
+            )}
+            {addressProofPreview ? (
+              <img src={addressProofPreview} alt="Address proof" className="ap-proof-img" />
+            ) : (
+              <div className="ap-proof-empty">
+                <FileIcon />
+                <span>Preview appears here</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="ap-divider" />
+
+      {/* ── Section: Addresses ───────────────────────────────────────── */}
+      <div className="ap-section">
+        <div className="ap-section-head">
+          <div>
+            <span className="ap-section-title">Addresses</span>
+            <span className="ap-section-sub">Permanent and residential address details</span>
           </div>
         </div>
 
-        <div className="ap-completion-box">
-          <strong>{completionItems.filter((item) => item.complete).length}/{completionItems.length}</strong>
-          <span>Profile checks completed</span>
+        <AddressGroup
+          title="Permanent Address"
+          badge={ocrDone ? `Captured from ${addressProofType}` : undefined}
+          address={permanentAddress}
+          onChange={handlePermanentChange}
+        />
+
+        <label className="ap-same-toggle">
+          <input
+            type="checkbox"
+            checked={sameAsPermanent}
+            onChange={(e) => handleSameAsPermanent(e.target.checked)}
+          />
+          <span>Residential address is same as permanent address</span>
+        </label>
+
+        <AddressGroup
+          title="Residential Address"
+          badge={sameAsPermanent ? "Same as permanent" : undefined}
+          address={sameAsPermanent ? permanentAddress : residentialAddress}
+          onChange={setResidentialAddress}
+          locked={sameAsPermanent}
+        />
+      </div>
+
+      <div className="ap-divider" />
+
+      {/* ── Section: Communication ────────────────────────────────────── */}
+      <div className="ap-section">
+        <div className="ap-section-head">
+          <div>
+            <span className="ap-section-title">Communication Address</span>
+            <span className="ap-section-sub">Select which address to use for correspondence</span>
+          </div>
         </div>
-      </section>
 
-      <section className="ap-layout">
-        <main className="ap-main">
-          <section className="ap-card">
-            <div className="ap-section-header">
-              <div>
-                <span className="ap-eyebrow">Applicant Photograph</span>
-                <h4>Photo Capture</h4>
-              </div>
-              {photoName && <span className="ap-status-pill completed">Captured</span>}
-            </div>
+        <div className="ap-comm-toggle">
+          {["Residential", "Permanent"].map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={`ap-comm-option${preferredAddress === type ? " active" : ""}`}
+              onClick={() => setPreferredAddress(type)}
+            >
+              <span className="ap-comm-dot" />
+              {type} Address
+            </button>
+          ))}
+        </div>
 
-            <div className="ap-photo-row">
-              <div className="ap-photo-preview">
-                {photoPreview ? (
-                  <img src={photoPreview} alt="Applicant preview" />
-                ) : (
-                  <div>
-                    <UserIcon />
-                    <span>No photo selected</span>
-                  </div>
-                )}
-              </div>
+        {communicationAddress.line1 && (
+          <div className="ap-comm-address-preview">
+            <span className="ap-field-label">Selected address</span>
+            <span className="ap-comm-address-text">
+              {communicationAddress.line1}
+              {communicationAddress.city    ? `, ${communicationAddress.city}`    : ""}
+              {communicationAddress.state   ? `, ${communicationAddress.state}`   : ""}
+              {communicationAddress.pincode ? ` — ${communicationAddress.pincode}`: ""}
+            </span>
+          </div>
+        )}
+      </div>
 
-              <div className="ap-upload-content">
-                <h5>Upload applicant photograph</h5>
-                <p>
-                  Use a clear front-facing photograph. The image will be shown in the application profile.
-                </p>
-
-                <label className="ap-upload-btn">
-                  <UploadIcon />
-                  Choose Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                  />
-                </label>
-
-                {photoName && (
-                  <div className="ap-file-note">
-                    <CheckIcon />
-                    <span>{photoName}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className="ap-card">
-            <div className="ap-section-header">
-              <div>
-                <span className="ap-eyebrow">Personal Details</span>
-                <h4>Basic Applicant Information</h4>
-              </div>
-            </div>
-
-            <div className="ap-field-grid three">
-              <Field label="First Name" required>
-                <TextInput
-                  value={profile.firstName}
-                  placeholder="First name"
-                  onChange={(value) => updateProfile("firstName", value)}
-                />
-              </Field>
-
-              <Field label="Middle Name">
-                <TextInput
-                  value={profile.middleName}
-                  placeholder="Middle name"
-                  onChange={(value) => updateProfile("middleName", value)}
-                />
-              </Field>
-
-              <Field label="Last Name" required>
-                <TextInput
-                  value={profile.lastName}
-                  placeholder="Last name"
-                  onChange={(value) => updateProfile("lastName", value)}
-                />
-              </Field>
-
-              <Field label="Gender" required>
-                <SelectInput
-                  value={profile.gender}
-                  onChange={(value) => updateProfile("gender", value)}
-                >
-                  <option value="">Select gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </SelectInput>
-              </Field>
-
-              <Field label="Date of Birth" required>
-                <TextInput
-                  type="date"
-                  value={profile.dateOfBirth}
-                  onChange={(value) => updateProfile("dateOfBirth", value)}
-                />
-              </Field>
-
-              <Field label="Marital Status">
-                <SelectInput
-                  value={profile.maritalStatus}
-                  onChange={(value) => updateProfile("maritalStatus", value)}
-                >
-                  <option value="">Select status</option>
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                  <option value="Divorced">Divorced</option>
-                  <option value="Widowed">Widowed</option>
-                </SelectInput>
-              </Field>
-
-              <Field label="Father's Name" required>
-                <TextInput
-                  value={profile.fatherName}
-                  placeholder="Father's full name"
-                  onChange={(value) => updateProfile("fatherName", value)}
-                />
-              </Field>
-
-              <Field label="Mother's Name">
-                <TextInput
-                  value={profile.motherName}
-                  placeholder="Mother's full name"
-                  onChange={(value) => updateProfile("motherName", value)}
-                />
-              </Field>
-
-              <Field label="Spouse Name">
-                <TextInput
-                  value={profile.spouseName}
-                  placeholder="Spouse name"
-                  onChange={(value) => updateProfile("spouseName", value)}
-                />
-              </Field>
-
-              <Field label="Nationality">
-                <TextInput
-                  value={profile.nationality}
-                  placeholder="Nationality"
-                  onChange={(value) => updateProfile("nationality", value)}
-                />
-              </Field>
-
-              <Field label="Residential Status">
-                <SelectInput
-                  value={profile.residentialStatus}
-                  onChange={(value) => updateProfile("residentialStatus", value)}
-                >
-                  <option value="Resident Indian">Resident Indian</option>
-                  <option value="Non Resident Indian">Non Resident Indian</option>
-                </SelectInput>
-              </Field>
-            </div>
-          </section>
-
-          <section className="ap-card">
-            <div className="ap-section-header">
-              <div>
-                <span className="ap-eyebrow">Address Proof</span>
-                <h4>Upload Address Proof</h4>
-              </div>
-              {addressProofCaptured && <span className="ap-status-pill completed">Details Captured</span>}
-            </div>
-
-            <div className="ap-proof-grid">
-              <div className="ap-proof-controls">
-                <Field label="Address Proof Type" required>
-                  <SelectInput
-                    value={addressProofType}
-                    onChange={(value) => {
-                      setAddressProofType(value);
-                      setAddressProofCaptured(false);
-                    }}
-                  >
-                    <option value="Aadhaar">Aadhaar</option>
-                    <option value="Driving License">Driving License</option>
-                    <option value="Voter ID">Voter ID</option>
-                    <option value="Passport">Passport</option>
-                  </SelectInput>
-                </Field>
-
-                <label className="ap-proof-upload">
-                  <UploadIcon />
-                  Upload {addressProofType}
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={handleAddressProofUpload}
-                  />
-                </label>
-
-                {addressProofName && (
-                  <div className="ap-file-note">
-                    <CheckIcon />
-                    <span>{addressProofName}</span>
-                  </div>
-                )}
-
-                <p className="ap-helper-text">
-                  On upload, address details are extracted and populated into the address section for review.
-                </p>
-              </div>
-
-              <div className="ap-proof-preview">
-                {addressProofPreview ? (
-                  <img src={addressProofPreview} alt="Address proof preview" />
-                ) : (
-                  <div>
-                    <FileIcon />
-                    <span>Preview appears for image uploads</span>
-                    <small>PDF files will be attached without image preview</small>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className="ap-card">
-            <div className="ap-section-header">
-              <div>
-                <span className="ap-eyebrow">Address Details</span>
-                <h4>Permanent & Residential Address</h4>
-              </div>
-            </div>
-
-            <AddressBlock
-              title="Permanent Address"
-              badge={addressProofCaptured ? `Captured from ${addressProofType}` : "Manual entry allowed"}
-              address={permanentAddress}
-              onChange={handlePermanentAddressChange}
-            />
-
-            <div className="ap-address-toggle-row">
-              <label className="ap-checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={sameAsPermanent}
-                  onChange={(event) => handleSameAsPermanent(event.target.checked)}
-                />
-                <span>Residential address is same as permanent address</span>
-              </label>
-            </div>
-
-            <AddressBlock
-              title="Residential Address"
-              badge={sameAsPermanent ? "Same as permanent address" : "Separate residential address"}
-              address={sameAsPermanent ? permanentAddress : residentialAddress}
-              onChange={setResidentialAddress}
-              disabled={sameAsPermanent}
-            />
-          </section>
-
-          <section className="ap-card">
-            <div className="ap-section-header">
-              <div>
-                <span className="ap-eyebrow">Communication Preference</span>
-                <h4>Preferred Communication Address</h4>
-              </div>
-            </div>
-
-            <div className="ap-communication-options">
-              {["Residential", "Permanent"].map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  className={`ap-comm-card ${preferredAddress === type ? "active" : ""}`}
-                  onClick={() => setPreferredAddress(type)}
-                >
-                  <span className="ap-comm-icon">
-                    <HomeIcon />
-                  </span>
-                  <strong>{type} Address</strong>
-                  <p>
-                    Use {type.toLowerCase()} address for application correspondence.
-                  </p>
-                </button>
-              ))}
-            </div>
-
-            <div className="ap-selected-address">
-              <span>Selected Communication Address</span>
-              <strong>
-                {communicationAddress.line1 || "Address not captured"}
-                {communicationAddress.city ? `, ${communicationAddress.city}` : ""}
-                {communicationAddress.pincode ? ` - ${communicationAddress.pincode}` : ""}
-              </strong>
-            </div>
-          </section>
-        </main>
-
-        <aside className="ap-side">
-          <section className="ap-side-card">
-            <h4>Profile Readiness</h4>
-            <div className="ap-checklist">
-              {completionItems.map((item) => (
-                <div
-                  key={item.label}
-                  className={`ap-check-row ${item.complete ? "done" : ""}`}
-                >
-                  <span>{item.complete ? <CheckIcon /> : "•"}</span>
-                  <strong>{item.label}</strong>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="ap-side-card soft">
-            <h4>Applicant Summary</h4>
-            <div className="ap-summary-list">
-              <div>
-                <span>Name</span>
-                <strong>
-                  {[profile.firstName, profile.middleName, profile.lastName]
-                    .filter(Boolean)
-                    .join(" ") || "—"}
-                </strong>
-              </div>
-              <div>
-                <span>Gender</span>
-                <strong>{profile.gender || "—"}</strong>
-              </div>
-              <div>
-                <span>DOB</span>
-                <strong>{profile.dateOfBirth || "—"}</strong>
-              </div>
-              <div>
-                <span>Communication</span>
-                <strong>{preferredAddress}</strong>
-              </div>
-              <div>
-                <span>Address Proof</span>
-                <strong>{addressProofCaptured ? addressProofType : "Pending"}</strong>
-              </div>
-            </div>
-          </section>
-        </aside>
-      </section>
+      {/* ── Crop Modal ── */}
+      {showCropModal && photoCropSrc && (
+        <CropModal
+          imageSrc={photoCropSrc}
+          onSave={handleCropSave}
+          onCancel={() => setShowCropModal(false)}
+        />
+      )}
     </div>
   );
 }

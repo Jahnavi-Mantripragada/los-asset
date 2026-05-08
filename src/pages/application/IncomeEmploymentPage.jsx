@@ -1,64 +1,49 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import "./IncomeEmploymentPage.css";
 
+/* ── Icons ───────────────────────────────────────────────────────────── */
+const CheckIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.7">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+const PencilIcon = () => (
+  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+  </svg>
+);
+const SendIcon = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.1">
+    <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
+  </svg>
+);
+const SpinnerIcon = () => (
+  <svg className="ie-spin-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
 const BriefcaseIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1" />
     <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
     <path d="M3 13h18" />
   </svg>
 );
-
-const RupeeIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M6 3h12" />
-    <path d="M6 8h12" />
-    <path d="M6 13h7a5 5 0 0 0 0-10" />
-    <path d="m6 13 8 8" />
+const CloudIcon = () => (
+  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+  </svg>
+);
+const LinkIcon = () => (
+  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
   </svg>
 );
 
-const UploadIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <path d="M17 8l-5-5-5 5" />
-    <path d="M12 3v12" />
-  </svg>
-);
-
-const SendIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.1">
-    <path d="m22 2-7 20-4-9-9-4Z" />
-    <path d="M22 2 11 13" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-);
-
-const FileIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-    <path d="M14 2v6h6" />
-    <path d="M8 13h8" />
-    <path d="M8 17h5" />
-  </svg>
-);
-
-const HomeIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="m3 11 9-8 9 8" />
-    <path d="M5 10v10h14V10" />
-    <path d="M9 20v-6h6v6" />
-  </svg>
-);
-
+/* ── Mock data ───────────────────────────────────────────────────────── */
 const initialForm = {
   employmentType: "Salaried",
-
   employerName: "Deloitte India",
   employerType: "Private Limited",
   designation: "Senior Consultant",
@@ -70,7 +55,6 @@ const initialForm = {
   monthlyGrossSalary: "85000",
   monthlyNetSalary: "72000",
   annualBonus: "180000",
-
   businessName: "Sharma Consulting Services",
   constitutionType: "Proprietorship",
   industryType: "Professional Services",
@@ -79,18 +63,15 @@ const initialForm = {
   monthlyBusinessIncome: "320000",
   netMonthlyIncome: "210000",
   professionalType: "Consultant",
-
   gstNumber: "27ABCDE1234F1Z5",
   udyamNumber: "UDYAM-MH-19-0012345",
   cinNumber: "U72900MH2020PTC123456",
   businessPan: "ABCDE1234F",
   shopActNumber: "MH-SHOP-2026-1842",
-
   officePhone: "02245891234",
-  officialEmail: "rahul.sharma@company.com",
+  officialEmail: "rahul.sharma@deloitte.com",
   businessEmail: "finance@sharmacompany.com",
   preferredContactTime: "10 AM - 1 PM",
-
   officeAddressLine1: "401, Business Park",
   officeAddressLine2: "Andheri East",
   officeLandmark: "Near Metro Station",
@@ -99,893 +80,402 @@ const initialForm = {
   officeState: "Maharashtra",
   officePincode: "400059",
   officeCountry: "India",
-
-  itrStatus: "Not Requested",
-  gstStatus: "Not Requested",
 };
 
-const employmentTypes = [
+/* ── Options ─────────────────────────────────────────────────────────── */
+const EMPLOYMENT_TYPES = [
+  { value: "Salaried", title: "Salaried",                      sub: "Fixed salary from employer" },
+  { value: "SEP",      title: "Self Employed Professional",     sub: "Doctors, CAs, consultants" },
+  { value: "SENP",     title: "Self Employed Non Professional", sub: "Business owners, traders" },
+];
+const EMPLOYER_TYPES      = ["Government","Public Sector","Private Limited","Public Limited","Partnership","Proprietorship","MNC","Other"];
+const CONSTITUTION_TYPES  = ["Proprietorship","Partnership","LLP","Private Limited","Public Limited","Trust","Society","HUF","Other"];
+const INDUSTRY_TYPES      = ["Trading","Manufacturing","Services","Professional Services","Healthcare","Education","Real Estate","Retail","Transport","IT / Software","Other"];
+const PROFESSIONAL_TYPES  = ["Doctor","Chartered Accountant","Consultant","Architect","Lawyer","Engineer","Interior Designer","Other Professional"];
+const SALARY_MODES        = ["Bank Transfer","Cheque","Cash","Mixed"];
+const CONTACT_TIMES       = ["9 AM - 10 AM","10 AM - 1 PM","1 PM - 4 PM","4 PM - 7 PM","Anytime"];
+
+/* ── Income request configs ──────────────────────────────────────────── */
+const SALARIED_REQUESTS = [
   {
-    value: "Salaried",
-    title: "Salaried",
-    description: "Applicant earns fixed salary from an employer.",
+    key: "bankStatement",
+    title: "Bank Statement",
+    tag: "Online fetch",
+    tagType: "online",
+    description: "Customer receives a secure OTP-based link to authorize 6-month bank statement via account aggregator.",
   },
   {
-    value: "SEP",
-    title: "Self Employed Professional",
-    description: "Doctors, CAs, consultants, architects or professionals.",
+    key: "salarySlip",
+    title: "Salary Slips",
+    tag: "Customer upload",
+    tagType: "upload",
+    description: "A link is sent to the customer to upload last 3 months' salary slips from their registered mobile.",
   },
   {
-    value: "SENP",
-    title: "Self Employed Non Professional",
-    description: "Business owners, traders, manufacturers or service providers.",
+    key: "form16",
+    title: "Form 16 / ITR",
+    tag: "Customer upload",
+    tagType: "upload",
+    description: "Customer receives a link to share Form 16 or ITR acknowledgement for income verification.",
   },
 ];
 
-const employerTypes = [
-  "Government",
-  "Public Sector",
-  "Private Limited",
-  "Public Limited",
-  "Partnership",
-  "Proprietorship",
-  "MNC",
-  "Other",
+const SELFEMPLOYED_REQUESTS = [
+  {
+    key: "itr",
+    title: "ITR",
+    tag: "Online fetch",
+    tagType: "online",
+    description: "Initiates a secure consent link to fetch ITR data directly from the Income Tax portal.",
+  },
+  {
+    key: "gstReturns",
+    title: "GST Returns",
+    tag: "Online fetch",
+    tagType: "online",
+    description: "Customer authorizes access to their GST filing history via the GSTN portal.",
+    requiresGst: true,
+  },
+  {
+    key: "bankStatement",
+    title: "Bank Statement",
+    tag: "Online fetch",
+    tagType: "online",
+    description: "Customer receives a secure OTP-based link to authorize 12-month bank statement via account aggregator.",
+  },
 ];
 
-const constitutionTypes = [
-  "Proprietorship",
-  "Partnership",
-  "LLP",
-  "Private Limited",
-  "Public Limited",
-  "Trust",
-  "Society",
-  "HUF",
-  "Other",
-];
-
-const industryTypes = [
-  "Trading",
-  "Manufacturing",
-  "Services",
-  "Professional Services",
-  "Healthcare",
-  "Education",
-  "Real Estate",
-  "Retail",
-  "Transport",
-  "IT / Software",
-  "Other",
-];
-
-const professionalTypes = [
-  "Doctor",
-  "Chartered Accountant",
-  "Consultant",
-  "Architect",
-  "Lawyer",
-  "Engineer",
-  "Interior Designer",
-  "Other Professional",
-];
-
-const salaryModes = [
-  "Bank Transfer",
-  "Cheque",
-  "Cash",
-  "Mixed",
-];
-
-const preferredContactTimes = [
-  "9 AM - 10 AM",
-  "10 AM - 1 PM",
-  "1 PM - 4 PM",
-  "4 PM - 7 PM",
-  "Anytime",
-];
-
-function Field({ label, children, required }) {
+/* ── Field components ────────────────────────────────────────────────── */
+function FieldRow({ label, value, editing, onChange, placeholder, type = "text", wide }) {
   return (
-    <label className="ie-field">
-      <span>
-        {label}
-        {required && <em>*</em>}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function TextInput({ value, onChange, placeholder, type = "text" }) {
-  return (
-    <input
-      className="ie-input"
-      type={type}
-      value={value}
-      placeholder={placeholder}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  );
-}
-
-function SelectInput({ value, onChange, children }) {
-  return (
-    <select
-      className="ie-input ie-select"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    >
-      {children}
-    </select>
-  );
-}
-
-function CurrencyInput({ value, onChange, placeholder }) {
-  return (
-    <div className="ie-currency-input">
-      <span>₹</span>
-      <input
-        type="number"
-        value={value}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-      />
+    <div className={`ie-field${wide ? " wide" : ""}`}>
+      <span className="ie-field-label">{label}</span>
+      {editing ? (
+        <input
+          className="ie-input" type={type}
+          value={value || ""} placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : (
+        <div className="ie-field-readonly">
+          {value || <span className="ie-field-empty">—</span>}
+        </div>
+      )}
     </div>
   );
 }
 
-function ActionCard({ title, description, status, icon, buttonLabel, onClick, disabled }) {
+function SelectField({ label, value, editing, onChange, options, wide }) {
   return (
-    <div className={`ie-action-card ${status === "Requested" ? "requested" : ""}`}>
-      <div className="ie-action-icon">{icon}</div>
-      <div className="ie-action-content">
-        <div className="ie-action-title-row">
-          <h4>{title}</h4>
-          <span className={`ie-status-pill ${status === "Requested" ? "completed" : "pending"}`}>
-            {status}
+    <div className={`ie-field${wide ? " wide" : ""}`}>
+      <span className="ie-field-label">{label}</span>
+      {editing ? (
+        <select className="ie-input ie-select" value={value} onChange={(e) => onChange(e.target.value)}>
+          {options.map((o) => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
+        </select>
+      ) : (
+        <div className="ie-field-readonly">{value || <span className="ie-field-empty">—</span>}</div>
+      )}
+    </div>
+  );
+}
+
+function CurrencyField({ label, value, editing, onChange, placeholder, wide }) {
+  const display = value ? `₹ ${Number(value).toLocaleString("en-IN")}` : "";
+  return (
+    <div className={`ie-field${wide ? " wide" : ""}`}>
+      <span className="ie-field-label">{label}</span>
+      {editing ? (
+        <div className="ie-currency-wrap">
+          <span>₹</span>
+          <input
+            type="number" className="ie-currency-inner"
+            value={value || ""} placeholder={placeholder}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </div>
+      ) : (
+        <div className="ie-field-readonly">{display || <span className="ie-field-empty">—</span>}</div>
+      )}
+    </div>
+  );
+}
+
+/* ── Request card ────────────────────────────────────────────────────── */
+function RequestCard({ title, tag, tagType, description, status, onRequest, disabled }) {
+  return (
+    <div className={`ie-request-item${status === "sent" ? " sent" : ""}`}>
+      <div className="ie-request-body">
+        <div className="ie-request-name-row">
+          <span className="ie-request-title">{title}</span>
+          <span className={`ie-request-tag ${tagType}`}>
+            {tagType === "online" ? <CloudIcon /> : <LinkIcon />}
+            {tag}
           </span>
         </div>
-        <p>{description}</p>
-        <button type="button" onClick={onClick} disabled={disabled}>
-          {status === "Requested" ? <CheckIcon /> : <SendIcon />}
-          {status === "Requested" ? "Request Sent" : buttonLabel}
-        </button>
+        <span className="ie-request-desc">{description}</span>
+        {status === "sent" && (
+          <div className="ie-request-sent-note">
+            <CheckIcon /> Request sent · Link delivered to customer's registered mobile
+          </div>
+        )}
+      </div>
+      <div className="ie-request-ctrl">
+        {status === "idle" && (
+          <button className="ie-btn-primary small" type="button" onClick={onRequest} disabled={disabled}>
+            <SendIcon /> Send Request
+          </button>
+        )}
+        {status === "sending" && (
+          <button className="ie-btn-primary small" type="button" disabled>
+            <SpinnerIcon /> Sending…
+          </button>
+        )}
+        {status === "sent" && (
+          <span className="ie-badge green"><CheckIcon /> Sent</span>
+        )}
       </div>
     </div>
   );
 }
 
+/* ── Main component ──────────────────────────────────────────────────── */
 function IncomeEmploymentPage() {
-  const [form, setForm] = useState(initialForm);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [form, setForm]               = useState(initialForm);
+  const [isEditing, setIsEditing]     = useState({
+    employer: false, income: false, identifiers: false,
+    address: false,  communication: false,
+  });
+  const [requestStatuses, setRequestStatuses] = useState({
+    bankStatement: "idle", salarySlip: "idle", form16: "idle",
+    itr: "idle",           gstReturns: "idle",
+  });
 
-  const isSalaried = form.employmentType === "Salaried";
-  const isSEP = form.employmentType === "SEP";
-  const isSENP = form.employmentType === "SENP";
-  const isSelfEmployed = isSEP || isSENP;
+  const isSalaried     = form.employmentType === "Salaried";
+  const isSEP          = form.employmentType === "SEP";
+  const isSelfEmployed = isSEP || form.employmentType === "SENP";
 
-  const updateForm = (key, value) => {
-    setForm((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
+  const updateForm    = (key, val) => setForm((p) => ({ ...p, [key]: val }));
+  const toggleSection = (key) => setIsEditing((p) => ({ ...p, [key]: !p[key] }));
+
+  const handleTypeChange = (val) => {
+    updateForm("employmentType", val);
+    setRequestStatuses({ bankStatement: "idle", salarySlip: "idle", form16: "idle", itr: "idle", gstReturns: "idle" });
+    setIsEditing({ employer: false, income: false, identifiers: false, address: false, communication: false });
   };
 
-  const handleEmploymentTypeChange = (value) => {
-    setForm((previous) => ({
-      ...previous,
-      employmentType: value,
-      itrStatus: "Not Requested",
-      gstStatus: "Not Requested",
-    }));
+  const sendRequest = (key) => {
+    setRequestStatuses((p) => ({ ...p, [key]: "sending" }));
+    window.setTimeout(() => setRequestStatuses((p) => ({ ...p, [key]: "sent" })), 1200);
   };
 
-  const handleFileUpload = (event, documentType) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadedFiles((previous) => [
-      {
-        id: Date.now(),
-        documentType,
-        fileName: file.name,
-      },
-      ...previous,
-    ]);
-  };
-
-  const completionItems = useMemo(() => {
-    const common = [
-      {
-        label: "Employment type selected",
-        complete: Boolean(form.employmentType),
-      },
-      {
-        label: "Office address captured",
-        complete: Boolean(form.officeAddressLine1 && form.officeCity && form.officePincode),
-      },
-      {
-        label: "Communication details captured",
-        complete: Boolean(form.officePhone || form.officialEmail || form.businessEmail),
-      },
-    ];
-
-    if (isSalaried) {
-      return [
-        ...common,
-        {
-          label: "Employer details captured",
-          complete: Boolean(form.employerName && form.designation && form.employerType),
-        },
-        {
-          label: "Salary details captured",
-          complete: Boolean(form.monthlyGrossSalary && form.monthlyNetSalary),
-        },
-        {
-          label: "Salary proof uploaded",
-          complete: uploadedFiles.some((file) => file.documentType === "Salary Proof"),
-        },
-      ];
-    }
-
-    return [
-      ...common,
-      {
-        label: "Business details captured",
-        complete: Boolean(form.businessName && form.constitutionType && form.industryType),
-      },
-      {
-        label: "Income details captured",
-        complete: Boolean(form.annualTurnover && form.netMonthlyIncome),
-      },
-      {
-        label: "Business identifiers captured",
-        complete: Boolean(form.gstNumber || form.udyamNumber || form.cinNumber || form.businessPan),
-      },
-      {
-        label: "Income request initiated",
-        complete: form.itrStatus === "Requested" || form.gstStatus === "Requested",
-      },
-    ];
-  }, [form, isSalaried, uploadedFiles]);
-
-  const completedCount = completionItems.filter((item) => item.complete).length;
+  const currentRequests = isSalaried ? SALARIED_REQUESTS : SELFEMPLOYED_REQUESTS;
 
   return (
-    <div className="income-employment-page">
-      <section className="ie-hero-card">
-        <div className="ie-hero-left">
-          <div className="ie-icon-wrap">
-            <BriefcaseIcon />
-          </div>
+    <div className="ie-page">
+
+      {/* ── Employment Type ──────────────────────────────────────────── */}
+      <div className="ie-section">
+        <div className="ie-section-head">
           <div>
-            <span className="ie-eyebrow">Step 03</span>
-            <h3>Income & Employment</h3>
-            <p>
-              Capture employment category, income details, office address, business identifiers and income verification requests.
-            </p>
+            <span className="ie-section-title">Employment Type</span>
+            <span className="ie-section-sub">Select the category that best describes the applicant's employment</span>
           </div>
         </div>
-
-        <div className="ie-completion-box">
-          <strong>{completedCount}/{completionItems.length}</strong>
-          <span>Income checks completed</span>
+        <div className="ie-type-grid">
+          {EMPLOYMENT_TYPES.map((t) => (
+            <button
+              key={t.value} type="button"
+              className={`ie-type-card${form.employmentType === t.value ? " active" : ""}`}
+              onClick={() => handleTypeChange(t.value)}
+            >
+              <div className="ie-type-icon"><BriefcaseIcon /></div>
+              <div className="ie-type-text">
+                <span className="ie-type-title">{t.title}</span>
+                <span className="ie-type-sub">{t.sub}</span>
+              </div>
+              <span className="ie-type-radio" />
+            </button>
+          ))}
         </div>
-      </section>
+      </div>
 
-      <section className="ie-layout">
-        <main className="ie-main">
-          <section className="ie-card">
-            <div className="ie-section-header">
-              <div>
-                <span className="ie-eyebrow">Employment Category</span>
-                <h4>Select Employment Type</h4>
-              </div>
-            </div>
+      <div className="ie-divider" />
 
-            <div className="ie-employment-type-grid">
-              {employmentTypes.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  className={`ie-type-card ${form.employmentType === item.value ? "active" : ""}`}
-                  onClick={() => handleEmploymentTypeChange(item.value)}
-                >
-                  <span className="ie-type-icon">
-                    <BriefcaseIcon />
-                  </span>
-                  <strong>{item.title}</strong>
-                  <p>{item.description}</p>
-                </button>
-              ))}
-            </div>
-          </section>
+      {/* ── Employer / Business Details ──────────────────────────────── */}
+      <div className="ie-section">
+        <div className="ie-section-head">
+          <div>
+            <span className="ie-section-title">
+              {isSalaried ? "Employer Details" : isSEP ? "Practice Details" : "Business Details"}
+            </span>
+            <span className="ie-section-sub">
+              {isSalaried ? "Current employment and organisation information" : "Business or practice information"}
+            </span>
+          </div>
+          <button className="ie-edit-btn" type="button" onClick={() => toggleSection("employer")}>
+            {isEditing.employer ? <><CheckIcon /> Done</> : <><PencilIcon /> Edit</>}
+          </button>
+        </div>
 
-          {isSalaried && (
-            <>
-              <section className="ie-card">
-                <div className="ie-section-header">
-                  <div>
-                    <span className="ie-eyebrow">Employer Details</span>
-                    <h4>Current Employment Information</h4>
-                  </div>
-                </div>
+        {isSalaried && (
+          <div className="ie-field-grid-3">
+            <FieldRow    label="Employer Name"              value={form.employerName}           editing={isEditing.employer} placeholder="Employer / company name" onChange={(v) => updateForm("employerName", v)} />
+            <SelectField label="Employer Type"              value={form.employerType}           editing={isEditing.employer} options={EMPLOYER_TYPES}              onChange={(v) => updateForm("employerType", v)} />
+            <FieldRow    label="Designation"                value={form.designation}            editing={isEditing.employer} placeholder="Designation"             onChange={(v) => updateForm("designation", v)} />
+            <FieldRow    label="Department"                 value={form.department}             editing={isEditing.employer} placeholder="Department"              onChange={(v) => updateForm("department", v)} />
+            <FieldRow    label="Employee ID"                value={form.employeeId}             editing={isEditing.employer} placeholder="Employee ID"             onChange={(v) => updateForm("employeeId", v)} />
+            <SelectField label="Salary Mode"                value={form.salaryMode}             editing={isEditing.employer} options={SALARY_MODES}                onChange={(v) => updateForm("salaryMode", v)} />
+            <FieldRow    label="Total Experience (years)"   value={form.totalExperienceYears}   editing={isEditing.employer} placeholder="Years" type="number"     onChange={(v) => updateForm("totalExperienceYears", v)} />
+            <FieldRow    label="Current Employer (years)"   value={form.currentExperienceYears} editing={isEditing.employer} placeholder="Years" type="number"     onChange={(v) => updateForm("currentExperienceYears", v)} />
+          </div>
+        )}
 
-                <div className="ie-field-grid three">
-                  <Field label="Employer Name" required>
-                    <TextInput
-                      value={form.employerName}
-                      placeholder="Employer / company name"
-                      onChange={(value) => updateForm("employerName", value)}
-                    />
-                  </Field>
-
-                  <Field label="Employer Type" required>
-                    <SelectInput
-                      value={form.employerType}
-                      onChange={(value) => updateForm("employerType", value)}
-                    >
-                      {employerTypes.map((item) => (
-                        <option key={item} value={item}>{item}</option>
-                      ))}
-                    </SelectInput>
-                  </Field>
-
-                  <Field label="Designation" required>
-                    <TextInput
-                      value={form.designation}
-                      placeholder="Designation"
-                      onChange={(value) => updateForm("designation", value)}
-                    />
-                  </Field>
-
-                  <Field label="Department">
-                    <TextInput
-                      value={form.department}
-                      placeholder="Department"
-                      onChange={(value) => updateForm("department", value)}
-                    />
-                  </Field>
-
-                  <Field label="Employee ID">
-                    <TextInput
-                      value={form.employeeId}
-                      placeholder="Employee ID"
-                      onChange={(value) => updateForm("employeeId", value)}
-                    />
-                  </Field>
-
-                  <Field label="Salary Mode" required>
-                    <SelectInput
-                      value={form.salaryMode}
-                      onChange={(value) => updateForm("salaryMode", value)}
-                    >
-                      {salaryModes.map((item) => (
-                        <option key={item} value={item}>{item}</option>
-                      ))}
-                    </SelectInput>
-                  </Field>
-
-                  <Field label="Total Experience Years" required>
-                    <TextInput
-                      type="number"
-                      value={form.totalExperienceYears}
-                      placeholder="Years"
-                      onChange={(value) => updateForm("totalExperienceYears", value)}
-                    />
-                  </Field>
-
-                  <Field label="Current Employer Experience Years" required>
-                    <TextInput
-                      type="number"
-                      value={form.currentExperienceYears}
-                      placeholder="Years"
-                      onChange={(value) => updateForm("currentExperienceYears", value)}
-                    />
-                  </Field>
-                </div>
-              </section>
-
-              <section className="ie-card">
-                <div className="ie-section-header">
-                  <div>
-                    <span className="ie-eyebrow">Salary Details</span>
-                    <h4>Income Declaration</h4>
-                  </div>
-                </div>
-
-                <div className="ie-field-grid three">
-                  <Field label="Monthly Gross Salary" required>
-                    <CurrencyInput
-                      value={form.monthlyGrossSalary}
-                      placeholder="Gross salary"
-                      onChange={(value) => updateForm("monthlyGrossSalary", value)}
-                    />
-                  </Field>
-
-                  <Field label="Monthly Net Salary" required>
-                    <CurrencyInput
-                      value={form.monthlyNetSalary}
-                      placeholder="Net salary"
-                      onChange={(value) => updateForm("monthlyNetSalary", value)}
-                    />
-                  </Field>
-
-                  <Field label="Annual Bonus / Variable Pay">
-                    <CurrencyInput
-                      value={form.annualBonus}
-                      placeholder="Annual bonus"
-                      onChange={(value) => updateForm("annualBonus", value)}
-                    />
-                  </Field>
-                </div>
-
-                <div className="ie-doc-upload-row">
-                  <label className="ie-upload-btn">
-                    <UploadIcon />
-                    Upload Salary Slip
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(event) => handleFileUpload(event, "Salary Proof")}
-                    />
-                  </label>
-
-                  <label className="ie-upload-btn secondary">
-                    <UploadIcon />
-                    Upload Bank Statement
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(event) => handleFileUpload(event, "Bank Statement")}
-                    />
-                  </label>
-
-                  <label className="ie-upload-btn secondary">
-                    <UploadIcon />
-                    Upload Form 16
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(event) => handleFileUpload(event, "Form 16")}
-                    />
-                  </label>
-                </div>
-              </section>
-            </>
-          )}
-
-          {isSelfEmployed && (
-            <>
-              <section className="ie-card">
-                <div className="ie-section-header">
-                  <div>
-                    <span className="ie-eyebrow">Business Details</span>
-                    <h4>{isSEP ? "Professional Practice Information" : "Business Information"}</h4>
-                  </div>
-                </div>
-
-                <div className="ie-field-grid three">
-                  <Field label={isSEP ? "Practice / Firm Name" : "Business Name"} required>
-                    <TextInput
-                      value={form.businessName}
-                      placeholder={isSEP ? "Practice / firm name" : "Business name"}
-                      onChange={(value) => updateForm("businessName", value)}
-                    />
-                  </Field>
-
-                  {isSEP && (
-                    <Field label="Professional Type" required>
-                      <SelectInput
-                        value={form.professionalType}
-                        onChange={(value) => updateForm("professionalType", value)}
-                      >
-                        {professionalTypes.map((item) => (
-                          <option key={item} value={item}>{item}</option>
-                        ))}
-                      </SelectInput>
-                    </Field>
-                  )}
-
-                  <Field label="Constitution Type" required>
-                    <SelectInput
-                      value={form.constitutionType}
-                      onChange={(value) => updateForm("constitutionType", value)}
-                    >
-                      {constitutionTypes.map((item) => (
-                        <option key={item} value={item}>{item}</option>
-                      ))}
-                    </SelectInput>
-                  </Field>
-
-                  <Field label="Industry Type" required>
-                    <SelectInput
-                      value={form.industryType}
-                      onChange={(value) => updateForm("industryType", value)}
-                    >
-                      {industryTypes.map((item) => (
-                        <option key={item} value={item}>{item}</option>
-                      ))}
-                    </SelectInput>
-                  </Field>
-
-                  <Field label="Business Vintage Years" required>
-                    <TextInput
-                      type="number"
-                      value={form.businessVintageYears}
-                      placeholder="Years"
-                      onChange={(value) => updateForm("businessVintageYears", value)}
-                    />
-                  </Field>
-
-                  <Field label="Annual Turnover" required>
-                    <CurrencyInput
-                      value={form.annualTurnover}
-                      placeholder="Annual turnover"
-                      onChange={(value) => updateForm("annualTurnover", value)}
-                    />
-                  </Field>
-
-                  <Field label="Monthly Business Income">
-                    <CurrencyInput
-                      value={form.monthlyBusinessIncome}
-                      placeholder="Monthly business income"
-                      onChange={(value) => updateForm("monthlyBusinessIncome", value)}
-                    />
-                  </Field>
-
-                  <Field label="Net Monthly Income" required>
-                    <CurrencyInput
-                      value={form.netMonthlyIncome}
-                      placeholder="Net monthly income"
-                      onChange={(value) => updateForm("netMonthlyIncome", value)}
-                    />
-                  </Field>
-                </div>
-              </section>
-
-              <section className="ie-card">
-                <div className="ie-section-header">
-                  <div>
-                    <span className="ie-eyebrow">Business Identifiers</span>
-                    <h4>GST, Udyam, CIN and Registration Details</h4>
-                  </div>
-                </div>
-
-                <div className="ie-field-grid three">
-                  <Field label="GST Number">
-                    <TextInput
-                      value={form.gstNumber}
-                      placeholder="27ABCDE1234F1Z5"
-                      onChange={(value) => updateForm("gstNumber", value.toUpperCase())}
-                    />
-                  </Field>
-
-                  <Field label="Udyam Number">
-                    <TextInput
-                      value={form.udyamNumber}
-                      placeholder="UDYAM-MH-19-0012345"
-                      onChange={(value) => updateForm("udyamNumber", value.toUpperCase())}
-                    />
-                  </Field>
-
-                  <Field label="CIN Number">
-                    <TextInput
-                      value={form.cinNumber}
-                      placeholder="U72900MH2020PTC123456"
-                      onChange={(value) => updateForm("cinNumber", value.toUpperCase())}
-                    />
-                  </Field>
-
-                  <Field label="Business PAN" required>
-                    <TextInput
-                      value={form.businessPan}
-                      placeholder="ABCDE1234F"
-                      onChange={(value) => updateForm("businessPan", value.toUpperCase())}
-                    />
-                  </Field>
-
-                  <Field label="Shop Act / Trade License">
-                    <TextInput
-                      value={form.shopActNumber}
-                      placeholder="Registration number"
-                      onChange={(value) => updateForm("shopActNumber", value.toUpperCase())}
-                    />
-                  </Field>
-                </div>
-
-                <div className="ie-doc-upload-row">
-                  <label className="ie-upload-btn">
-                    <UploadIcon />
-                    Upload GST Certificate
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(event) => handleFileUpload(event, "GST Certificate")}
-                    />
-                  </label>
-
-                  <label className="ie-upload-btn secondary">
-                    <UploadIcon />
-                    Upload Udyam Certificate
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(event) => handleFileUpload(event, "Udyam Certificate")}
-                    />
-                  </label>
-
-                  <label className="ie-upload-btn secondary">
-                    <UploadIcon />
-                    Upload Business Proof
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(event) => handleFileUpload(event, "Business Proof")}
-                    />
-                  </label>
-                </div>
-              </section>
-
-              <section className="ie-card">
-                <div className="ie-section-header">
-                  <div>
-                    <span className="ie-eyebrow">Online Income Requests</span>
-                    <h4>Request ITR and GST Information</h4>
-                  </div>
-                </div>
-
-                <div className="ie-action-grid">
-                  <ActionCard
-                    title="Request ITR"
-                    description="Send a secure link to the applicant to fetch ITR details for income assessment."
-                    status={form.itrStatus}
-                    icon={<FileIcon />}
-                    buttonLabel="Request ITR"
-                    onClick={() => updateForm("itrStatus", "Requested")}
-                  />
-
-                  <ActionCard
-                    title="Request GST"
-                    description="Request GST returns and filing summary for business cash flow assessment."
-                    status={form.gstStatus}
-                    icon={<FileIcon />}
-                    buttonLabel="Request GST"
-                    onClick={() => updateForm("gstStatus", "Requested")}
-                    disabled={!form.gstNumber}
-                  />
-                </div>
-              </section>
-            </>
-          )}
-
-          <section className="ie-card">
-            <div className="ie-section-header">
-              <div>
-                <span className="ie-eyebrow">Office Address</span>
-                <h4>{isSalaried ? "Employer Office Address" : "Business / Practice Address"}</h4>
-              </div>
-            </div>
-
-            <div className="ie-address-card">
-              <div className="ie-address-title">
-                <span>
-                  <HomeIcon />
-                </span>
-                <div>
-                  <h4>{isSalaried ? "Office Location" : "Business Location"}</h4>
-                  <p>Capture the primary work address for verification and field visit planning.</p>
-                </div>
-              </div>
-
-              <div className="ie-field-grid two">
-                <Field label="Address Line 1" required>
-                  <TextInput
-                    value={form.officeAddressLine1}
-                    placeholder="Building / office / shop"
-                    onChange={(value) => updateForm("officeAddressLine1", value)}
-                  />
-                </Field>
-
-                <Field label="Address Line 2">
-                  <TextInput
-                    value={form.officeAddressLine2}
-                    placeholder="Street / area"
-                    onChange={(value) => updateForm("officeAddressLine2", value)}
-                  />
-                </Field>
-
-                <Field label="Landmark">
-                  <TextInput
-                    value={form.officeLandmark}
-                    placeholder="Nearby landmark"
-                    onChange={(value) => updateForm("officeLandmark", value)}
-                  />
-                </Field>
-
-                <Field label="City" required>
-                  <TextInput
-                    value={form.officeCity}
-                    placeholder="City"
-                    onChange={(value) => updateForm("officeCity", value)}
-                  />
-                </Field>
-
-                <Field label="District">
-                  <TextInput
-                    value={form.officeDistrict}
-                    placeholder="District"
-                    onChange={(value) => updateForm("officeDistrict", value)}
-                  />
-                </Field>
-
-                <Field label="State" required>
-                  <TextInput
-                    value={form.officeState}
-                    placeholder="State"
-                    onChange={(value) => updateForm("officeState", value)}
-                  />
-                </Field>
-
-                <Field label="PIN Code" required>
-                  <TextInput
-                    value={form.officePincode}
-                    placeholder="PIN code"
-                    onChange={(value) => updateForm("officePincode", value)}
-                  />
-                </Field>
-
-                <Field label="Country">
-                  <TextInput
-                    value={form.officeCountry}
-                    placeholder="Country"
-                    onChange={(value) => updateForm("officeCountry", value)}
-                  />
-                </Field>
-              </div>
-            </div>
-          </section>
-
-          <section className="ie-card">
-            <div className="ie-section-header">
-              <div>
-                <span className="ie-eyebrow">Communication</span>
-                <h4>Office Communication Details</h4>
-              </div>
-            </div>
-
-            <div className="ie-field-grid three">
-              <Field label={isSalaried ? "Office Phone" : "Business Phone"}>
-                <TextInput
-                  value={form.officePhone}
-                  placeholder="Office phone"
-                  onChange={(value) => updateForm("officePhone", value)}
-                />
-              </Field>
-
-              {isSalaried && (
-                <Field label="Official Email">
-                  <TextInput
-                    type="email"
-                    value={form.officialEmail}
-                    placeholder="Official email"
-                    onChange={(value) => updateForm("officialEmail", value)}
-                  />
-                </Field>
-              )}
-
-              {isSelfEmployed && (
-                <Field label="Business Email">
-                  <TextInput
-                    type="email"
-                    value={form.businessEmail}
-                    placeholder="Business email"
-                    onChange={(value) => updateForm("businessEmail", value)}
-                  />
-                </Field>
-              )}
-
-              <Field label="Preferred Contact Time">
-                <SelectInput
-                  value={form.preferredContactTime}
-                  onChange={(value) => updateForm("preferredContactTime", value)}
-                >
-                  {preferredContactTimes.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </SelectInput>
-              </Field>
-            </div>
-          </section>
-        </main>
-
-        <aside className="ie-side">
-          <section className="ie-side-card">
-            <h4>Income Readiness</h4>
-            <div className="ie-checklist">
-              {completionItems.map((item) => (
-                <div
-                  key={item.label}
-                  className={`ie-check-row ${item.complete ? "done" : ""}`}
-                >
-                  <span>{item.complete ? <CheckIcon /> : "•"}</span>
-                  <strong>{item.label}</strong>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="ie-side-card soft">
-            <h4>Income Summary</h4>
-            <div className="ie-summary-list">
-              <div>
-                <span>Employment Type</span>
-                <strong>{form.employmentType}</strong>
-              </div>
-
-              <div>
-                <span>{isSalaried ? "Employer" : "Business"}</span>
-                <strong>{isSalaried ? form.employerName : form.businessName}</strong>
-              </div>
-
-              <div>
-                <span>{isSalaried ? "Monthly Net Salary" : "Net Monthly Income"}</span>
-                <strong>
-                  ₹{Number(isSalaried ? form.monthlyNetSalary : form.netMonthlyIncome || 0).toLocaleString("en-IN")}
-                </strong>
-              </div>
-
-              {isSelfEmployed && (
-                <>
-                  <div>
-                    <span>GST</span>
-                    <strong>{form.gstNumber || "Not Captured"}</strong>
-                  </div>
-                  <div>
-                    <span>ITR Request</span>
-                    <strong>{form.itrStatus}</strong>
-                  </div>
-                  <div>
-                    <span>GST Request</span>
-                    <strong>{form.gstStatus}</strong>
-                  </div>
-                </>
-              )}
-
-              <div>
-                <span>Office City</span>
-                <strong>{form.officeCity || "—"}</strong>
-              </div>
-            </div>
-          </section>
-
-          <section className="ie-side-card">
-            <h4>Uploaded Documents</h4>
-
-            {uploadedFiles.length === 0 ? (
-              <div className="ie-empty-docs">
-                <FileIcon />
-                <p>No income documents uploaded yet.</p>
-              </div>
-            ) : (
-              <div className="ie-uploaded-list">
-                {uploadedFiles.map((file) => (
-                  <div key={file.id} className="ie-uploaded-file">
-                    <span>
-                      <FileIcon />
-                    </span>
-                    <div>
-                      <strong>{file.documentType}</strong>
-                      <p>{file.fileName}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {isSelfEmployed && (
+          <div className="ie-field-grid-3">
+            <FieldRow label={isSEP ? "Practice / Firm Name" : "Business Name"} value={form.businessName}       editing={isEditing.employer} placeholder="Name"    onChange={(v) => updateForm("businessName", v)} />
+            {isSEP && (
+              <SelectField label="Professional Type"  value={form.professionalType}     editing={isEditing.employer} options={PROFESSIONAL_TYPES}  onChange={(v) => updateForm("professionalType", v)} />
             )}
-          </section>
-        </aside>
-      </section>
+            <SelectField label="Constitution Type"    value={form.constitutionType}     editing={isEditing.employer} options={CONSTITUTION_TYPES}   onChange={(v) => updateForm("constitutionType", v)} />
+            <SelectField label="Industry Type"        value={form.industryType}         editing={isEditing.employer} options={INDUSTRY_TYPES}        onChange={(v) => updateForm("industryType", v)} />
+            <FieldRow    label="Business Vintage (years)" value={form.businessVintageYears} editing={isEditing.employer} placeholder="Years" type="number" onChange={(v) => updateForm("businessVintageYears", v)} />
+          </div>
+        )}
+      </div>
+
+      <div className="ie-divider" />
+
+      {/* ── Salary / Income Details + Requests ──────────────────────── */}
+      <div className="ie-section">
+        <div className="ie-section-head">
+          <div>
+            <span className="ie-section-title">{isSalaried ? "Salary Details" : "Income Details"}</span>
+            <span className="ie-section-sub">
+              {isSalaried ? "Monthly income declaration" : "Business turnover and net income"}
+            </span>
+          </div>
+          <button className="ie-edit-btn" type="button" onClick={() => toggleSection("income")}>
+            {isEditing.income ? <><CheckIcon /> Done</> : <><PencilIcon /> Edit</>}
+          </button>
+        </div>
+
+        {isSalaried ? (
+          <div className="ie-field-grid-3">
+            <CurrencyField label="Monthly Gross Salary" value={form.monthlyGrossSalary} editing={isEditing.income} placeholder="Gross salary" onChange={(v) => updateForm("monthlyGrossSalary", v)} />
+            <CurrencyField label="Monthly Net Salary"   value={form.monthlyNetSalary}   editing={isEditing.income} placeholder="Net salary"   onChange={(v) => updateForm("monthlyNetSalary", v)} />
+            <CurrencyField label="Annual Bonus"         value={form.annualBonus}         editing={isEditing.income} placeholder="Annual bonus" onChange={(v) => updateForm("annualBonus", v)} />
+          </div>
+        ) : (
+          <div className="ie-field-grid-3">
+            <CurrencyField label="Annual Turnover"         value={form.annualTurnover}        editing={isEditing.income} placeholder="Annual turnover"         onChange={(v) => updateForm("annualTurnover", v)} />
+            <CurrencyField label="Monthly Business Income" value={form.monthlyBusinessIncome} editing={isEditing.income} placeholder="Monthly business income" onChange={(v) => updateForm("monthlyBusinessIncome", v)} />
+            <CurrencyField label="Net Monthly Income"      value={form.netMonthlyIncome}      editing={isEditing.income} placeholder="Net monthly income"       onChange={(v) => updateForm("netMonthlyIncome", v)} />
+          </div>
+        )}
+
+        {/* ── Income document requests ──────────────── */}
+        <div className="ie-requests-block">
+          <span className="ie-requests-heading">Income Documents</span>
+          <div className="ie-request-list">
+            {currentRequests.map((req) => (
+              <RequestCard
+                key={req.key}
+                title={req.title}
+                tag={req.tag}
+                tagType={req.tagType}
+                description={req.description}
+                status={requestStatuses[req.key]}
+                onRequest={() => sendRequest(req.key)}
+                disabled={req.requiresGst && !form.gstNumber}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Business Identifiers (self-employed only) ────────────────── */}
+      {isSelfEmployed && (
+        <>
+          <div className="ie-divider" />
+          <div className="ie-section">
+            <div className="ie-section-head">
+              <div>
+                <span className="ie-section-title">Business Identifiers</span>
+                <span className="ie-section-sub">GST, Udyam, CIN and registration details</span>
+              </div>
+              <button className="ie-edit-btn" type="button" onClick={() => toggleSection("identifiers")}>
+                {isEditing.identifiers ? <><CheckIcon /> Done</> : <><PencilIcon /> Edit</>}
+              </button>
+            </div>
+            <div className="ie-field-grid-3">
+              <FieldRow label="GST Number"          value={form.gstNumber}     editing={isEditing.identifiers} placeholder="27ABCDE1234F1Z5"       onChange={(v) => updateForm("gstNumber", v.toUpperCase())} />
+              <FieldRow label="Udyam Number"         value={form.udyamNumber}   editing={isEditing.identifiers} placeholder="UDYAM-MH-19-0012345"   onChange={(v) => updateForm("udyamNumber", v.toUpperCase())} />
+              <FieldRow label="CIN Number"           value={form.cinNumber}     editing={isEditing.identifiers} placeholder="U72900MH2020PTC123456"  onChange={(v) => updateForm("cinNumber", v.toUpperCase())} />
+              <FieldRow label="Business PAN"         value={form.businessPan}   editing={isEditing.identifiers} placeholder="ABCDE1234F"             onChange={(v) => updateForm("businessPan", v.toUpperCase())} />
+              <FieldRow label="Shop Act / Trade Reg" value={form.shopActNumber} editing={isEditing.identifiers} placeholder="Registration number"    onChange={(v) => updateForm("shopActNumber", v.toUpperCase())} />
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="ie-divider" />
+
+      {/* ── Office / Business Address ────────────────────────────────── */}
+      <div className="ie-section">
+        <div className="ie-section-head">
+          <div>
+            <span className="ie-section-title">{isSalaried ? "Office Address" : "Business Address"}</span>
+            <span className="ie-section-sub">
+              {isSalaried ? "Employer's office location" : "Primary place of business or practice"}
+            </span>
+          </div>
+          <button className="ie-edit-btn" type="button" onClick={() => toggleSection("address")}>
+            {isEditing.address ? <><CheckIcon /> Done</> : <><PencilIcon /> Edit</>}
+          </button>
+        </div>
+        <div className="ie-field-grid-2">
+          <FieldRow label="Line 1"   value={form.officeAddressLine1} editing={isEditing.address} wide placeholder="Building / office / shop" onChange={(v) => updateForm("officeAddressLine1", v)} />
+          <FieldRow label="Line 2"   value={form.officeAddressLine2} editing={isEditing.address} wide placeholder="Street / area"            onChange={(v) => updateForm("officeAddressLine2", v)} />
+          <FieldRow label="Landmark" value={form.officeLandmark}     editing={isEditing.address}      placeholder="Nearby landmark"          onChange={(v) => updateForm("officeLandmark", v)} />
+          <FieldRow label="City"     value={form.officeCity}         editing={isEditing.address}      placeholder="City"                     onChange={(v) => updateForm("officeCity", v)} />
+          <FieldRow label="District" value={form.officeDistrict}     editing={isEditing.address}      placeholder="District"                 onChange={(v) => updateForm("officeDistrict", v)} />
+          <FieldRow label="State"    value={form.officeState}        editing={isEditing.address}      placeholder="State"                    onChange={(v) => updateForm("officeState", v)} />
+          <FieldRow label="PIN Code" value={form.officePincode}      editing={isEditing.address}      placeholder="PIN code"                 onChange={(v) => updateForm("officePincode", v)} />
+          <FieldRow label="Country"  value={form.officeCountry}      editing={isEditing.address}      placeholder="Country"                  onChange={(v) => updateForm("officeCountry", v)} />
+        </div>
+      </div>
+
+      <div className="ie-divider" />
+
+      {/* ── Communication ────────────────────────────────────────────── */}
+      <div className="ie-section">
+        <div className="ie-section-head">
+          <div>
+            <span className="ie-section-title">Communication</span>
+            <span className="ie-section-sub">Office contact details and preferred reach time</span>
+          </div>
+          <button className="ie-edit-btn" type="button" onClick={() => toggleSection("communication")}>
+            {isEditing.communication ? <><CheckIcon /> Done</> : <><PencilIcon /> Edit</>}
+          </button>
+        </div>
+        <div className="ie-field-grid-3">
+          <FieldRow label={isSalaried ? "Office Phone" : "Business Phone"}
+            value={form.officePhone} editing={isEditing.communication}
+            placeholder="Phone number" onChange={(v) => updateForm("officePhone", v)} />
+          {isSalaried ? (
+            <FieldRow label="Official Email" value={form.officialEmail} editing={isEditing.communication}
+              type="email" placeholder="email@company.com" onChange={(v) => updateForm("officialEmail", v)} />
+          ) : (
+            <FieldRow label="Business Email" value={form.businessEmail} editing={isEditing.communication}
+              type="email" placeholder="email@business.com" onChange={(v) => updateForm("businessEmail", v)} />
+          )}
+          <SelectField label="Preferred Contact Time" value={form.preferredContactTime}
+            editing={isEditing.communication} options={CONTACT_TIMES}
+            onChange={(v) => updateForm("preferredContactTime", v)} />
+        </div>
+      </div>
+
     </div>
   );
 }

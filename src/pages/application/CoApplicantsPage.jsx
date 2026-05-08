@@ -72,36 +72,6 @@ const relationOptions = [
   "Brother","Sister","Business Partner","Director","Other",
 ];
 
-const existingParties = [
-  {
-    id: "COAPP-001",
-    partyType: "Co-Applicant",
-    name: "Priya Sharma",
-    relation: "Spouse",
-    mobile: "9876509876",
-    email: "priya.sharma@email.com",
-    pan: "ABCDE1234F",
-    employmentType: "Salaried",
-    income: "₹68,000",
-    status: "Completed",
-    mobileVerified: true,
-    emailVerified: true,
-  },
-  {
-    id: "GUAR-001",
-    partyType: "Guarantor",
-    name: "Mahesh Sharma",
-    relation: "Father",
-    mobile: "9988776655",
-    email: "mahesh.sharma@email.com",
-    pan: "BCDEF2345G",
-    employmentType: "Retired",
-    income: "₹42,000",
-    status: "Pending Verification",
-    mobileVerified: true,
-    emailVerified: false,
-  },
-];
 
 const defaultForm = {
   partyType: "Co-Applicant",
@@ -208,7 +178,7 @@ function PartyCard({ party, onEdit }) {
 
 /* ── Main component ──────────────────────────────────────────────────── */
 function CoApplicantsPage() {
-  const [parties,            setParties]            = useState(existingParties);
+  const [parties,            setParties]            = useState([]);
   const [selectedPartyType,  setSelectedPartyType]  = useState("Co-Applicant");
   const [isPanelOpen,        setIsPanelOpen]        = useState(false);
   const [drawerStep,         setDrawerStep]         = useState("minimal");
@@ -299,6 +269,17 @@ function CoApplicantsPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Requirement banner ──────────────────────────────────────── */}
+      {parties.length === 0 && (
+        <div className="co-req-banner">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4" /><path d="M12 16h.01" />
+          </svg>
+          At least 1 co-applicant or guarantor is required to proceed with this application.
+        </div>
+      )}
 
       {/* ── Two-column layout ────────────────────────────────────────── */}
       <div className="co-layout">

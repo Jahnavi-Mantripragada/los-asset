@@ -282,7 +282,7 @@ function CoApplicantsPage() {
       )}
 
       {/* ── Two-column layout ────────────────────────────────────────── */}
-      <div className={`co-layout${isPanelOpen ? " co-layout--panel" : ""}`}>
+      <div className="co-layout">
         <main className="co-main">
           {parties.length === 0 ? (
             <div className="co-empty-state">
@@ -299,205 +299,213 @@ function CoApplicantsPage() {
           )}
         </main>
 
-        {/* ── Right column: sidebar or side panel ─────────────────── */}
-        {!isPanelOpen ? (
-          <aside className="co-side">
-            {/* Stats */}
-            <div className="co-side-stats">
-              <div>
-                <strong>{stats.total}</strong>
-                <span>Total</span>
-              </div>
-              <div>
-                <strong className={stats.completed > 0 ? "green" : ""}>{stats.completed}</strong>
-                <span>Completed</span>
-              </div>
-              <div>
-                <strong className={stats.pending > 0 ? "amber" : "green"}>{stats.pending}</strong>
-                <span>Pending</span>
-              </div>
+        <aside className="co-side">
+          {/* Stats */}
+          <div className="co-side-stats">
+            <div>
+              <strong>{stats.total}</strong>
+              <span>Total</span>
             </div>
-
-            {/* Party type guidance */}
-            <div className="co-side-card">
-              <span className="co-side-card-title">Party Type Reference</span>
-              <div className="co-guidance-list">
-                {PARTY_GUIDE.map((item) => (
-                  <div key={item.type} className="co-guide-row">
-                    <span className="co-guide-type">{item.type}</span>
-                    <span className="co-guide-desc">{item.desc}</span>
-                  </div>
-                ))}
-              </div>
+            <div>
+              <strong className={stats.completed > 0 ? "green" : ""}>{stats.completed}</strong>
+              <span>Completed</span>
             </div>
-          </aside>
-        ) : (
-          <aside className="co-panel">
-            {/* Panel header */}
-            <header className="co-panel-header">
-              <div className="co-drawer-header-info">
-                <span className="co-drawer-title">
-                  {editingPartyId ? "Edit" : "Add"} {form.partyType}
-                </span>
-                {drawerStep === "details" && (
-                  <span className="co-drawer-sub">
-                    {getFullName() || "New party"} · {form.relationshipWithApplicant} · {form.mobile || "Mobile pending"}
-                  </span>
-                )}
-              </div>
-              <button className="co-drawer-close" type="button" onClick={handleCloseDrawer}>
-                <XIcon />
-              </button>
-            </header>
+            <div>
+              <strong className={stats.pending > 0 ? "amber" : "green"}>{stats.pending}</strong>
+              <span>Pending</span>
+            </div>
+          </div>
 
-            {/* Panel body */}
-            <div className="co-panel-body">
-
-              {/* ── Minimal step ── */}
-              {drawerStep === "minimal" && (
-                <div className="co-minimal-form">
-                  <div className="co-field-grid-2">
-                    <FormSelect label="Party Type"                   value={form.partyType}                 onChange={(v) => updateForm("partyType", v)}                 options={partyTypes} />
-                    <FormSelect label="Relationship with Applicant"  value={form.relationshipWithApplicant} onChange={(v) => updateForm("relationshipWithApplicant", v)}  options={relationOptions} />
-                    <FormField  label="First Name"   value={form.firstName}  onChange={(v) => updateForm("firstName", v)}  placeholder="First name" />
-                    <FormField  label="Middle Name"  value={form.middleName} onChange={(v) => updateForm("middleName", v)} placeholder="Middle name" />
-                    <FormField  label="Last Name"    value={form.lastName}   onChange={(v) => updateForm("lastName", v)}   placeholder="Last name" />
-                  </div>
-
-                  <div className="co-contact-grid">
-                    <div className="co-field">
-                      <span className="co-field-label">Mobile Number</span>
-                      <div className="co-verify-row">
-                        <input
-                          className="co-input" type="tel"
-                          value={form.mobile} placeholder="10-digit mobile"
-                          onChange={(e) => updateForm("mobile", e.target.value)}
-                        />
-                        <button
-                          type="button"
-                          className={`co-verify-btn${form.mobileVerified ? " done" : ""}`}
-                          onClick={() => updateForm("mobileVerified", true)}
-                        >
-                          {form.mobileVerified ? <><CheckIcon /> Verified</> : "Verify"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="co-field">
-                      <span className="co-field-label">Email Address</span>
-                      <div className="co-verify-row">
-                        <input
-                          className="co-input" type="email"
-                          value={form.email} placeholder="Email address"
-                          onChange={(e) => updateForm("email", e.target.value)}
-                        />
-                        <button
-                          type="button"
-                          className={`co-verify-btn${form.emailVerified ? " done" : ""}`}
-                          onClick={() => updateForm("emailVerified", true)}
-                        >
-                          {form.emailVerified ? <><CheckIcon /> Verified</> : "Verify"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mini profile preview (inline below form in panel) */}
-                  <div className="co-mini-profile co-mini-profile--inline">
-                    <div className="co-mini-avatar">
-                      {form.firstName || form.lastName
-                        ? `${form.firstName?.[0] || ""}${form.lastName?.[0] || ""}`
-                        : "·"}
-                    </div>
-                    <div className="co-mini-info">
-                      <span className="co-mini-type">{form.partyType}</span>
-                      <span className="co-mini-name">{getFullName() || "New Party"}</span>
-                      <span className="co-mini-relation">{form.relationshipWithApplicant}</span>
-                    </div>
-                    <div className="co-mini-checks">
-                      <div className={`co-mini-check${form.firstName && form.lastName ? " done" : ""}`}>
-                        <span>{form.firstName && form.lastName ? <CheckIcon /> : "·"}</span>
-                        Name captured
-                      </div>
-                      <div className={`co-mini-check${form.mobile ? " done" : ""}`}>
-                        <span>{form.mobile ? <CheckIcon /> : "·"}</span>
-                        Mobile captured
-                      </div>
-                      <div className={`co-mini-check${form.mobileVerified ? " done" : ""}`}>
-                        <span>{form.mobileVerified ? <CheckIcon /> : "·"}</span>
-                        Mobile verified
-                      </div>
-                      <div className={`co-mini-check${form.emailVerified ? " done" : ""}`}>
-                        <span>{form.emailVerified ? <CheckIcon /> : "·"}</span>
-                        Email verified
-                      </div>
-                    </div>
-                  </div>
+          {/* Party type guidance */}
+          <div className="co-side-card">
+            <span className="co-side-card-title">Party Type Reference</span>
+            <div className="co-guidance-list">
+              {PARTY_GUIDE.map((item) => (
+                <div key={item.type} className="co-guide-row">
+                  <span className="co-guide-type">{item.type}</span>
+                  <span className="co-guide-desc">{item.desc}</span>
                 </div>
-              )}
-
-              {/* ── Details step ── */}
-              {drawerStep === "details" && (
-                <div className="co-details-screen">
-                  {/* Party strip */}
-                  <div className="co-party-strip">
-                    <div className="co-strip-avatar">
-                      {getFullName().split(" ").map((n) => n[0]).slice(0, 2).join("") || "·"}
-                    </div>
-                    <div className="co-strip-info">
-                      <span className="co-strip-name">{getFullName() || "New Party"}</span>
-                      <span className="co-strip-meta">
-                        {form.partyType} · {form.relationshipWithApplicant} · {form.mobile || "Mobile pending"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Tabs */}
-                  <div className="co-panel-tabs">
-                    <button type="button" className={`co-panel-tab${activeTab === "identity" ? " active" : ""}`} onClick={() => setActiveTab("identity")}>
-                      <ShieldIcon /> Identity
-                    </button>
-                    <button type="button" className={`co-panel-tab${activeTab === "profile" ? " active" : ""}`} onClick={() => setActiveTab("profile")}>
-                      <UserIcon /> Profile
-                    </button>
-                    <button type="button" className={`co-panel-tab${activeTab === "employment" ? " active" : ""}`} onClick={() => setActiveTab("employment")}>
-                      <BriefcaseIcon /> Income
-                    </button>
-                  </div>
-
-                  {/* Embedded page */}
-                  <div className="co-embedded-step">
-                    {activeTab === "identity"   && <CustomerIdentityPage />}
-                    {activeTab === "profile"    && <ApplicantProfilePage />}
-                    {activeTab === "employment" && <IncomeEmploymentPage />}
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
-
-            {/* Panel footer */}
-            <footer className="co-drawer-footer">
-              <button className="co-btn-ghost" type="button" onClick={handleCloseDrawer}>
-                {drawerStep === "minimal" ? "Cancel" : "Close"}
-              </button>
-              {drawerStep === "minimal" ? (
-                <button
-                  className="co-btn-primary"
-                  type="button"
-                  disabled={!canContinue}
-                  onClick={() => setDrawerStep("details")}
-                >
-                  Continue to Details
-                </button>
-              ) : (
-                <button className="co-btn-primary" type="button" onClick={handleSaveParty}>
-                  {editingPartyId ? "Update" : "Save"} {form.partyType}
-                </button>
-              )}
-            </footer>
-          </aside>
-        )}
+          </div>
+        </aside>
       </div>
+
+      {/* ── Backdrop ────────────────────────────────────────────────── */}
+      <div
+        className={`co-drawer-backdrop${isPanelOpen ? " open" : ""}`}
+        onClick={handleCloseDrawer}
+      />
+
+      {/* ── Slide-in drawer (fixed, right edge) ─────────────────────── */}
+      <aside className={`co-drawer${isPanelOpen ? " open" : ""}`}>
+
+        {/* Header */}
+        <header className="co-drawer-header">
+          <div className="co-drawer-header-info">
+            <span className="co-drawer-title">
+              {editingPartyId ? "Edit" : "Add"} {form.partyType}
+            </span>
+            {drawerStep === "details" && (
+              <span className="co-drawer-sub">
+                {getFullName() || "New party"} · {form.relationshipWithApplicant} · {form.mobile || "Mobile pending"}
+              </span>
+            )}
+          </div>
+          <button className="co-drawer-close" type="button" onClick={handleCloseDrawer}>
+            <XIcon />
+          </button>
+        </header>
+
+        {/* Body */}
+        <div className="co-drawer-body">
+
+          {/* ── Minimal step ── */}
+          {drawerStep === "minimal" && (
+            <div className="co-minimal-form">
+              <div className="co-field-grid-2">
+                <FormSelect label="Party Type"                   value={form.partyType}                 onChange={(v) => updateForm("partyType", v)}                 options={partyTypes} />
+                <FormSelect label="Relationship with Applicant"  value={form.relationshipWithApplicant} onChange={(v) => updateForm("relationshipWithApplicant", v)}  options={relationOptions} />
+                <FormField  label="First Name"   value={form.firstName}  onChange={(v) => updateForm("firstName", v)}  placeholder="First name" />
+                <FormField  label="Middle Name"  value={form.middleName} onChange={(v) => updateForm("middleName", v)} placeholder="Middle name" />
+                <FormField  label="Last Name"    value={form.lastName}   onChange={(v) => updateForm("lastName", v)}   placeholder="Last name" />
+              </div>
+
+              <div className="co-contact-grid">
+                <div className="co-field">
+                  <span className="co-field-label">Mobile Number</span>
+                  <div className="co-verify-row">
+                    <input
+                      className="co-input" type="tel"
+                      value={form.mobile} placeholder="10-digit mobile"
+                      onChange={(e) => updateForm("mobile", e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={`co-verify-btn${form.mobileVerified ? " done" : ""}`}
+                      onClick={() => updateForm("mobileVerified", true)}
+                    >
+                      {form.mobileVerified ? <><CheckIcon /> Verified</> : "Verify"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="co-field">
+                  <span className="co-field-label">Email Address</span>
+                  <div className="co-verify-row">
+                    <input
+                      className="co-input" type="email"
+                      value={form.email} placeholder="Email address"
+                      onChange={(e) => updateForm("email", e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={`co-verify-btn${form.emailVerified ? " done" : ""}`}
+                      onClick={() => updateForm("emailVerified", true)}
+                    >
+                      {form.emailVerified ? <><CheckIcon /> Verified</> : "Verify"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mini profile preview */}
+              <div className="co-mini-profile--inline">
+                <div className="co-mini-top">
+                  <div className="co-mini-avatar">
+                    {form.firstName || form.lastName
+                      ? `${form.firstName?.[0] || ""}${form.lastName?.[0] || ""}`
+                      : "·"}
+                  </div>
+                  <div className="co-mini-info">
+                    <span className="co-mini-type">{form.partyType}</span>
+                    <span className="co-mini-name">{getFullName() || "New Party"}</span>
+                    <span className="co-mini-relation">{form.relationshipWithApplicant}</span>
+                  </div>
+                </div>
+                <div className="co-mini-checks">
+                  <div className={`co-mini-check${form.firstName && form.lastName ? " done" : ""}`}>
+                    <span>{form.firstName && form.lastName ? <CheckIcon /> : "·"}</span>
+                    Name captured
+                  </div>
+                  <div className={`co-mini-check${form.mobile ? " done" : ""}`}>
+                    <span>{form.mobile ? <CheckIcon /> : "·"}</span>
+                    Mobile captured
+                  </div>
+                  <div className={`co-mini-check${form.mobileVerified ? " done" : ""}`}>
+                    <span>{form.mobileVerified ? <CheckIcon /> : "·"}</span>
+                    Mobile verified
+                  </div>
+                  <div className={`co-mini-check${form.emailVerified ? " done" : ""}`}>
+                    <span>{form.emailVerified ? <CheckIcon /> : "·"}</span>
+                    Email verified
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Details step ── */}
+          {drawerStep === "details" && (
+            <div className="co-details-screen">
+              {/* Party strip */}
+              <div className="co-party-strip">
+                <div className="co-strip-avatar">
+                  {getFullName().split(" ").map((n) => n[0]).slice(0, 2).join("") || "·"}
+                </div>
+                <div className="co-strip-info">
+                  <span className="co-strip-name">{getFullName() || "New Party"}</span>
+                  <span className="co-strip-meta">
+                    {form.partyType} · {form.relationshipWithApplicant} · {form.mobile || "Mobile pending"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="co-panel-tabs">
+                <button type="button" className={`co-panel-tab${activeTab === "identity" ? " active" : ""}`} onClick={() => setActiveTab("identity")}>
+                  <ShieldIcon /> Customer Identity
+                </button>
+                <button type="button" className={`co-panel-tab${activeTab === "profile" ? " active" : ""}`} onClick={() => setActiveTab("profile")}>
+                  <UserIcon /> Applicant Profile
+                </button>
+                <button type="button" className={`co-panel-tab${activeTab === "employment" ? " active" : ""}`} onClick={() => setActiveTab("employment")}>
+                  <BriefcaseIcon /> Income & Employment
+                </button>
+              </div>
+
+              {/* Embedded page */}
+              <div className="co-embedded-step">
+                {activeTab === "identity"   && <CustomerIdentityPage />}
+                {activeTab === "profile"    && <ApplicantProfilePage />}
+                {activeTab === "employment" && <IncomeEmploymentPage />}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <footer className="co-drawer-footer">
+          <button className="co-btn-ghost" type="button" onClick={handleCloseDrawer}>
+            {drawerStep === "minimal" ? "Cancel" : "Close"}
+          </button>
+          {drawerStep === "minimal" ? (
+            <button
+              className="co-btn-primary"
+              type="button"
+              disabled={!canContinue}
+              onClick={() => setDrawerStep("details")}
+            >
+              Continue to Details
+            </button>
+          ) : (
+            <button className="co-btn-primary" type="button" onClick={handleSaveParty}>
+              {editingPartyId ? "Update" : "Save"} {form.partyType}
+            </button>
+          )}
+        </footer>
+      </aside>
+
     </div>
   );
 }

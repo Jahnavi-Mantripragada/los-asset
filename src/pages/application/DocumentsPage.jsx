@@ -10,90 +10,121 @@ import {
 const FileIcon = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-    <path d="M14 2v6h6" /><path d="M8 13h8" /><path d="M8 17h5" />
+    <path d="M14 2v6h6" />
+    <path d="M8 13h8" />
+    <path d="M8 17h5" />
   </svg>
 );
+
 const UploadIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <path d="M17 8l-5-5-5 5" /><path d="M12 3v12" />
+    <path d="M17 8l-5-5-5 5" />
+    <path d="M12 3v12" />
   </svg>
 );
+
 const EyeIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
     <circle cx="12" cy="12" r="3" />
   </svg>
 );
+
 const RefreshIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.1">
-    <path d="M21 12a9 9 0 0 1-15.5 6.3" /><path d="M3 12A9 9 0 0 1 18.5 5.7" />
-    <path d="M18 2v4h4" /><path d="M6 22v-4H2" />
+    <path d="M21 12a9 9 0 0 1-15.5 6.3" />
+    <path d="M3 12A9 9 0 0 1 18.5 5.7" />
+    <path d="M18 2v4h4" />
+    <path d="M6 22v-4H2" />
   </svg>
 );
+
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5">
     <path d="M20 6 9 17l-5-5" />
   </svg>
 );
+
 const XIcon = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4">
-    <path d="M18 6 6 18" /><path d="M6 6l12 12" />
+    <path d="M18 6 6 18" />
+    <path d="M6 6l12 12" />
   </svg>
 );
 
 /* ── Data ────────────────────────────────────────────────────────────── */
 const applicants = [
-  { key: "Primary Applicant", name: "Rahul Sharma",  role: "Primary Applicant" },
-  { key: "Priya Sharma",      name: "Priya Sharma",  role: "Co-Applicant"      },
-  { key: "Mahesh Sharma",     name: "Mahesh Sharma", role: "Guarantor"         },
+  { key: "Primary Applicant", name: "Rahul Sharma", role: "Primary Applicant" },
+  { key: "Priya Sharma", name: "Priya Sharma", role: "Co-Applicant" },
+  { key: "Mahesh Sharma", name: "Mahesh Sharma", role: "Guarantor" },
 ];
 
 const baseChecklist = [
-  { type: "Identity Proof",       subtype: "PAN Card",                   mandatory: true,  ocrStatus: "Pending",        verificationStatus: "Pending" },
-  { type: "Photograph",           subtype: "Applicant Photo",            mandatory: true,  ocrStatus: "Not Applicable", verificationStatus: "Pending" },
-  { type: "Address Proof",        subtype: "Aadhaar",                    mandatory: true,  ocrStatus: "Pending",        verificationStatus: "Pending" },
-  { type: "Address Proof",        subtype: "Driving License",            mandatory: false, ocrStatus: "Pending",        verificationStatus: "Pending" },
-  { type: "Address Proof",        subtype: "Voter ID",                   mandatory: false, ocrStatus: "Pending",        verificationStatus: "Pending" },
-  { type: "Income Proof",         subtype: "Salary Slip - Latest Month", mandatory: true,  ocrStatus: "Pending",        verificationStatus: "Pending" },
-  { type: "Income Proof",         subtype: "Bank Statement - 6 Months", mandatory: true,  ocrStatus: "Pending",        verificationStatus: "Pending" },
-  { type: "Income Proof",         subtype: "Form 16",                    mandatory: false, ocrStatus: "Pending",        verificationStatus: "Pending" },
-  { type: "Application Document", subtype: "Generated Application Form", mandatory: true,  ocrStatus: "Not Applicable", verificationStatus: "Pending" },
-  { type: "Application Document", subtype: "Signed Application Form",    mandatory: true,  ocrStatus: "Not Applicable", verificationStatus: "Pending" },
+  { type: "Identity Proof", subtype: "PAN Card", mandatory: true, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Photograph", subtype: "Applicant Photo", mandatory: true, ocrStatus: "Not Applicable", verificationStatus: "Pending" },
+  { type: "Address Proof", subtype: "Aadhaar", mandatory: true, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Address Proof", subtype: "Driving License", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Address Proof", subtype: "Voter ID", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Income Proof", subtype: "Salary Slip - Latest Month", mandatory: true, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Income Proof", subtype: "Bank Statement - 6 Months", mandatory: true, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Income Proof", subtype: "Form 16", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Application Document", subtype: "Generated Application Form", mandatory: true, ocrStatus: "Not Applicable", verificationStatus: "Pending" },
+  { type: "Application Document", subtype: "Signed Application Form", mandatory: true, ocrStatus: "Not Applicable", verificationStatus: "Pending" },
 ];
 
 const primaryOnlyChecklist = [
   { type: "Property Document", subtype: "Property Title / Chain Document", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
-  { type: "Property Document", subtype: "Agreement to Sale",               mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
+  { type: "Property Document", subtype: "Agreement to Sale", mandatory: false, ocrStatus: "Pending", verificationStatus: "Pending" },
 ];
 
 const filterOptions = ["All", "Pending", "Uploaded", "Verified", "Mandatory"];
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 function getChecklistForApplicant(applicant) {
-  const checklist = applicant.key === "Primary Applicant"
-    ? [...baseChecklist, ...primaryOnlyChecklist]
-    : baseChecklist;
+  const checklist =
+    applicant.key === "Primary Applicant"
+      ? [...baseChecklist, ...primaryOnlyChecklist]
+      : baseChecklist;
 
   return checklist.map((item, index) => ({
     ...item,
-    id:            `${applicant.key}-${item.type}-${item.subtype}-${index}`,
-    applicantKey:  applicant.key,
+    id: `${applicant.key}-${item.type}-${item.subtype}-${index}`,
+    applicantKey: applicant.key,
     applicantName: applicant.name,
     applicantRole: applicant.role,
-    documentKey:   `${applicant.key}__${item.type}__${item.subtype}`,
-    status: "Pending", source: "", uploadedBy: "", uploadedOn: "", fileName: "", fileType: "", previewUrl: "",
+    documentKey: `${applicant.key}__${item.type}__${item.subtype}`,
+    status: "Pending",
+    source: "",
+    uploadedBy: "",
+    uploadedOn: "",
+    fileName: "",
+    fileType: "",
+    previewUrl: "",
   }));
 }
 
 function buildDocumentsFromChecklist() {
   const actualUploads = getUploadedDocuments();
+
   return applicants.flatMap((applicant) => {
     const checklist = getChecklistForApplicant(applicant);
+
     return checklist.map((ci) => {
       const up = actualUploads.find((u) => u.documentKey === ci.documentKey);
+
       if (!up) return ci;
-      return { ...ci, ...up, applicantKey: ci.applicantKey, applicantName: ci.applicantName, applicantRole: ci.applicantRole, documentKey: ci.documentKey, status: "Uploaded", source: up.source || "Internal Upload" };
+
+      return {
+        ...ci,
+        ...up,
+        applicantKey: ci.applicantKey,
+        applicantName: ci.applicantName,
+        applicantRole: ci.applicantRole,
+        documentKey: ci.documentKey,
+        status: "Uploaded",
+        source: up.source || "Internal Upload",
+      };
     });
   });
 }
@@ -107,110 +138,179 @@ function getStatusClass(status) {
 
 /* ── Component ───────────────────────────────────────────────────────── */
 function DocumentsPage() {
-  const [documents,            setDocuments]            = useState(buildDocumentsFromChecklist);
+  const [documents, setDocuments] = useState(buildDocumentsFromChecklist);
   const [selectedApplicantKey, setSelectedApplicantKey] = useState(applicants[0].key);
-  const [activeFilter,         setActiveFilter]         = useState("All");
-  const [searchText,           setSearchText]           = useState("");
-  const [previewDoc,           setPreviewDoc]           = useState(null);
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [searchText, setSearchText] = useState("");
+  const [previewDoc, setPreviewDoc] = useState(null);
 
-  const selectedApplicant = applicants.find((a) => a.key === selectedApplicantKey);
-  const refreshDocuments  = () => setDocuments(buildDocumentsFromChecklist());
+  const refreshDocuments = () => setDocuments(buildDocumentsFromChecklist());
 
   useEffect(() => {
     refreshDocuments();
+
     window.addEventListener(DOCUMENT_UPLOAD_EVENT, refreshDocuments);
     window.addEventListener("storage", refreshDocuments);
+
     return () => {
       window.removeEventListener(DOCUMENT_UPLOAD_EVENT, refreshDocuments);
       window.removeEventListener("storage", refreshDocuments);
     };
   }, []);
 
-  const applicantStats = useMemo(() => applicants.map((ap) => {
-    const docs     = documents.filter((d) => d.applicantKey === ap.key);
-    const uploaded = docs.filter((d) => d.status === "Uploaded").length;
-    const mandatory    = docs.filter((d) => d.mandatory).length;
-    const mandatoryUpl = docs.filter((d) => d.mandatory && d.status === "Uploaded").length;
-    return { ...ap, total: docs.length, uploaded, mandatory, mandatoryUploaded: mandatoryUpl };
-  }), [documents]);
+  const applicantStats = useMemo(
+    () =>
+      applicants.map((ap) => {
+        const docs = documents.filter((d) => d.applicantKey === ap.key);
+        const uploaded = docs.filter((d) => d.status === "Uploaded").length;
+        const mandatory = docs.filter((d) => d.mandatory).length;
+        const mandatoryUploaded = docs.filter((d) => d.mandatory && d.status === "Uploaded").length;
+
+        return {
+          ...ap,
+          total: docs.length,
+          uploaded,
+          mandatory,
+          mandatoryUploaded,
+        };
+      }),
+    [documents]
+  );
 
   const applicantDocuments = useMemo(
     () => documents.filter((d) => d.applicantKey === selectedApplicantKey),
     [documents, selectedApplicantKey]
   );
 
-  const filteredDocuments = useMemo(() => applicantDocuments.filter((doc) => {
-    const matchesFilter =
-      activeFilter === "All" ||
-      (activeFilter === "Mandatory" && doc.mandatory) ||
-      doc.status === activeFilter ||
-      doc.verificationStatus === activeFilter;
-    const s = searchText.trim().toLowerCase();
-    const matchesSearch = !s || doc.type.toLowerCase().includes(s) || doc.subtype.toLowerCase().includes(s) || String(doc.source || "").toLowerCase().includes(s);
-    return matchesFilter && matchesSearch;
-  }), [applicantDocuments, activeFilter, searchText]);
+  const filteredDocuments = useMemo(
+    () =>
+      applicantDocuments.filter((doc) => {
+        const matchesFilter =
+          activeFilter === "All" ||
+          (activeFilter === "Mandatory" && doc.mandatory) ||
+          doc.status === activeFilter ||
+          doc.verificationStatus === activeFilter;
+
+        const s = searchText.trim().toLowerCase();
+
+        const matchesSearch =
+          !s ||
+          doc.type.toLowerCase().includes(s) ||
+          doc.subtype.toLowerCase().includes(s) ||
+          String(doc.source || "").toLowerCase().includes(s);
+
+        return matchesFilter && matchesSearch;
+      }),
+    [applicantDocuments, activeFilter, searchText]
+  );
 
   const stats = useMemo(() => {
-    const uploaded          = applicantDocuments.filter((d) => d.status === "Uploaded").length;
-    const pending           = applicantDocuments.filter((d) => d.status === "Pending").length;
-    const mandatory         = applicantDocuments.filter((d) => d.mandatory).length;
+    const uploaded = applicantDocuments.filter((d) => d.status === "Uploaded").length;
+    const pending = applicantDocuments.filter((d) => d.status === "Pending").length;
+    const mandatory = applicantDocuments.filter((d) => d.mandatory).length;
     const mandatoryUploaded = applicantDocuments.filter((d) => d.mandatory && d.status === "Uploaded").length;
+
     return {
-      total: applicantDocuments.length, uploaded, pending, mandatory, mandatoryUploaded,
-      completion: applicantDocuments.length ? Math.round((uploaded / applicantDocuments.length) * 100) : 0,
+      total: applicantDocuments.length,
+      uploaded,
+      pending,
+      mandatory,
+      mandatoryUploaded,
+      completion: applicantDocuments.length
+        ? Math.round((uploaded / applicantDocuments.length) * 100)
+        : 0,
     };
   }, [applicantDocuments]);
 
-  const groupedDocuments = useMemo(() => filteredDocuments.reduce((acc, doc) => {
-    if (!acc[doc.type]) acc[doc.type] = [];
-    acc[doc.type].push(doc);
-    return acc;
-  }, {}), [filteredDocuments]);
-
-  const uploadedDocs = applicantDocuments.filter((d) => d.status === "Uploaded");
+  const groupedDocuments = useMemo(
+    () =>
+      filteredDocuments.reduce((acc, doc) => {
+        if (!acc[doc.type]) acc[doc.type] = [];
+        acc[doc.type].push(doc);
+        return acc;
+      }, {}),
+    [filteredDocuments]
+  );
 
   const handleUpload = (event, doc) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const isImage    = file.type.startsWith("image/");
+
+    const isImage = file.type.startsWith("image/");
     const previewUrl = isImage ? URL.createObjectURL(file) : "";
+
     saveUploadedDocument({
-      applicant: doc.applicantKey, applicantName: doc.applicantName, applicantRole: doc.applicantRole,
-      type: doc.type, subtype: doc.subtype, source: "Internal Upload",
-      fileName: file.name, fileType: isImage ? "Image" : "PDF / Document", previewUrl,
-      ocrStatus: doc.type === "Identity Proof" || doc.type === "Address Proof"
-        ? "Captured" : doc.ocrStatus === "Not Applicable" ? "Not Applicable" : "Pending Review",
+      applicant: doc.applicantKey,
+      applicantName: doc.applicantName,
+      applicantRole: doc.applicantRole,
+      type: doc.type,
+      subtype: doc.subtype,
+      source: "Internal Upload",
+      fileName: file.name,
+      fileType: isImage ? "Image" : "PDF / Document",
+      previewUrl,
+      ocrStatus:
+        doc.type === "Identity Proof" || doc.type === "Address Proof"
+          ? "Captured"
+          : doc.ocrStatus === "Not Applicable"
+            ? "Not Applicable"
+            : "Pending Review",
       verificationStatus: doc.type === "Photograph" ? "Captured" : "Pending Review",
     });
+
     refreshDocuments();
   };
 
   const handleMarkVerified = (id) => {
-    setDocuments((prev) => prev.map((d) => d.id === id ? { ...d, verificationStatus: "Verified" } : d));
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              verificationStatus: "Verified",
+            }
+          : d
+      )
+    );
   };
 
-  /* ── Render ── */
   return (
     <div className="dp-page">
 
       {/* ── Applicant tab bar ────────────────────────────────────────── */}
       <nav className="dp-tab-bar">
         {applicantStats.map((ap) => {
-          const initials = ap.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
+          const initials = ap.name
+            .split(" ")
+            .map((n) => n[0])
+            .slice(0, 2)
+            .join("");
+
           const isActive = selectedApplicantKey === ap.key;
-          const allDone  = ap.mandatoryUploaded === ap.mandatory && ap.mandatory > 0;
+          const allDone = ap.mandatoryUploaded === ap.mandatory && ap.mandatory > 0;
+
           return (
             <button
               key={ap.key}
               type="button"
               className={`dp-tab${isActive ? " active" : ""}`}
-              onClick={() => { setSelectedApplicantKey(ap.key); setActiveFilter("All"); setSearchText(""); }}
+              onClick={() => {
+                setSelectedApplicantKey(ap.key);
+                setActiveFilter("All");
+                setSearchText("");
+              }}
             >
-              <span className={`dp-tab-av${allDone ? " done" : ""}`}>{initials}</span>
+              <span className={`dp-tab-av${allDone ? " done" : ""}`}>
+                {initials}
+              </span>
+
               <span className="dp-tab-info">
                 <span className="dp-tab-name">{ap.name}</span>
-                <span className="dp-tab-meta">{ap.role} · {ap.uploaded}/{ap.total} docs</span>
+                <span className="dp-tab-meta">
+                  {ap.role} · {ap.uploaded}/{ap.total} docs
+                </span>
               </span>
+
               <span className={`dp-tab-badge${allDone ? " done" : ap.uploaded > 0 ? " partial" : ""}`}>
                 {ap.mandatoryUploaded}/{ap.mandatory}
               </span>
@@ -223,11 +323,17 @@ function DocumentsPage() {
       <div className="dp-toolbar">
         <div className="dp-filters">
           {filterOptions.map((f) => (
-            <button key={f} type="button" className={`dp-filter-btn${activeFilter === f ? " active" : ""}`} onClick={() => setActiveFilter(f)}>
+            <button
+              key={f}
+              type="button"
+              className={`dp-filter-btn${activeFilter === f ? " active" : ""}`}
+              onClick={() => setActiveFilter(f)}
+            >
               {f}
             </button>
           ))}
         </div>
+
         <input
           className="dp-search"
           value={searchText}
@@ -238,10 +344,26 @@ function DocumentsPage() {
 
       {/* ── Stats strip ──────────────────────────────────────────────── */}
       <div className="dp-stats-strip">
-        <div className="dp-stat"><strong>{stats.total}</strong><span>Total</span></div>
-        <div className="dp-stat green"><strong>{stats.uploaded}</strong><span>Uploaded</span></div>
-        <div className="dp-stat amber"><strong>{stats.pending}</strong><span>Pending</span></div>
-        <div className="dp-stat"><strong>{stats.mandatoryUploaded}/{stats.mandatory}</strong><span>Mandatory</span></div>
+        <div className="dp-stat">
+          <strong>{stats.total}</strong>
+          <span>Total</span>
+        </div>
+
+        <div className="dp-stat green">
+          <strong>{stats.uploaded}</strong>
+          <span>Uploaded</span>
+        </div>
+
+        <div className="dp-stat amber">
+          <strong>{stats.pending}</strong>
+          <span>Pending</span>
+        </div>
+
+        <div className="dp-stat">
+          <strong>{stats.mandatoryUploaded}/{stats.mandatory}</strong>
+          <span>Mandatory</span>
+        </div>
+
         <div className="dp-stat-progress">
           <div className="dp-progress-track">
             <div className="dp-progress-fill" style={{ width: `${stats.completion}%` }} />
@@ -250,10 +372,8 @@ function DocumentsPage() {
         </div>
       </div>
 
-      {/* ── Two-column layout ────────────────────────────────────────── */}
+      {/* ── Document layout ───────────────────────────────────────────── */}
       <div className="dp-layout">
-
-        {/* Main — document groups */}
         <main className="dp-main">
           {Object.keys(groupedDocuments).length === 0 ? (
             <div className="dp-empty">No documents match the current filter.</div>
@@ -271,7 +391,7 @@ function DocumentsPage() {
                   {docs.map((doc) => {
                     const isUploaded = doc.status === "Uploaded";
                     const isVerified = doc.verificationStatus === "Verified";
-                    const sc         = getStatusClass(doc.status);
+                    const sc = getStatusClass(doc.status);
 
                     return (
                       <div className={`dp-doc-row ${sc}`} key={doc.id}>
@@ -282,8 +402,11 @@ function DocumentsPage() {
                             <span className="dp-row-name">{doc.subtype}</span>
                             {doc.mandatory && <span className="dp-req-badge">Required</span>}
                           </div>
+
                           {isUploaded ? (
-                            <span className="dp-row-filemeta">{doc.fileName} · {doc.source || "Internal Upload"}</span>
+                            <span className="dp-row-filemeta">
+                              {doc.fileName} · {doc.source || "Internal Upload"}
+                            </span>
                           ) : (
                             <span className="dp-row-pending">Not yet uploaded</span>
                           )}
@@ -292,9 +415,13 @@ function DocumentsPage() {
                         {/* Status chips */}
                         <div className="dp-row-chips">
                           <span className={`dp-chip ${sc}`}>{doc.status}</span>
+
                           {doc.verificationStatus !== "Pending" && (
-                            <span className={`dp-chip${isVerified ? " verified" : ""}`}>{doc.verificationStatus}</span>
+                            <span className={`dp-chip${isVerified ? " verified" : ""}`}>
+                              {doc.verificationStatus}
+                            </span>
                           )}
+
                           {doc.ocrStatus !== "Pending" && doc.ocrStatus !== "Not Applicable" && (
                             <span className="dp-chip ocr">{doc.ocrStatus}</span>
                           )}
@@ -303,19 +430,35 @@ function DocumentsPage() {
                         {/* Actions */}
                         <div className="dp-row-actions">
                           {isUploaded && (
-                            <button type="button" className="dp-icon-btn" title="View" onClick={() => setPreviewDoc(doc)}>
+                            <button
+                              type="button"
+                              className="dp-icon-btn"
+                              title="View"
+                              onClick={() => setPreviewDoc(doc)}
+                            >
                               <EyeIcon />
                             </button>
                           )}
+
                           {isUploaded && !isVerified && (
-                            <button type="button" className="dp-icon-btn verify" title="Mark verified" onClick={() => handleMarkVerified(doc.id)}>
+                            <button
+                              type="button"
+                              className="dp-icon-btn verify"
+                              title="Mark verified"
+                              onClick={() => handleMarkVerified(doc.id)}
+                            >
                               <CheckIcon />
                             </button>
                           )}
+
                           <label className={`dp-upload-btn${isUploaded ? " reupload" : ""}`}>
                             {isUploaded ? <RefreshIcon /> : <UploadIcon />}
                             <span>{isUploaded ? "Re-upload" : "Upload"}</span>
-                            <input type="file" accept="image/*,.pdf,.doc,.docx" onChange={(e) => handleUpload(e, doc)} />
+                            <input
+                              type="file"
+                              accept="image/*,.pdf,.doc,.docx"
+                              onChange={(e) => handleUpload(e, doc)}
+                            />
                           </label>
                         </div>
 
@@ -327,75 +470,32 @@ function DocumentsPage() {
             ))
           )}
         </main>
-
-        {/* Sidebar */}
-        <aside className="dp-side">
-
-          {/* Progress */}
-          <div className="dp-side-card">
-            <span className="dp-side-title">{selectedApplicant?.name}</span>
-            <span className="dp-side-sub">{selectedApplicant?.role}</span>
-            <div className="dp-progress-block">
-              <div className="dp-progress-row">
-                <span>Completion</span>
-                <strong>{stats.completion}%</strong>
-              </div>
-              <div className="dp-progress-track">
-                <div className="dp-progress-fill" style={{ width: `${stats.completion}%` }} />
-              </div>
-            </div>
-            <div className="dp-side-checks">
-              <div className={stats.uploaded > 0 ? "done" : ""}>
-                <span>{stats.uploaded > 0 ? <CheckIcon /> : "·"}</span>
-                Documents available
-              </div>
-              <div className={stats.mandatoryUploaded === stats.mandatory ? "done" : ""}>
-                <span>{stats.mandatoryUploaded === stats.mandatory ? <CheckIcon /> : "·"}</span>
-                Mandatory complete
-              </div>
-              <div className={stats.pending === 0 ? "done" : ""}>
-                <span>{stats.pending === 0 ? <CheckIcon /> : "·"}</span>
-                No pending uploads
-              </div>
-            </div>
-          </div>
-
-          {/* Uploaded list */}
-          <div className="dp-side-card">
-            <span className="dp-side-title">Uploaded Files</span>
-            {uploadedDocs.length === 0 ? (
-              <div className="dp-side-empty">No files uploaded yet.</div>
-            ) : (
-              <div className="dp-uploaded-list">
-                {uploadedDocs.map((doc) => (
-                  <div key={doc.documentKey} className="dp-uploaded-item">
-                    <span className="dp-uploaded-dot"><CheckIcon /></span>
-                    <div>
-                      <span className="dp-uploaded-name">{doc.subtype}</span>
-                      <span className="dp-uploaded-meta">{doc.source || "Internal Upload"}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </aside>
       </div>
 
       {/* ── Preview modal ─────────────────────────────────────────────── */}
       {previewDoc && (
-        <div className="dp-preview-overlay" onClick={(e) => { if (e.target === e.currentTarget) setPreviewDoc(null); }}>
+        <div
+          className="dp-preview-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPreviewDoc(null);
+          }}
+        >
           <div className="dp-preview-modal">
             <header className="dp-preview-hdr">
               <div>
                 <span className="dp-preview-title">{previewDoc.subtype}</span>
                 <span className="dp-preview-sub">{previewDoc.fileName}</span>
               </div>
-              <button type="button" className="dp-preview-close" onClick={() => setPreviewDoc(null)}>
+
+              <button
+                type="button"
+                className="dp-preview-close"
+                onClick={() => setPreviewDoc(null)}
+              >
                 <XIcon />
               </button>
             </header>
+
             <div className="dp-preview-body">
               {previewDoc.previewUrl ? (
                 <img src={previewDoc.previewUrl} alt={previewDoc.subtype} />
@@ -403,14 +503,28 @@ function DocumentsPage() {
                 <div className="dp-preview-empty">
                   <FileIcon />
                   <strong>{previewDoc.fileName}</strong>
-                  <p>Preview is available for image files only. PDF and document files are shown as metadata.</p>
+                  <p>
+                    Preview is available for image files only. PDF and document files are shown as metadata.
+                  </p>
                 </div>
               )}
             </div>
+
             <footer className="dp-preview-ftr">
-              <div><span>Applicant</span><strong>{previewDoc.applicantName}</strong></div>
-              <div><span>Source</span><strong>{previewDoc.source || "Internal Upload"}</strong></div>
-              <div><span>Uploaded by</span><strong>{previewDoc.uploadedBy || "—"}</strong></div>
+              <div>
+                <span>Applicant</span>
+                <strong>{previewDoc.applicantName}</strong>
+              </div>
+
+              <div>
+                <span>Source</span>
+                <strong>{previewDoc.source || "Internal Upload"}</strong>
+              </div>
+
+              <div>
+                <span>Uploaded by</span>
+                <strong>{previewDoc.uploadedBy || "—"}</strong>
+              </div>
             </footer>
           </div>
         </div>

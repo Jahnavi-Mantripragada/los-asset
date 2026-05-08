@@ -54,13 +54,9 @@
   font-weight: 400;
 }
 
-/* ── Two-column layout ───────────────────────────────────────────── */
+/* ── Layout ──────────────────────────────────────────────────────── */
 .cp-layout {
-  display: grid;
-  grid-template-columns: 1fr 248px;
-  gap: 16px;
   padding: 0 24px;
-  align-items: start;
 }
 
 /* ── Main panel ─────────────────────────────────────────────────── */
@@ -315,117 +311,10 @@
   border-color: #f87171;
 }
 
-/* ── Sidebar ─────────────────────────────────────────────────────── */
-.cp-side {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: sticky;
-  top: 20px;
-}
-
-.cp-side-card {
-  background: var(--los-bg-white);
-  border: 1px solid var(--los-border);
-  border-radius: var(--los-radius);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.cp-side-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--los-text-secondary);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.cp-side-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.cp-side-rows > div {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.cp-side-rows > div > span {
-  font-size: 12px;
-  color: var(--los-text-secondary);
-  font-weight: 400;
-  flex-shrink: 0;
-}
-
-.cp-side-rows > div > strong {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--los-text-primary);
-  text-align: right;
-}
-
-/* ── Ownership summary in sidebar ───────────────────────────────── */
-.cp-owner-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cp-owner-summary-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.cp-owner-av.small {
-  width: 28px;
-  height: 28px;
-  font-size: 10.5px;
-  flex-shrink: 0;
-}
-
-.cp-owner-summary-name {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--los-text-primary);
-  line-height: 1.3;
-}
-
-.cp-owner-summary-meta {
-  display: block;
-  font-size: 11.5px;
-  color: var(--los-text-secondary);
-  font-weight: 400;
-  line-height: 1.3;
-}
-
 /* ── Responsive ──────────────────────────────────────────────────── */
 
-/* At 1100px: sidebar collapses to 210px */
-@media (max-width: 1100px) {
-  .cp-layout {
-    grid-template-columns: 1fr 210px;
-  }
-}
-
-/* At 960px: stack layout, drop to 2-col field grids */
+/* At 960px: drop to 2-col field grids */
 @media (max-width: 960px) {
-  .cp-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .cp-side {
-    position: static;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .cp-field-grid-3 {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -443,7 +332,6 @@
 
   .cp-layout {
     padding: 0 16px;
-    gap: 12px;
   }
 
   .cp-section {
@@ -457,10 +345,6 @@
 
   .cp-field-grid-4 {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .cp-side {
-    grid-template-columns: 1fr;
   }
 
   .cp-owner-row {

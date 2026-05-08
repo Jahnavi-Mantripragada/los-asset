@@ -1,930 +1,505 @@
 import { useMemo, useState } from "react";
 import "./FeesSubmissionPage.css";
 
-const RupeeIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M6 3h12" />
-    <path d="M6 8h12" />
-    <path d="M6 13h7a5 5 0 0 0 0-10" />
-    <path d="m6 13 8 8" />
-  </svg>
-);
-
-const SendIcon = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="m22 2-7 20-4-9-9-4Z" />
-    <path d="M22 2 11 13" />
-  </svg>
-);
-
+/* ── Icons ───────────────────────────────────────────────────────── */
 const CheckIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5">
     <path d="M20 6 9 17l-5-5" />
   </svg>
 );
-
+const SendIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
+  </svg>
+);
 const UploadIcon = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2">
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <path d="M17 8l-5-5-5 5" />
-    <path d="M12 3v12" />
+    <path d="M17 8l-5-5-5 5" /><path d="M12 3v12" />
   </svg>
 );
-
 const RefreshIcon = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.1">
-    <path d="M21 12a9 9 0 0 1-15.5 6.3" />
-    <path d="M3 12A9 9 0 0 1 18.5 5.7" />
-    <path d="M18 2v4h4" />
-    <path d="M6 22v-4H2" />
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.1">
+    <path d="M21 12a9 9 0 0 1-15.5 6.3" /><path d="M3 12A9 9 0 0 1 18.5 5.7" />
+    <path d="M18 2v4h4" /><path d="M6 22v-4H2" />
   </svg>
 );
-
-const FileIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-    <path d="M14 2v6h6" />
-    <path d="M8 13h8" />
-    <path d="M8 17h5" />
-  </svg>
-);
-
 const AlertIcon = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2">
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-    <path d="M12 9v4" />
-    <path d="M12 17h.01" />
+    <path d="M12 9v4" /><path d="M12 17h.01" />
   </svg>
 );
 
-const BankIcon = () => (
-  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M3 10h18" />
-    <path d="m12 3 9 7H3Z" />
-    <path d="M5 10v9" />
-    <path d="M9 10v9" />
-    <path d="M15 10v9" />
-    <path d="M19 10v9" />
-    <path d="M3 19h18" />
-  </svg>
-);
-
+/* ── Data ────────────────────────────────────────────────────────── */
 const feeItemsSeed = [
-  {
-    id: "FEE-001",
-    feeName: "Login Fee",
-    feeType: "Application",
-    amount: 2500,
-    tax: 450,
-    waiverAllowed: true,
-    waiverStatus: "Not Requested",
-    waiverAmount: 0,
-  },
-  {
-    id: "FEE-002",
-    feeName: "Processing Fee",
-    feeType: "Processing",
-    amount: 12500,
-    tax: 2250,
-    waiverAllowed: true,
-    waiverStatus: "Not Requested",
-    waiverAmount: 0,
-  },
-  {
-    id: "FEE-003",
-    feeName: "Technical Valuation Fee",
-    feeType: "Collateral",
-    amount: 3500,
-    tax: 630,
-    waiverAllowed: false,
-    waiverStatus: "Not Applicable",
-    waiverAmount: 0,
-  },
-  {
-    id: "FEE-004",
-    feeName: "Legal Report Fee",
-    feeType: "Collateral",
-    amount: 3000,
-    tax: 540,
-    waiverAllowed: false,
-    waiverStatus: "Not Applicable",
-    waiverAmount: 0,
-  },
-];
-
-const paymentMethods = [
-  {
-    id: "Online",
-    title: "Online Payment Link",
-    desc: "Send secure payment link to customer via SMS / email.",
-  },
-  {
-    id: "Offline",
-    title: "Offline Payment",
-    desc: "Capture cheque / DD / branch payment details manually.",
-  },
+  { id: "FEE-001", feeName: "Login Fee",               feeType: "Application", amount: 2500,  tax: 450,  waiverAllowed: true,  waiverStatus: "Not Requested", waiverAmount: 0 },
+  { id: "FEE-002", feeName: "Processing Fee",           feeType: "Processing",  amount: 12500, tax: 2250, waiverAllowed: true,  waiverStatus: "Not Requested", waiverAmount: 0 },
+  { id: "FEE-003", feeName: "Technical Valuation Fee",  feeType: "Collateral",  amount: 3500,  tax: 630,  waiverAllowed: false, waiverStatus: "Not Applicable", waiverAmount: 0 },
+  { id: "FEE-004", feeName: "Legal Report Fee",          feeType: "Collateral",  amount: 3000,  tax: 540,  waiverAllowed: false, waiverStatus: "Not Applicable", waiverAmount: 0 },
 ];
 
 const offlineModes = ["Cheque", "Demand Draft", "Cash", "NEFT / RTGS", "UPI at Branch"];
-const banks = ["HDFC Bank", "ICICI Bank", "Axis Bank", "State Bank of India", "Kotak Mahindra Bank", "Bank of Baroda", "Other"];
+const bankOptions  = ["HDFC Bank", "ICICI Bank", "Axis Bank", "State Bank of India", "Kotak Mahindra Bank", "Bank of Baroda", "Other"];
+const waiverReasons = ["Customer Negotiation", "Campaign Offer", "Preferred Customer", "Manager Discretion", "Service Recovery"];
 
-function formatCurrency(value) {
-  const amount = Number(value || 0);
-  return `₹${amount.toLocaleString("en-IN")}`;
+/* ── Helpers ─────────────────────────────────────────────────────── */
+function fmt(v) {
+  return `₹ ${Number(v || 0).toLocaleString("en-IN")}`;
+}
+function ts() {
+  return new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-function getTimestamp() {
-  return new Date().toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function Field({ label, children, required }) {
-  return (
-    <label className="fs-field">
-      <span>
-        {label}
-        {required && <em>*</em>}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function TextInput({ value, onChange, placeholder, type = "text" }) {
-  return (
-    <input
-      className="fs-input"
-      type={type}
-      value={value}
-      placeholder={placeholder}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  );
-}
-
-function SelectInput({ value, onChange, children }) {
-  return (
-    <select className="fs-input fs-select" value={value} onChange={(event) => onChange(event.target.value)}>
-      {children}
-    </select>
-  );
-}
-
-function CurrencyInput({ value, onChange, placeholder }) {
-  return (
-    <div className="fs-currency-input">
-      <span>₹</span>
-      <input
-        type="number"
-        value={value}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </div>
-  );
-}
-
+/* ── Component ───────────────────────────────────────────────────── */
 function FeesSubmissionPage() {
-  const [feeItems, setFeeItems] = useState(feeItemsSeed);
-  const [paymentMethod, setPaymentMethod] = useState("Online");
-  const [paymentStatus, setPaymentStatus] = useState("Not Initiated");
-  const [paymentLink, setPaymentLink] = useState("");
-  const [paymentReference, setPaymentReference] = useState("");
-  const [isSendingLink, setIsSendingLink] = useState(false);
-  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [applicationStatus, setApplicationStatus] = useState("Draft");
-  const [submittedApplicationId, setSubmittedApplicationId] = useState("");
-  const [submittedAt, setSubmittedAt] = useState("");
-  const [receiptFileName, setReceiptFileName] = useState("");
+  /* Fee state */
+  const [feeItems, setFeeItems]           = useState(feeItemsSeed);
+  const [showWaiverForm, setShowWaiverForm] = useState(false);
+  const [waiverForm, setWaiverForm]         = useState({ feeId: "", amount: "", reason: "" });
 
-  const [waiverForm, setWaiverForm] = useState({
-    feeId: "",
-    requestedAmount: "",
-    reason: "",
-  });
+  /* Payment state */
+  const [payMethod, setPayMethod]           = useState("Online");
+  const [onlineStage, setOnlineStage]       = useState("idle"); // idle|sending|sent|verifying|paid
+  const [payLink, setPayLink]               = useState("");
+  const [payRef, setPayRef]                 = useState("");
+  const [showOfflineForm, setShowOfflineForm] = useState(false);
+  const [offlineCaptured, setOfflineCaptured] = useState(false);
+  const [offlineForm, setOfflineForm]         = useState({ mode: "Cheque", chequeNumber: "", chequeDate: "", receiptNumber: "", dealingBank: "", amountReceived: "" });
+  const [receiptFile, setReceiptFile]         = useState("");
 
-  const [offlinePayment, setOfflinePayment] = useState({
-    mode: "Cheque",
-    chequeNumber: "",
-    chequeDate: "",
-    receiptNumber: "",
-    dealingBank: "",
-    branchName: "Mumbai Andheri Branch",
-    amountReceived: "",
-    remarks: "",
-  });
+  /* Submission state */
+  const [appStatus, setAppStatus]           = useState("Draft");
+  const [submittedId, setSubmittedId]       = useState("");
+  const [submittedAt, setSubmittedAt]       = useState("");
+  const [isSubmitting, setIsSubmitting]     = useState(false);
 
+  /* Timeline */
   const [timeline, setTimeline] = useState([
-    {
-      id: 1,
-      title: "Fees & Submission step opened",
-      desc: "Review payable fees, collect payment and submit application.",
-      time: "Today, 11:45 AM",
-      type: "info",
-    },
+    { id: 1, title: "Step opened", desc: "Review fees, collect payment and submit application.", time: "Today, 11:45 AM", type: "info" },
   ]);
+  const addTl = (title, desc, type = "info") =>
+    setTimeline((p) => [{ id: Date.now(), title, desc, time: ts(), type }, ...p]);
 
-  const addTimeline = (title, desc, type = "info") => {
-    setTimeline((previous) => [
-      {
-        id: Date.now(),
-        title,
-        desc,
-        time: getTimestamp(),
-        type,
-      },
-      ...previous,
-    ]);
-  };
-
+  /* Computed */
   const totals = useMemo(() => {
-    const base = feeItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const tax = feeItems.reduce((sum, item) => sum + Number(item.tax || 0), 0);
-    const waiver = feeItems.reduce((sum, item) => sum + Number(item.waiverAmount || 0), 0);
-    const payable = Math.max(base + tax - waiver, 0);
-
-    return {
-      base,
-      tax,
-      waiver,
-      payable,
-      totalBeforeWaiver: base + tax,
-    };
+    const base   = feeItems.reduce((s, i) => s + Number(i.amount), 0);
+    const tax    = feeItems.reduce((s, i) => s + Number(i.tax), 0);
+    const waiver = feeItems.reduce((s, i) => s + Number(i.waiverAmount || 0), 0);
+    return { base, tax, waiver, payable: Math.max(base + tax - waiver, 0) };
   }, [feeItems]);
 
-  const updateWaiverForm = (key, value) => {
-    setWaiverForm((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
+  const isPaid     = onlineStage === "paid" || offlineCaptured;
+  const canSubmit  = isPaid || totals.payable === 0;
+  const hasWaiverPending = feeItems.some((i) => i.waiverStatus === "Pending Approval");
+
+  /* Waiver actions */
+  const submitWaiver = () => {
+    if (!waiverForm.feeId || !waiverForm.amount || !waiverForm.reason) return;
+    setFeeItems((p) => p.map((i) => i.id === waiverForm.feeId
+      ? { ...i, waiverStatus: "Pending Approval", waiverAmount: Number(waiverForm.amount) } : i));
+    addTl("Waiver requested", `Waiver of ${fmt(waiverForm.amount)} requested for selected fee.`, "warning");
+    setWaiverForm({ feeId: "", amount: "", reason: "" });
+    setShowWaiverForm(false);
   };
 
-  const updateOfflinePayment = (key, value) => {
-    setOfflinePayment((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
+  const approveWaivers = () => {
+    setFeeItems((p) => p.map((i) => i.waiverStatus === "Pending Approval" ? { ...i, waiverStatus: "Approved" } : i));
+    addTl("Waivers approved", "All pending waiver requests approved.", "success");
   };
 
-  const requestWaiver = () => {
-    if (!waiverForm.feeId || !waiverForm.requestedAmount || !waiverForm.reason) return;
-
-    setFeeItems((previous) =>
-      previous.map((item) =>
-        item.id === waiverForm.feeId
-          ? {
-              ...item,
-              waiverStatus: "Pending Approval",
-              waiverAmount: Number(waiverForm.requestedAmount),
-              waiverReason: waiverForm.reason,
-            }
-          : item
-      )
-    );
-
-    addTimeline(
-      "Waiver requested",
-      `Waiver of ${formatCurrency(waiverForm.requestedAmount)} requested for selected fee.`,
-      "warning"
-    );
-
-    setWaiverForm({
-      feeId: "",
-      requestedAmount: "",
-      reason: "",
-    });
-  };
-
-  const approveAllWaivers = () => {
-    setFeeItems((previous) =>
-      previous.map((item) =>
-        item.waiverStatus === "Pending Approval"
-          ? {
-              ...item,
-              waiverStatus: "Approved",
-            }
-          : item
-      )
-    );
-
-    addTimeline("Waiver approved", "Pending waiver requests approved for demo.", "success");
-  };
-
-  const sendPaymentLink = () => {
-    setIsSendingLink(true);
-    setPaymentStatus("Link Sending");
-
-    window.setTimeout(() => {
-      const linkId = `PAY-${Math.floor(100000 + Math.random() * 900000)}`;
-      const link = `https://payments.demo-los.com/pay/${linkId}`;
-
-      setPaymentLink(link);
-      setPaymentReference(linkId);
-      setPaymentStatus("Link Sent");
-      setIsSendingLink(false);
-
-      addTimeline(
-        "Payment link sent",
-        `Payment link sent to customer for ${formatCurrency(totals.payable)}. Ref: ${linkId}`,
-        "success"
-      );
+  /* Online payment */
+  const sendLink = () => {
+    setOnlineStage("sending");
+    setTimeout(() => {
+      const id = `PAY-${Math.floor(100000 + Math.random() * 900000)}`;
+      setPayRef(id);
+      setPayLink(`https://payments.los.demo/pay/${id}`);
+      setOnlineStage("sent");
+      addTl("Payment link sent", `Secure link sent for ${fmt(totals.payable)}. Ref: ${id}`, "success");
     }, 1000);
   };
 
-  const verifyOnlinePayment = () => {
-    if (!paymentLink) return;
-
-    setIsVerifyingPayment(true);
-    setPaymentStatus("Payment Verification Pending");
-
-    window.setTimeout(() => {
-      setPaymentStatus("Paid");
-      setIsVerifyingPayment(false);
-
-      addTimeline(
-        "Online payment received",
-        `Payment confirmed against reference ${paymentReference}.`,
-        "success"
-      );
+  const verifyPayment = () => {
+    setOnlineStage("verifying");
+    setTimeout(() => {
+      setOnlineStage("paid");
+      addTl("Payment received", `Payment confirmed. Ref: ${payRef}`, "success");
     }, 1300);
   };
 
-  const handleReceiptUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setReceiptFileName(file.name);
-
-    addTimeline(
-      "Offline receipt uploaded",
-      `${file.name} uploaded as offline payment proof.`,
-      "success"
-    );
+  /* Offline payment */
+  const captureOffline = () => {
+    const ref = offlineForm.receiptNumber || offlineForm.chequeNumber || `OFF-${Math.floor(100000 + Math.random() * 900000)}`;
+    setPayRef(ref);
+    setOfflineCaptured(true);
+    setShowOfflineForm(false);
+    addTl("Offline payment captured", `${offlineForm.mode} · Ref: ${ref}`, "success");
   };
 
-  const captureOfflinePayment = () => {
-    const ref =
-      offlinePayment.receiptNumber ||
-      offlinePayment.chequeNumber ||
-      `OFF-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    setPaymentReference(ref);
-    setPaymentStatus("Payment Captured");
-
-    addTimeline(
-      "Offline payment captured",
-      `${offlinePayment.mode} payment captured for ${formatCurrency(offlinePayment.amountReceived || totals.payable)}. Ref: ${ref}`,
-      "success"
-    );
+  /* Change method */
+  const changeMethod = (m) => {
+    setPayMethod(m);
+    setOnlineStage("idle");
+    setPayLink(""); setPayRef("");
+    setShowOfflineForm(false); setOfflineCaptured(false); setReceiptFile("");
+    addTl("Payment method changed", `Switched to ${m} payment.`);
   };
 
-  const changePaymentMethod = (nextMethod) => {
-    setPaymentMethod(nextMethod);
-    setPaymentStatus("Not Initiated");
-    setPaymentLink("");
-    setPaymentReference("");
-    setReceiptFileName("");
-
-    addTimeline(
-      "Payment method changed",
-      `Payment method changed to ${nextMethod}.`,
-      "info"
-    );
-  };
-
-  const canSubmitApplication =
-    paymentStatus === "Paid" ||
-    paymentStatus === "Payment Captured" ||
-    totals.payable === 0;
-
-  const submitApplication = () => {
-    if (!canSubmitApplication) return;
-
-    setIsSubmitting(true);
-    setApplicationStatus("Submitting");
-
-    window.setTimeout(() => {
-      const appId = `APS-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-
-      setSubmittedApplicationId(appId);
-      setSubmittedAt(getTimestamp());
-      setApplicationStatus("Submitted for Review");
-      setIsSubmitting(false);
-
-      addTimeline(
-        "Application submitted",
-        `Application submitted successfully. Application ID: ${appId}`,
-        "success"
-      );
+  /* Submission */
+  const submitApp = () => {
+    setIsSubmitting(true); setAppStatus("Submitting");
+    setTimeout(() => {
+      const id = `APS-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+      setSubmittedId(id); setSubmittedAt(ts());
+      setAppStatus("Submitted"); setIsSubmitting(false);
+      addTl("Application submitted", `Application ID: ${id}`, "success");
     }, 1300);
   };
-
-  const readinessItems = [
-    {
-      label: "Fees calculated",
-      complete: feeItems.length > 0,
-    },
-    {
-      label: "Payment method selected",
-      complete: Boolean(paymentMethod),
-    },
-    {
-      label: "Payment collected",
-      complete: canSubmitApplication,
-    },
-    {
-      label: "Application submitted",
-      complete: applicationStatus === "Submitted for Review",
-    },
-  ];
 
   return (
-    <div className="fees-submission-page">
-      <section className="fs-hero-card">
-        <div className="fs-hero-left">
-          <div className="fs-icon-wrap">
-            <RupeeIcon />
-          </div>
-          <div>
-            <span className="fs-eyebrow">Final Step</span>
-            <h3>Fees, Payment & Submission</h3>
-            <p>
-              Review fees, request waiver, collect payment online or offline, and submit the application for review.
-            </p>
-          </div>
-        </div>
+    <div className="fs-page">
+      <div className="fs-panel">
 
-        <div className="fs-completion-box">
-          <strong>{applicationStatus}</strong>
-          <span>Application Status</span>
-        </div>
-      </section>
-
-      <section className="fs-kpi-grid">
-        <div className="fs-kpi-card">
-          <span>Total Fees</span>
-          <strong>{formatCurrency(totals.totalBeforeWaiver)}</strong>
-        </div>
-
-        <div className="fs-kpi-card warning">
-          <span>Waiver</span>
-          <strong>{formatCurrency(totals.waiver)}</strong>
-        </div>
-
-        <div className="fs-kpi-card success">
-          <span>Payable</span>
-          <strong>{formatCurrency(totals.payable)}</strong>
-        </div>
-
-        <div className={`fs-kpi-card ${canSubmitApplication ? "success" : "warning"}`}>
-          <span>Payment</span>
-          <strong>{paymentStatus}</strong>
-        </div>
-      </section>
-
-      <section className="fs-layout">
-        <main className="fs-main">
-          <section className="fs-card">
-            <div className="fs-section-header">
-              <div>
-                <span className="fs-eyebrow">Fee Assessment</span>
-                <h4>Applicable Fee Details</h4>
-              </div>
-
-              <button type="button" className="fs-outline-btn" onClick={approveAllWaivers}>
-                Approve Waivers
+        {/* ── 1. Fee Breakdown ── */}
+        <div className="fs-section">
+          <div className="fs-section-head">
+            <div>
+              <span className="fs-section-title">Fee Breakdown</span>
+              <span className="fs-section-sub">Applicable fees for this application</span>
+            </div>
+            <div className="fs-head-actions">
+              {hasWaiverPending && (
+                <button type="button" className="fs-text-btn" onClick={approveWaivers}>
+                  Approve Waivers
+                </button>
+              )}
+              <button type="button" className="fs-edit-btn" onClick={() => setShowWaiverForm((p) => !p)}>
+                {showWaiverForm ? "Cancel" : "+ Request Waiver"}
               </button>
             </div>
+          </div>
 
-            <div className="fs-fee-table">
-              <div className="fs-fee-row header">
-                <span>Fee Name</span>
-                <span>Type</span>
-                <span>Amount</span>
-                <span>GST</span>
-                <span>Waiver</span>
-                <span>Status</span>
-                <span>Payable</span>
-              </div>
-
-              {feeItems.map((item) => {
-                const payable = Number(item.amount) + Number(item.tax) - Number(item.waiverAmount || 0);
-
-                return (
-                  <div className="fs-fee-row" key={item.id}>
-                    <span>
-                      <strong>{item.feeName}</strong>
-                      <small>{item.waiverAllowed ? "Waiver allowed" : "Waiver not allowed"}</small>
-                    </span>
-                    <span>{item.feeType}</span>
-                    <span>{formatCurrency(item.amount)}</span>
-                    <span>{formatCurrency(item.tax)}</span>
-                    <span>{formatCurrency(item.waiverAmount)}</span>
-                    <span>
-                      <b className={`fs-mini-pill ${item.waiverStatus === "Approved" ? "green" : item.waiverStatus === "Pending Approval" ? "amber" : "gray"}`}>
-                        {item.waiverStatus}
-                      </b>
-                    </span>
-                    <span>{formatCurrency(payable)}</span>
+          {/* Fee list */}
+          <div className="fs-fee-list">
+            <div className="fs-fee-row header">
+              <span>Fee</span>
+              <span>Base</span>
+              <span>GST</span>
+              <span>Waiver</span>
+              <span>Payable</span>
+              <span>Status</span>
+            </div>
+            {feeItems.map((item) => {
+              const payable = Number(item.amount) + Number(item.tax) - Number(item.waiverAmount || 0);
+              return (
+                <div className="fs-fee-row" key={item.id}>
+                  <div className="fs-fee-name-cell">
+                    <span className="fs-fee-name">{item.feeName}</span>
+                    <span className="fs-fee-type">{item.feeType}</span>
                   </div>
-                );
-              })}
-            </div>
+                  <span>{fmt(item.amount)}</span>
+                  <span>{fmt(item.tax)}</span>
+                  <span>{item.waiverAmount ? fmt(item.waiverAmount) : "—"}</span>
+                  <span className="fs-fee-payable-cell">{fmt(payable)}</span>
+                  <span>
+                    <span className={`fs-badge ${item.waiverStatus === "Approved" ? "green" : item.waiverStatus === "Pending Approval" ? "amber" : "muted"}`}>
+                      {item.waiverStatus}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
 
-            <div className="fs-total-panel">
-              <div>
-                <span>Base Fees</span>
-                <strong>{formatCurrency(totals.base)}</strong>
-              </div>
-              <div>
-                <span>GST</span>
-                <strong>{formatCurrency(totals.tax)}</strong>
-              </div>
-              <div>
-                <span>Waiver</span>
-                <strong>- {formatCurrency(totals.waiver)}</strong>
-              </div>
-              <div className="payable">
-                <span>Net Payable</span>
-                <strong>{formatCurrency(totals.payable)}</strong>
-              </div>
-            </div>
-          </section>
+          {/* Totals strip */}
+          <div className="fs-totals-strip">
+            <div><span>Base</span><strong>{fmt(totals.base)}</strong></div>
+            <div><span>GST</span><strong>{fmt(totals.tax)}</strong></div>
+            {totals.waiver > 0 && <div className="waiver"><span>Waiver</span><strong>− {fmt(totals.waiver)}</strong></div>}
+            <div className="payable"><span>Net Payable</span><strong>{fmt(totals.payable)}</strong></div>
+          </div>
 
-          <section className="fs-card">
-            <div className="fs-section-header">
-              <div>
-                <span className="fs-eyebrow">Waiver Request</span>
-                <h4>Request Fee Waiver</h4>
-              </div>
-            </div>
-
-            <div className="fs-field-grid three">
-              <Field label="Fee Item" required>
-                <SelectInput value={waiverForm.feeId} onChange={(value) => updateWaiverForm("feeId", value)}>
-                  <option value="">Select fee item</option>
-                  {feeItems
-                    .filter((item) => item.waiverAllowed)
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.feeName}
-                      </option>
+          {/* Waiver form — revealed on demand */}
+          {showWaiverForm && (
+            <div className="fs-waiver-panel">
+              <span className="fs-wf-title">Waiver Request</span>
+              <div className="fs-field-grid-3">
+                <div className="fs-field">
+                  <span className="fs-field-label">Fee Item</span>
+                  <select className="fs-input fs-select" value={waiverForm.feeId}
+                    onChange={(e) => setWaiverForm((p) => ({ ...p, feeId: e.target.value }))}>
+                    <option value="">Select fee</option>
+                    {feeItems.filter((i) => i.waiverAllowed).map((i) => (
+                      <option key={i.id} value={i.id}>{i.feeName}</option>
                     ))}
-                </SelectInput>
-              </Field>
-
-              <Field label="Waiver Amount" required>
-                <CurrencyInput
-                  value={waiverForm.requestedAmount}
-                  placeholder="Waiver amount"
-                  onChange={(value) => updateWaiverForm("requestedAmount", value)}
-                />
-              </Field>
-
-              <Field label="Waiver Reason" required>
-                <SelectInput value={waiverForm.reason} onChange={(value) => updateWaiverForm("reason", value)}>
-                  <option value="">Select reason</option>
-                  <option value="Customer Negotiation">Customer Negotiation</option>
-                  <option value="Campaign Offer">Campaign Offer</option>
-                  <option value="Preferred Customer">Preferred Customer</option>
-                  <option value="Manager Discretion">Manager Discretion</option>
-                  <option value="Service Recovery">Service Recovery</option>
-                </SelectInput>
-              </Field>
-            </div>
-
-            <div className="fs-action-footer">
-              <button
-                type="button"
-                className="fs-primary-btn"
-                onClick={requestWaiver}
-                disabled={!waiverForm.feeId || !waiverForm.requestedAmount || !waiverForm.reason}
-              >
-                <SendIcon />
-                Request Waiver
-              </button>
-            </div>
-          </section>
-
-          <section className="fs-card">
-            <div className="fs-section-header">
-              <div>
-                <span className="fs-eyebrow">Payment Method</span>
-                <h4>Collect Application Fees</h4>
+                  </select>
+                </div>
+                <div className="fs-field">
+                  <span className="fs-field-label">Waiver Amount</span>
+                  <div className="fs-currency-wrap">
+                    <span>₹</span>
+                    <input className="fs-currency-inner" type="number" value={waiverForm.amount}
+                      placeholder="Amount"
+                      onChange={(e) => setWaiverForm((p) => ({ ...p, amount: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="fs-field">
+                  <span className="fs-field-label">Reason</span>
+                  <select className="fs-input fs-select" value={waiverForm.reason}
+                    onChange={(e) => setWaiverForm((p) => ({ ...p, reason: e.target.value }))}>
+                    <option value="">Select reason</option>
+                    {waiverReasons.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
               </div>
-
-              <span className={`fs-status-pill ${canSubmitApplication ? "green" : paymentStatus !== "Not Initiated" ? "amber" : "gray"}`}>
-                {paymentStatus}
-              </span>
+              <div className="fs-wf-footer">
+                <button type="button" className="fs-btn-ghost" onClick={() => setShowWaiverForm(false)}>Cancel</button>
+                <button type="button" className="fs-btn-primary"
+                  disabled={!waiverForm.feeId || !waiverForm.amount || !waiverForm.reason}
+                  onClick={submitWaiver}>
+                  <SendIcon /> Submit Waiver Request
+                </button>
+              </div>
             </div>
+          )}
+        </div>
 
-            <div className="fs-method-grid">
-              {paymentMethods.map((method) => (
-                <button
-                  key={method.id}
-                  type="button"
-                  className={`fs-method-card ${paymentMethod === method.id ? "active" : ""}`}
-                  onClick={() => changePaymentMethod(method.id)}
-                >
-                  <span>{method.id === "Online" ? <SendIcon /> : <BankIcon />}</span>
-                  <strong>{method.title}</strong>
-                  <p>{method.desc}</p>
+        <div className="fs-divider" />
+
+        {/* ── 2. Payment ── */}
+        <div className="fs-section">
+          <div className="fs-section-head">
+            <div>
+              <span className="fs-section-title">Payment Collection</span>
+              <span className="fs-section-sub">Collect {fmt(totals.payable)} from the applicant</span>
+            </div>
+            {isPaid && (
+              <span className="fs-paid-badge"><CheckIcon /> Collected</span>
+            )}
+          </div>
+
+          {/* Method tabs */}
+          {!isPaid && (
+            <div className="fs-method-tabs">
+              {["Online", "Offline"].map((m) => (
+                <button key={m} type="button"
+                  className={`fs-method-tab${payMethod === m ? " active" : ""}`}
+                  onClick={() => changeMethod(m)}>
+                  {m === "Online" ? "Online Payment Link" : "Offline / Manual Payment"}
                 </button>
               ))}
             </div>
+          )}
 
-            {paymentMethod === "Online" && (
-              <div className="fs-payment-panel">
-                <div className="fs-online-box">
-                  <div>
-                    <span className="fs-eyebrow">Online Collection</span>
-                    <h4>Send Payment Link</h4>
-                    <p>
-                      A secure link will be sent to the customer's registered mobile number and email.
-                    </p>
+          {/* Online flow */}
+          {payMethod === "Online" && !isPaid && (
+            <div className="fs-pay-area">
+              {(onlineStage === "idle" || onlineStage === "sending") && (
+                <div className="fs-pay-prompt">
+                  <div className="fs-pay-prompt-text">
+                    <span className="fs-pay-amount">{fmt(totals.payable)}</span>
+                    <p>A secure link will be sent to the customer's registered mobile and email.</p>
                   </div>
-
-                  <button
-                    type="button"
-                    className="fs-primary-btn"
-                    onClick={sendPaymentLink}
-                    disabled={isSendingLink || paymentStatus === "Paid"}
-                  >
-                    {isSendingLink ? <RefreshIcon /> : <SendIcon />}
-                    {isSendingLink ? "Sending..." : paymentLink ? "Resend Link" : "Send Payment Link"}
+                  <button type="button" className="fs-btn-primary" onClick={sendLink} disabled={onlineStage === "sending"}>
+                    {onlineStage === "sending" ? <><RefreshIcon /> Sending…</> : <><SendIcon /> Send Payment Link</>}
                   </button>
                 </div>
+              )}
 
-                {paymentLink && (
-                  <div className="fs-link-card">
+              {onlineStage === "sent" && (
+                <div className="fs-pay-sent-area">
+                  <div className="fs-pay-link-strip">
                     <div>
-                      <span>Payment Link</span>
-                      <strong>{paymentLink}</strong>
-                      <p>Reference: {paymentReference}</p>
+                      <span className="fs-pay-link-label">Payment Link Generated</span>
+                      <span className="fs-pay-link-url">{payLink}</span>
+                      <span className="fs-pay-ref">Ref: {payRef}</span>
                     </div>
-
-                    <button
-                      type="button"
-                      className="fs-secondary-btn"
-                      onClick={verifyOnlinePayment}
-                      disabled={isVerifyingPayment || paymentStatus === "Paid"}
-                    >
-                      {isVerifyingPayment ? <RefreshIcon /> : <CheckIcon />}
-                      {isVerifyingPayment ? "Checking..." : paymentStatus === "Paid" ? "Paid" : "Mock Verify Payment"}
+                    <button type="button" className="fs-btn-ghost" onClick={sendLink}>Resend</button>
+                  </div>
+                  <div className="fs-pay-verify-row">
+                    <p>Waiting for customer to complete payment.</p>
+                    <button type="button" className="fs-btn-primary" onClick={verifyPayment}>
+                      <CheckIcon /> Confirm Payment Received
                     </button>
                   </div>
-                )}
-              </div>
-            )}
-
-            {paymentMethod === "Offline" && (
-              <div className="fs-payment-panel">
-                <div className="fs-field-grid three">
-                  <Field label="Offline Mode" required>
-                    <SelectInput value={offlinePayment.mode} onChange={(value) => updateOfflinePayment("mode", value)}>
-                      {offlineModes.map((mode) => (
-                        <option key={mode} value={mode}>
-                          {mode}
-                        </option>
-                      ))}
-                    </SelectInput>
-                  </Field>
-
-                  {(offlinePayment.mode === "Cheque" || offlinePayment.mode === "Demand Draft") && (
-                    <>
-                      <Field label="Cheque / DD Number" required>
-                        <TextInput
-                          value={offlinePayment.chequeNumber}
-                          placeholder="Cheque / DD number"
-                          onChange={(value) => updateOfflinePayment("chequeNumber", value)}
-                        />
-                      </Field>
-
-                      <Field label="Cheque / DD Date" required>
-                        <TextInput
-                          type="date"
-                          value={offlinePayment.chequeDate}
-                          onChange={(value) => updateOfflinePayment("chequeDate", value)}
-                        />
-                      </Field>
-                    </>
-                  )}
-
-                  <Field label="Dealing Bank" required>
-                    <SelectInput value={offlinePayment.dealingBank} onChange={(value) => updateOfflinePayment("dealingBank", value)}>
-                      <option value="">Select bank</option>
-                      {banks.map((bank) => (
-                        <option key={bank} value={bank}>
-                          {bank}
-                        </option>
-                      ))}
-                    </SelectInput>
-                  </Field>
-
-                  <Field label="Branch Name">
-                    <TextInput
-                      value={offlinePayment.branchName}
-                      placeholder="Branch name"
-                      onChange={(value) => updateOfflinePayment("branchName", value)}
-                    />
-                  </Field>
-
-                  <Field label="Receipt Number">
-                    <TextInput
-                      value={offlinePayment.receiptNumber}
-                      placeholder="Receipt / transaction number"
-                      onChange={(value) => updateOfflinePayment("receiptNumber", value)}
-                    />
-                  </Field>
-
-                  <Field label="Amount Received" required>
-                    <CurrencyInput
-                      value={offlinePayment.amountReceived}
-                      placeholder={String(totals.payable)}
-                      onChange={(value) => updateOfflinePayment("amountReceived", value)}
-                    />
-                  </Field>
                 </div>
+              )}
 
-                <div className="fs-offline-actions">
-                  <label className="fs-upload-btn">
-                    <UploadIcon />
-                    Upload Receipt / Cheque Copy
-                    <input type="file" accept="image/*,.pdf" onChange={handleReceiptUpload} />
-                  </label>
+              {onlineStage === "verifying" && (
+                <div className="fs-pay-prompt">
+                  <p className="fs-pay-verifying"><RefreshIcon /> Verifying payment…</p>
+                </div>
+              )}
+            </div>
+          )}
 
-                  {receiptFileName && (
-                    <div className="fs-file-note">
-                      <FileIcon />
-                      <span>{receiptFileName}</span>
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    className="fs-primary-btn"
-                    onClick={captureOfflinePayment}
-                    disabled={!offlinePayment.dealingBank || !(offlinePayment.amountReceived || totals.payable)}
-                  >
-                    <CheckIcon />
-                    Capture Offline Payment
+          {/* Offline flow */}
+          {payMethod === "Offline" && !isPaid && (
+            <div className="fs-pay-area">
+              {!showOfflineForm && (
+                <div className="fs-pay-prompt">
+                  <div className="fs-pay-prompt-text">
+                    <span className="fs-pay-amount">{fmt(totals.payable)}</span>
+                    <p>Capture cheque, demand draft or other offline payment details manually.</p>
+                  </div>
+                  <button type="button" className="fs-btn-primary" onClick={() => setShowOfflineForm(true)}>
+                    Enter Payment Details
                   </button>
                 </div>
-              </div>
-            )}
-          </section>
+              )}
 
-          <section className="fs-card">
-            <div className="fs-section-header">
-              <div>
-                <span className="fs-eyebrow">Payment Status</span>
-                <h4>Payment Confirmation</h4>
-              </div>
+              {showOfflineForm && (
+                <div className="fs-offline-form">
+                  <div className="fs-field-grid-3">
+                    <div className="fs-field">
+                      <span className="fs-field-label">Payment Mode</span>
+                      <select className="fs-input fs-select" value={offlineForm.mode}
+                        onChange={(e) => setOfflineForm((p) => ({ ...p, mode: e.target.value }))}>
+                        {offlineModes.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    {(offlineForm.mode === "Cheque" || offlineForm.mode === "Demand Draft") && (
+                      <>
+                        <div className="fs-field">
+                          <span className="fs-field-label">Cheque / DD Number</span>
+                          <input className="fs-input" value={offlineForm.chequeNumber} placeholder="Number"
+                            onChange={(e) => setOfflineForm((p) => ({ ...p, chequeNumber: e.target.value }))} />
+                        </div>
+                        <div className="fs-field">
+                          <span className="fs-field-label">Date</span>
+                          <input className="fs-input" type="date" value={offlineForm.chequeDate}
+                            onChange={(e) => setOfflineForm((p) => ({ ...p, chequeDate: e.target.value }))} />
+                        </div>
+                      </>
+                    )}
+                    <div className="fs-field">
+                      <span className="fs-field-label">Dealing Bank</span>
+                      <select className="fs-input fs-select" value={offlineForm.dealingBank}
+                        onChange={(e) => setOfflineForm((p) => ({ ...p, dealingBank: e.target.value }))}>
+                        <option value="">Select bank</option>
+                        {bankOptions.map((b) => <option key={b} value={b}>{b}</option>)}
+                      </select>
+                    </div>
+                    <div className="fs-field">
+                      <span className="fs-field-label">Receipt Number</span>
+                      <input className="fs-input" value={offlineForm.receiptNumber} placeholder="Receipt / transaction no."
+                        onChange={(e) => setOfflineForm((p) => ({ ...p, receiptNumber: e.target.value }))} />
+                    </div>
+                    <div className="fs-field">
+                      <span className="fs-field-label">Amount Received</span>
+                      <div className="fs-currency-wrap">
+                        <span>₹</span>
+                        <input className="fs-currency-inner" type="number" value={offlineForm.amountReceived}
+                          placeholder={String(totals.payable)}
+                          onChange={(e) => setOfflineForm((p) => ({ ...p, amountReceived: e.target.value }))} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="fs-offline-footer">
+                    <label className="fs-upload-label">
+                      <UploadIcon />
+                      {receiptFile || "Upload Receipt / Cheque Copy"}
+                      <input type="file" accept="image/*,.pdf" style={{ display: "none" }}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) setReceiptFile(f.name); }} />
+                    </label>
+                    <div className="fs-offline-btns">
+                      <button type="button" className="fs-btn-ghost" onClick={() => setShowOfflineForm(false)}>Cancel</button>
+                      <button type="button" className="fs-btn-primary" onClick={captureOffline} disabled={!offlineForm.dealingBank}>
+                        <CheckIcon /> Capture Payment
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+          )}
 
-            <div className="fs-status-table">
-              <div className="fs-status-row header">
-                <span>Method</span>
-                <span>Amount</span>
-                <span>Status</span>
-                <span>Reference</span>
-                <span>Captured By</span>
-                <span>Updated On</span>
-              </div>
-
-              <div className="fs-status-row">
-                <span>{paymentMethod}</span>
-                <span>{formatCurrency(totals.payable)}</span>
-                <span>
-                  <b className={`fs-mini-pill ${canSubmitApplication ? "green" : paymentStatus !== "Not Initiated" ? "amber" : "gray"}`}>
-                    {paymentStatus}
-                  </b>
+          {/* Paid confirmation */}
+          {isPaid && (
+            <div className="fs-pay-confirmed">
+              <div className="fs-pay-confirmed-icon"><CheckIcon /></div>
+              <div>
+                <span className="fs-pay-confirmed-label">
+                  {onlineStage === "paid" ? "Online Payment Confirmed" : "Offline Payment Captured"}
                 </span>
-                <span>{paymentReference || "—"}</span>
-                <span>Sales User</span>
-                <span>{paymentStatus === "Not Initiated" ? "—" : getTimestamp()}</span>
+                <span className="fs-pay-confirmed-ref">
+                  {payMethod} · Ref: {payRef} · {fmt(totals.payable)}
+                </span>
               </div>
             </div>
+          )}
+        </div>
 
-            {!canSubmitApplication && (
-              <div className="fs-note amber">
-                <AlertIcon />
-                Payment must be collected before final application submission.
-              </div>
-            )}
-          </section>
+        <div className="fs-divider" />
 
-          <section className="fs-card fs-submit-card">
-            <div className="fs-submit-content">
-              <div className="fs-submit-icon">
-                <FileIcon />
-              </div>
+        {/* ── 3. Final Submission ── */}
+        <div className="fs-section">
+          <div className="fs-section-head">
+            <div>
+              <span className="fs-section-title">Final Submission</span>
+              <span className="fs-section-sub">Submit the application to the credit review queue</span>
+            </div>
+          </div>
 
+          {appStatus === "Submitted" ? (
+            <div className="fs-submitted-state">
+              <div className="fs-submitted-icon"><CheckIcon /></div>
               <div>
-                <span className="fs-eyebrow">Final Submission</span>
-                <h4>Submit Application for Review</h4>
-                <p>
-                  Once submitted, the application will move from draft to review queue and an application ID will be generated.
-                </p>
-
-                {submittedApplicationId && (
-                  <div className="fs-submitted-box">
-                    <span>Application ID</span>
-                    <strong>{submittedApplicationId}</strong>
-                    <p>Submitted at {submittedAt}</p>
-                  </div>
-                )}
+                <span className="fs-submitted-label">Application Submitted Successfully</span>
+                <span className="fs-submitted-id">{submittedId}</span>
+                <span className="fs-submitted-time">Submitted at {submittedAt}</span>
               </div>
             </div>
-
-            <button
-              type="button"
-              className="fs-submit-btn"
-              onClick={submitApplication}
-              disabled={!canSubmitApplication || isSubmitting || applicationStatus === "Submitted for Review"}
-            >
-              {isSubmitting ? <RefreshIcon /> : <CheckIcon />}
-              {isSubmitting
-                ? "Submitting..."
-                : applicationStatus === "Submitted for Review"
-                  ? "Submitted"
-                  : "Submit Application"}
-            </button>
-          </section>
-        </main>
-
-        <aside className="fs-side">
-          <section className="fs-side-card">
-            <h4>Submission Readiness</h4>
-
-            <div className="fs-checklist">
-              {readinessItems.map((item) => (
-                <div key={item.label} className={item.complete ? "done" : ""}>
-                  <span>{item.complete ? <CheckIcon /> : "•"}</span>
-                  <strong>{item.label}</strong>
+          ) : (
+            <div className="fs-submit-area">
+              {!canSubmit && (
+                <div className="fs-blocker-msg">
+                  <AlertIcon /> Payment must be collected before submitting the application.
                 </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="fs-side-card payable-card">
-            <div className="fs-payable-icon">
-              <RupeeIcon />
-            </div>
-            <h4>Net Payable</h4>
-            <strong>{formatCurrency(totals.payable)}</strong>
-            <p>
-              {paymentMethod} · {paymentStatus}
-            </p>
-          </section>
-
-          <section className="fs-side-card soft">
-            <h4>Application Summary</h4>
-
-            <div className="fs-summary-list">
-              <div>
-                <span>Status</span>
-                <strong>{applicationStatus}</strong>
-              </div>
-              <div>
-                <span>Application ID</span>
-                <strong>{submittedApplicationId || "Not generated"}</strong>
-              </div>
-              <div>
-                <span>Payment Method</span>
-                <strong>{paymentMethod}</strong>
-              </div>
-              <div>
-                <span>Payment Ref</span>
-                <strong>{paymentReference || "Pending"}</strong>
+              )}
+              <div className="fs-submit-row">
+                <p>Once submitted, the application moves to the review queue and an Application ID is generated.</p>
+                <button type="button" className="fs-submit-btn" onClick={submitApp}
+                  disabled={!canSubmit || isSubmitting}>
+                  {isSubmitting
+                    ? <><RefreshIcon /> Submitting…</>
+                    : <><CheckIcon /> Submit Application</>}
+                </button>
               </div>
             </div>
-          </section>
+          )}
+        </div>
 
-          <section className="fs-side-card soft">
-            <h4>Activity</h4>
+        <div className="fs-divider" />
 
-            <div className="fs-timeline">
-              {timeline.map((item) => (
-                <div key={item.id} className={`fs-timeline-item ${item.type}`}>
-                  <span>{item.type === "success" ? <CheckIcon /> : item.type === "warning" ? <AlertIcon /> : <FileIcon />}</span>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.desc}</p>
-                    <time>{item.time}</time>
-                  </div>
+        {/* ── 4. Activity Timeline ── */}
+        <div className="fs-section">
+          <div className="fs-section-head">
+            <div>
+              <span className="fs-section-title">Activity</span>
+              <span className="fs-section-sub">Live log of actions on this step</span>
+            </div>
+          </div>
+
+          <div className="fs-timeline">
+            {timeline.map((item, idx) => (
+              <div key={item.id} className="fs-tl-item">
+                <div className="fs-tl-track">
+                  <div className={`fs-tl-dot ${item.type}`} />
+                  {idx < timeline.length - 1 && <div className="fs-tl-line" />}
                 </div>
-              ))}
-            </div>
-          </section>
-        </aside>
-      </section>
+                <div className="fs-tl-body">
+                  <span className="fs-tl-title">{item.title}</span>
+                  <span className="fs-tl-desc">{item.desc}</span>
+                  <span className="fs-tl-time">{item.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

@@ -86,7 +86,9 @@ const mockAddressByProof = {
 };
 
 /* ── Crop Modal ──────────────────────────────────────────────────────── */
-const FRAME = 240;
+// Passport size ratio: 35mm × 45mm → 7:9
+const FRAME_W = 210;
+const FRAME_H = 270;
 
 function CropModal({ imageSrc, onSave, onCancel }) {
   const canvasRef = useRef(null);
@@ -101,21 +103,21 @@ function CropModal({ imageSrc, onSave, onCancel }) {
     const img = imgRef.current;
     if (!img) return p;
     return {
-      x: Math.min(0, Math.max(FRAME - img.naturalWidth * s,  p.x)),
-      y: Math.min(0, Math.max(FRAME - img.naturalHeight * s, p.y)),
+      x: Math.min(0, Math.max(FRAME_W - img.naturalWidth  * s, p.x)),
+      y: Math.min(0, Math.max(FRAME_H - img.naturalHeight * s, p.y)),
     };
   };
 
   const onImgLoad = () => {
     const img = imgRef.current;
     if (!img) return;
-    const fit = Math.max(FRAME / img.naturalWidth, FRAME / img.naturalHeight);
+    const fit = Math.max(FRAME_W / img.naturalWidth, FRAME_H / img.naturalHeight);
     const s = Math.max(fit, 1);
     setScale(s);
-    setPos(clamp({ x: (FRAME - img.naturalWidth * s) / 2, y: (FRAME - img.naturalHeight * s) / 2 }, s));
+    setPos(clamp({ x: (FRAME_W - img.naturalWidth * s) / 2, y: (FRAME_H - img.naturalHeight * s) / 2 }, s));
   };
 
-  const zoom = (newScale, pivotX = FRAME / 2, pivotY = FRAME / 2) => {
+  const zoom = (newScale, pivotX = FRAME_W / 2, pivotY = FRAME_H / 2) => {
     const s = Math.min(Math.max(newScale, 0.5), 5);
     const r = s / scale;
     setScale(s);
@@ -134,11 +136,13 @@ function CropModal({ imageSrc, onSave, onCancel }) {
     const canvas = canvasRef.current;
     const img    = imgRef.current;
     if (!canvas || !img) return;
-    const OUT = 400;
-    canvas.width  = OUT;
-    canvas.height = OUT;
+    // Output at 350×450 px (passport 7:9 ratio, high-res)
+    const OUT_W = 350;
+    const OUT_H = 450;
+    canvas.width  = OUT_W;
+    canvas.height = OUT_H;
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, -pos.x / scale, -pos.y / scale, FRAME / scale, FRAME / scale, 0, 0, OUT, OUT);
+    ctx.drawImage(img, -pos.x / scale, -pos.y / scale, FRAME_W / scale, FRAME_H / scale, 0, 0, OUT_W, OUT_H);
     canvas.toBlob((blob) => { if (blob) onSave(URL.createObjectURL(blob)); }, "image/jpeg", 0.92);
   };
 

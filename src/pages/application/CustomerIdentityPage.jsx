@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./CustomerIdentityPage.css";
+import { removeUploadedDocument, saveUploadedDocument } from "../../utils/documentStore";
 
 /* ── Icons ───────────────────────────────────────────────────────────── */
 const CheckIcon = () => (
@@ -7,12 +8,14 @@ const CheckIcon = () => (
     <path d="M20 6 9 17l-5-5" />
   </svg>
 );
+
 const ClockIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <circle cx="12" cy="12" r="9" />
     <path d="M12 7v5l3 2" />
   </svg>
 );
+
 const UploadIcon = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -20,6 +23,7 @@ const UploadIcon = () => (
     <path d="M12 3v12" />
   </svg>
 );
+
 const RefreshIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M21 12a9 9 0 0 1-15.2 6.5" />
@@ -28,12 +32,14 @@ const RefreshIcon = () => (
     <path d="M6 21v-5h5" />
   </svg>
 );
+
 const ShieldIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     <path d="m9 12 2 2 4-5" />
   </svg>
 );
+
 const ScanIcon = () => (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
     <path d="M4 7V5a1 1 0 0 1 1-1h2" />
@@ -43,6 +49,7 @@ const ScanIcon = () => (
     <path d="M7 12h10" />
   </svg>
 );
+
 const DocumentIcon = () => (
   <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.4">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
@@ -82,10 +89,6 @@ const buildInitialData = (stepData = {}, lead = {}) => ({
   nsdlVerifiedAt: stepData.nsdlVerifiedAt || "",
 });
 
-/**
- * Field — shows as plain text when readOnly, proper input when editable.
- * readOnly = consent not yet captured (locked state)
- */
 const Field = ({ label, value, placeholder, type = "text", onChange, readOnly, wide }) => (
   <div className={`cid-field${wide ? " wide" : ""}`}>
     <span className="cid-field-label">{label}</span>
@@ -126,13 +129,12 @@ function CustomerIdentityPage({
   const ocrCompleted = formData.panOcrStatus === "Completed";
   const panVerified = formData.panVerificationStatus === "Verified";
 
-  // Detect uploaded file type
   const isPdf =
     formData.panDocumentName?.toLowerCase().endsWith(".pdf") ||
     String(formData.panDocumentPreview).startsWith("data:application/pdf");
+
   const isImage = String(formData.panDocumentPreview).startsWith("data:image");
 
-  /* state helpers */
   const syncParent = (updates) => updateApplicationData?.(sectionKey, updates);
 
   const setValues = (updates) => {
@@ -158,7 +160,6 @@ function CustomerIdentityPage({
       minute: "2-digit",
     });
 
-  /* consent */
   const sendConsent = () => {
     setValues({
       consentStatus: "Sent",
@@ -171,93 +172,166 @@ function CustomerIdentityPage({
 
   useEffect(() => {
     if (!isConsentWaiting) return undefined;
+
     const t = window.setTimeout(() => {
-      setValues({ consentStatus: "Captured", consentCapturedAt: getTimestamp() });
+      setValues({
+        consentStatus: "Captured",
+        consentCapturedAt: getTimestamp(),
+      });
       setIsConsentWaiting(false);
       showNotice("Customer consent captured.");
     }, 5000);
+
     return () => window.clearTimeout(t);
   }, [isConsentWaiting]);
 
-  /* step status */
   useEffect(() => {
     if (consentCaptured && panVerified) {
       updateStepStatus?.("customer-identity", "Completed");
       return;
     }
+
     if (consentCaptured || panUploaded || ocrCompleted) {
       updateStepStatus?.("customer-identity", "In Progress");
     }
   }, [consentCaptured, panUploaded, ocrCompleted, panVerified, updateStepStatus]);
 
-  /* file upload */
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
+
     reader.onload = () => {
+      const previewValue = reader.result;
+      const isUploadedImage = file.type.startsWith("image/");
+
       setValues({
         panDocumentName: file.name,
-        panDocumentPreview: reader.result,
+        panDocumentPreview: previewValue,
         panOcrStatus: "Ready",
         panVerificationStatus: "Pending",
         panVerified: false,
         nsdlReferenceNumber: "",
         nsdlVerifiedAt: "",
       });
+
+      saveUploadedDocument({
+        applicant: "Primary Applicant",
+        type: "Identity Proof",
+        subtype: "PAN Card",
+        source: "Customer Identity",
+        fileName: file.name,
+        fileType: isUploadedImage ? "Image" : "PDF / Document",
+        previewUrl: previewValue,
+        ocrStatus: "Ready",
+        verificationStatus: "Pending Review",
+      });
+
       showNotice("PAN document uploaded.");
     };
+
     reader.readAsDataURL(file);
   };
 
-  /* OCR */
   const extractPanDetails = () => {
-    if (!panUploaded) { showNotice("Upload a PAN document first."); return; }
+    if (!panUploaded) {
+      showNotice("Upload a PAN document first.");
+      return;
+    }
+
     setIsReadingDocument(true);
+
     window.setTimeout(() => {
-      setValues({ ...OCR_RESULT, panOcrStatus: "Completed", panVerificationStatus: "Pending", panVerified: false });
+      setValues({
+        ...OCR_RESULT,
+        panOcrStatus: "Completed",
+        panVerificationStatus: "Pending",
+        panVerified: false,
+      });
+
+      saveUploadedDocument({
+        applicant: "Primary Applicant",
+        type: "Identity Proof",
+        subtype: "PAN Card",
+        source: "Customer Identity",
+        fileName: formData.panDocumentName,
+        fileType: isImage ? "Image" : "PDF / Document",
+        previewUrl: formData.panDocumentPreview,
+        ocrStatus: "Completed",
+        verificationStatus: "Pending Review",
+      });
+
       setIsReadingDocument(false);
       showNotice("PAN details extracted.");
     }, 1000);
   };
 
-  /* verify */
   const verifyPan = () => {
     if (!formData.panNumber || !formData.firstName || !formData.lastName || !formData.dateOfBirth) {
       showNotice("Fill in PAN number, name, and date of birth first.");
       return;
     }
+
     setIsVerifyingPan(true);
+
     window.setTimeout(() => {
+      const nsdlReferenceNumber = `NSDL-${Math.floor(100000 + Math.random() * 900000)}`;
+      const nsdlVerifiedAt = getTimestamp();
+
       setValues({
         panVerificationStatus: "Verified",
         panVerified: true,
-        nsdlReferenceNumber: `NSDL-${Math.floor(100000 + Math.random() * 900000)}`,
-        nsdlVerifiedAt: getTimestamp(),
+        nsdlReferenceNumber,
+        nsdlVerifiedAt,
       });
+
+      saveUploadedDocument({
+        applicant: "Primary Applicant",
+        type: "Identity Proof",
+        subtype: "PAN Card",
+        source: "Customer Identity",
+        fileName: formData.panDocumentName,
+        fileType: isImage ? "Image" : "PDF / Document",
+        previewUrl: formData.panDocumentPreview,
+        ocrStatus: formData.panOcrStatus === "Completed" ? "Completed" : "Ready",
+        verificationStatus: "Verified",
+      });
+
       setIsVerifyingPan(false);
       showNotice("PAN verified successfully.");
     }, 1000);
   };
 
-  /* remove */
   const removePan = () => {
     setValues({
-      panDocumentName: "", panDocumentPreview: "",
-      panOcrStatus: "Pending", panVerificationStatus: "Pending",
-      panNumber: "", firstName: lead?.firstName || "", lastName: lead?.lastName || "",
-      fatherName: "", dateOfBirth: "", panVerified: false,
-      nsdlReferenceNumber: "", nsdlVerifiedAt: "",
+      panDocumentName: "",
+      panDocumentPreview: "",
+      panOcrStatus: "Pending",
+      panVerificationStatus: "Pending",
+      panNumber: "",
+      firstName: lead?.firstName || "",
+      lastName: lead?.lastName || "",
+      fatherName: "",
+      dateOfBirth: "",
+      panVerified: false,
+      nsdlReferenceNumber: "",
+      nsdlVerifiedAt: "",
     });
+
+    removeUploadedDocument({
+      applicant: "Primary Applicant",
+      type: "Identity Proof",
+      subtype: "PAN Card",
+    });
+
     if (fileInputRef.current) fileInputRef.current.value = "";
+
     showNotice("PAN details cleared.");
   };
 
-  /* ── Render ── */
   return (
     <div className="cid-page">
-
-      {/* Toast */}
       {notice && (
         <div className="cid-toast">
           <CheckIcon />
@@ -265,7 +339,6 @@ function CustomerIdentityPage({
         </div>
       )}
 
-      {/* Page header */}
       <div className="cid-page-header">
         <h2 className="cid-page-title">Customer Identity</h2>
         <p className="cid-page-sub">
@@ -273,7 +346,6 @@ function CustomerIdentityPage({
         </p>
       </div>
 
-      {/* ── Step 01: Consent ── */}
       <div className="cid-section">
         <div className="cid-section-head">
           <div className="cid-step-info">
@@ -327,6 +399,7 @@ function CustomerIdentityPage({
             Awaiting customer confirmation on their device
           </div>
         )}
+
         {consentCaptured && (
           <div className="cid-note green">
             <CheckIcon />
@@ -335,7 +408,6 @@ function CustomerIdentityPage({
         )}
       </div>
 
-      {/* ── Step 02: PAN ── */}
       <div className={`cid-section${!consentCaptured ? " cid-section--locked" : ""}`}>
         <div className="cid-section-head">
           <div className="cid-step-info">
@@ -358,8 +430,6 @@ function CustomerIdentityPage({
         )}
 
         <div className="cid-pan-layout">
-
-          {/* Upload column */}
           <div className="cid-upload-col">
             <input
               ref={fileInputRef}
@@ -370,7 +440,6 @@ function CustomerIdentityPage({
               disabled={!consentCaptured}
             />
 
-            {/* Preview / drop zone */}
             <div
               className={`cid-upload-zone${!panUploaded && consentCaptured ? " clickable" : ""}`}
               onClick={!panUploaded && consentCaptured ? () => fileInputRef.current?.click() : undefined}
@@ -399,7 +468,6 @@ function CustomerIdentityPage({
               )}
             </div>
 
-            {/* Action buttons */}
             <div className="cid-upload-actions">
               <button
                 className="cid-btn-secondary"
@@ -425,7 +493,6 @@ function CustomerIdentityPage({
             </div>
           </div>
 
-          {/* Form column */}
           <div className="cid-form-col">
             <div className="cid-form-grid">
               <Field
@@ -480,7 +547,6 @@ function CustomerIdentityPage({
               />
             </div>
 
-            {/* Verify row */}
             <div className="cid-verify-row">
               <div>
                 <div className="cid-copy-main">

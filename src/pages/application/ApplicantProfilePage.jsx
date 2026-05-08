@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import "./ApplicantProfilePage.css";
+import { saveUploadedDocument } from "../../utils/documentStore";
 
 const UploadIcon = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -279,14 +280,24 @@ function ApplicantProfilePage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setPhotoName(file.name);
+    const previewUrl = file.type.startsWith("image/")
+      ? URL.createObjectURL(file)
+      : "";
 
-    if (file.type.startsWith("image/")) {
-      const previewUrl = URL.createObjectURL(file);
-      setPhotoPreview(previewUrl);
-    } else {
-      setPhotoPreview("");
-    }
+    setPhotoName(file.name);
+    setPhotoPreview(previewUrl);
+
+    saveUploadedDocument({
+      applicant: "Primary Applicant",
+      type: "Photograph",
+      subtype: "Applicant Photo",
+      source: "Applicant Profile",
+      fileName: file.name,
+      fileType: file.type.startsWith("image/") ? "Image" : "PDF / Document",
+      previewUrl,
+      ocrStatus: "Not Applicable",
+      verificationStatus: "Captured",
+    });
   };
 
   const handleSameAsPermanent = (checked) => {
@@ -314,13 +325,11 @@ function ApplicantProfilePage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setAddressProofName(file.name);
+    const isImage = file.type.startsWith("image/");
+    const previewUrl = isImage ? URL.createObjectURL(file) : "";
 
-    if (file.type.startsWith("image/")) {
-      setAddressProofPreview(URL.createObjectURL(file));
-    } else {
-      setAddressProofPreview("");
-    }
+    setAddressProofName(file.name);
+    setAddressProofPreview(previewUrl);
 
     const capturedAddress = mockAddressByProof[addressProofType] || mockAddressByProof.Aadhaar;
 
@@ -331,6 +340,18 @@ function ApplicantProfilePage() {
     }
 
     setAddressProofCaptured(true);
+
+    saveUploadedDocument({
+      applicant: "Primary Applicant",
+      type: "Address Proof",
+      subtype: addressProofType,
+      source: "Applicant Profile",
+      fileName: file.name,
+      fileType: isImage ? "Image" : "PDF / Document",
+      previewUrl,
+      ocrStatus: "Captured",
+      verificationStatus: "Pending Review",
+    });
   };
 
   const completionItems = [

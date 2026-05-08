@@ -155,7 +155,7 @@ const buildEmailVerificationLink = ({ leadNumber, email }) => {
   const leadParam = encodeURIComponent(leadNumber || "");
   const emailParam = encodeURIComponent(email || "");
 
-  return `${baseUrl}/verify-email?leadId=${leadParam}&email=${emailParam}`;
+  return `https://main.d3prbk14vc3ef9.amplifyapp.com/email/${emailParam}`;
 };
 
 const useVerificationState = (leadData) => {

@@ -837,6 +837,7 @@
 .co-embedded-step {
   flex: 1;
   overflow-y: auto;
+  padding: 30px;
 }
 
 /* ── Drawer footer ─────────────────────────────────────────────────── */

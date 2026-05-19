@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState,useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./ApplicationOnboardingPage.css";
 import CustomerIdentityPage from "./CustomerIdentityPage";
@@ -131,9 +131,43 @@ function ApplicationOnboardingPage({ leads = [], onLogout }) {
   const navigate  = useNavigate();
   const { leadId } = useParams();
 
-  const [activeStepId,    setActiveStepId]    = useState(STEPS[0].id);
-  const [stepStatuses,    setStepStatuses]    = useState(INITIAL_STATUSES);
+  const [activeStepId, setActiveStepId] = useState(STEPS[0].id);
+  const [stepStatuses, setStepStatuses] = useState(INITIAL_STATUSES);
   const [applicationData, setApplicationData] = useState(INITIAL_APPLICATION_DATA);
+
+  const [lead, setLead] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+  fetchLead();
+}, [leadId]);
+
+const fetchLead = async () => {
+  try {
+    const response = await fetch(
+      `https://xx8ep3p2ue.execute-api.ap-south-1.amazonaws.com/prod/leads/${leadId}`
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      setLead({
+        id: data.data.leadnumber,
+        firstName: data.data.first_name,
+        lastName: data.data.last_name,
+        mobile: data.data.mobile,
+        email: data.data.email,
+        product: data.data.product,
+        source: data.data.source || "Direct",
+        owner: data.data.owner || "Sales User",
+        status: data.data.stage || "New",
+      });
+    }
+  } catch (error) {
+    console.error("Fetch Lead Error:", error);
+  } finally {
+    setLoading(false);
+  }
+  };
 
   const activeStepIndex    = STEPS.findIndex((s) => s.id === activeStepId);
   const activeStep         = STEPS[activeStepIndex] ?? STEPS[0];
@@ -142,20 +176,24 @@ function ApplicationOnboardingPage({ leads = [], onLogout }) {
   const completedCount     = Object.values(stepStatuses).filter((s) => s === "Completed").length;
   const progressPercent    = Math.round((completedCount / STEPS.length) * 100);
   const isLastStep         = activeStepIndex === STEPS.length - 1;
-  const lead               = leads.find((l) => l.id === leadId);
 
   const application = lead
-    ? {
-        id:            `APP-${lead.id.replace("LD-", "")}`,
-        leadId:        lead.id,
-        applicantName: `${lead.firstName} ${lead.lastName}`,
-        product:       lead.product,
-        source:        lead.source,
-        owner:         lead.owner,
-        requestedAmount: applicationData.loanRequirement.requestedLoanAmount || "₹42,00,000",
-        createdDate:   new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-      }
-    : null;
+  ? {
+      id: `APP-${lead.id.replace("LD-", "")}`,
+      leadId: lead.id,
+      applicantName: `${lead.firstName || ""} ${lead.lastName || ""}`,
+      product: lead.product || "Home Loan",
+      source: lead.source || "Direct",
+      owner: lead.owner || "Sales User",
+      requestedAmount:
+        applicationData.loanRequirement.requestedLoanAmount || "₹42,00,000",
+      createdDate: new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+    }
+  : null;
 
   const updateApplicationData = (section, values) => {
     setApplicationData((prev) => {
@@ -214,6 +252,21 @@ function ApplicationOnboardingPage({ leads = [], onLogout }) {
     navigate("/login", { replace: true });
   };
 
+  if (loading) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "18px",
+      }}
+    >
+      Loading application...
+    </div>
+  );
+  }
   // ── Not-found fallback ─────────────────────────────────────────────────────
   if (!lead) {
     return (

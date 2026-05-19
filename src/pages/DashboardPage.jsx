@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./DashboardPage.css";
 
@@ -170,15 +170,72 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
   const [isCreatePanelOpen, setIsCreatePanelOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [leadForm, setLeadForm] = useState(emptyLeadForm);
+  const [apiLeads, setApiLeads] = useState([]);
+  useEffect(() => {
+  fetchTodayLeads();
+}, []);
 
-  const filteredLeads = leads.filter((lead) => {
+const fetchTodayLeads = async () => {
+  try {
+    const response = await fetch(
+      "https://xx8ep3p2ue.execute-api.ap-south-1.amazonaws.com/prod/leads/today"
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      const formattedLeads = data.data.map((lead) => ({
+        id: lead.leadnumber,
+        firstName: lead.first_name,
+        lastName: lead.last_name,
+        mobile: lead.mobile,
+        email: lead.email,
+        product: lead.product,
+        status: lead.stage || "New",
+        owner: "Sales User",
+        createdDate: new Date(lead.created_at).toLocaleDateString(
+          "en-GB",
+          {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }
+        ),
+      }));
+
+      setApiLeads(formattedLeads);
+    }
+  } catch (error) {
+    console.error("Fetch Today Leads Error:", error);
+  }
+  };
+
+  const displayLeads =
+  selectedListView === "Leads created today"
+    ? apiLeads
+    : leads;
+
+  const filteredLeads = displayLeads.filter((lead) => {
     if (selectedListView === "All Leads") return true;
-    if (selectedListView === "My Leads") return lead.owner !== "Contact Center";
-    if (selectedListView === "New Leads") return lead.status === "New";
-    if (selectedListView === "In Progress Leads") return lead.status === "In Progress";
-    if (selectedListView === "Converted Leads") return lead.status === "Converted";
-    if (selectedListView === "Disqualified Leads") return lead.status === "Disqualified";
-    if (selectedListView === "Leads created today") return lead.createdDate === new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+    if (selectedListView === "My Leads")
+      return lead.owner !== "Contact Center";
+
+    if (selectedListView === "New Leads")
+      return lead.status === "New";
+
+    if (selectedListView === "In Progress Leads")
+      return lead.status === "In Progress";
+
+    if (selectedListView === "Converted Leads")
+      return lead.status === "Converted";
+
+    if (selectedListView === "Disqualified Leads")
+      return lead.status === "Disqualified";
+
+    if (selectedListView === "Leads created today")
+      return true;
+
     return true;
   });
 

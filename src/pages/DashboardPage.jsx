@@ -60,6 +60,7 @@ const listViews = [
   "In Progress Leads",
   "Converted Leads",
   "Disqualified Leads",
+  "Leads created today",
 ];
 
 const productOptions = [
@@ -177,6 +178,7 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
     if (selectedListView === "In Progress Leads") return lead.status === "In Progress";
     if (selectedListView === "Converted Leads") return lead.status === "Converted";
     if (selectedListView === "Disqualified Leads") return lead.status === "Disqualified";
+    if (selectedListView === "Leads created today") return lead.createdDate === new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     return true;
   });
 
@@ -230,7 +232,7 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
       }
 
       const newLead = {
-        id: data.id || `LD-${Date.now()}`,
+        id: data.leadnumber,
         firstName: leadForm.firstName,
         lastName: leadForm.lastName,
         mobile: leadForm.mobile,

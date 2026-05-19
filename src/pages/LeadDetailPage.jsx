@@ -875,7 +875,7 @@ function LeadDetailPage({ onLogout, onConvertLead }) {
         const dbLead = data.data;
 
         setLead({
-          id: dbLead.id,
+          id: dbLead.leadnumber,
           leadNumber: dbLead.leadnumber,
 
           firstName: dbLead.first_name,

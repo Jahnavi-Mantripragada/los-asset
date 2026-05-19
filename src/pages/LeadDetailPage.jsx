@@ -1047,7 +1047,14 @@ function LeadDetailPage({ onLogout, onConvertLead }) {
     setPanelForm({});
   };
 
-  const handleConvert = () => {
+  const handleConvert = async () => {
+     try {
+    await fetch(
+      `https://xx8ep3p2ue.execute-api.ap-south-1.amazonaws.com/prod/leads/${leadId}/convert`,
+      {
+        method: "PUT",
+      }
+    );
     const c = { ...lead, ...leadData, id: leadData.leadNumber, status: "Converted", leadStage: "Converted", loanFileStatus: "Application In Progress" };
     setLeadStatus("Converted");
     setLeadData(p => ({ ...p, leadStage: "Converted", loanFileStatus: "Application In Progress" }));
@@ -1055,6 +1062,9 @@ function LeadDetailPage({ onLogout, onConvertLead }) {
     setShowModal(null);
     if (onConvertLead) onConvertLead(c);
     navigate(`/applications/${leadId}/onboarding`);
+  }catch (error) {
+    console.error("Convert Lead Error:", error);
+  }
   };
 
   const handleStatusStep = (step) => {

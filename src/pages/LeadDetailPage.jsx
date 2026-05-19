@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { generateClient } from "aws-amplify/api";
 import "./LeadDetailPage.css";
 
 import { EMAIL_TEMPLATES } from "../templates/emailTemplates";
@@ -841,6 +842,7 @@ function LeadDetailPage({ onLogout, onConvertLead }) {
   const [panelForm, setPanelForm] = useState({});
   const [uploadedDocs, setUploadedDocs] = useState([]);
   const fileInputRef = useRef(null);
+  const client = generateClient();
 
   const {
     verificationSent,
@@ -850,6 +852,48 @@ function LeadDetailPage({ onLogout, onConvertLead }) {
     handleVerify,
     handleResend
   } = useVerificationState(leadData);
+
+  useEffect(() => {
+  const subscription = client
+    .graphql({
+      query: `
+        subscription OnLeadUpdated($leadnumber: ID!) {
+          onLeadUpdated(leadnumber: $leadnumber) {
+            leadnumber
+            emailverified
+            mobileverified
+          }
+        }
+      `,
+      variables: {
+        leadnumber: leadId,
+      },
+    })
+    .subscribe({
+      next: ({ data }) => {
+        const updatedLead = data?.onLeadUpdated;
+
+        if (!updatedLead) return;
+
+        console.log("Realtime update for THIS lead:", updatedLead);
+
+        setLead((prev) => {
+          if (!prev) return prev;
+
+          return {
+            ...prev,
+            emailverified: updatedLead.emailverified,
+            mobileverified: updatedLead.mobileverified,
+          };
+        });
+      },
+      error: (err) => {
+        console.error("Subscription error:", err);
+      },
+    });
+
+  return () => subscription.unsubscribe();
+  }, [leadId]);
 
   useEffect(() => {
     if (lead) {

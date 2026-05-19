@@ -820,10 +820,11 @@ function DocumentRow({ doc, onDelete }) {
 }
 
 /* ══ MAIN COMPONENT ══ */
-function LeadDetailPage({ leads = [], onLogout, onConvertLead }) {
+function LeadDetailPage({ onLogout, onConvertLead }) {
   const navigate = useNavigate();
   const { leadId } = useParams();
-  const lead = leads.find(l => l.id === leadId);
+  const [lead, setLead] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const initialData = buildLeadDetails(lead || {});
 
@@ -858,6 +859,46 @@ function LeadDetailPage({ leads = [], onLogout, onConvertLead }) {
       setActivities([{ id: 1, type: "status", title: "Lead Created", desc: `Created via ${updatedData.generationMode} · Source: ${updatedData.leadOrigin}`, time: "Today, 9:30 AM" }]);
     }
   }, [leadId, lead]);
+
+  useEffect(() => {
+  const fetchLead = async () => {
+    try {
+      const res = await fetch(
+        `https://xx8ep3p2ue.execute-api.ap-south-1.amazonaws.com/prod/leads/${leadId}`
+      );
+
+      const data = await res.json();
+
+      console.log("Lead API Response:", data);
+
+      if (data.success) {
+        const dbLead = data.data;
+
+        setLead({
+          id: dbLead.id,
+          leadNumber: dbLead.leadnumber,
+
+          firstName: dbLead.first_name,
+          lastName: dbLead.last_name,
+
+          mobile: dbLead.mobile,
+          email: dbLead.email,
+
+          product: dbLead.product,
+          source: dbLead.source,
+
+          leadStage: dbLead.stage,
+        });
+      }
+    } catch (err) {
+      console.error("Fetch Lead Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchLead();
+  }, [leadId]);
 
   const handleFieldEdit = (key, val) => {
     setSectionEditMode(null);
@@ -1033,6 +1074,9 @@ function LeadDetailPage({ leads = [], onLogout, onConvertLead }) {
     }
   };
 
+  if (loading) {
+  return <div>Loading...</div>;
+  }
   if (!lead) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", gap: "16px", fontFamily: "inherit" }}>

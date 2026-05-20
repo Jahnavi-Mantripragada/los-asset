@@ -871,6 +871,7 @@ function LeadDetailPage({ onLogout, onConvertLead }) {
     })
     .subscribe({
       next: ({ data }) => {
+        console.log("EVENT:", data);
         const updatedLead = data?.onLeadUpdated;
 
         if (!updatedLead) return;

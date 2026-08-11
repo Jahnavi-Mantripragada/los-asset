@@ -54,31 +54,34 @@ const ExpandIcon = () => (
 /* ── Static Data ────────────────────────────────────────────── */
 
 const listViews = [
+  "Leads Created Today",
   "All Leads",
   "My Leads",
   "New Leads",
   "In Progress Leads",
   "Converted Leads",
   "Disqualified Leads",
-  "Leads created today",
-];
-
-const productOptions = [
-  "Home Loan",
-  "Loan Against Property",
-  "Working Capital",
-  "Business Loan",
-  "Personal Loan",
 ];
 
 const sourceOptions = [
-  "Website",
-  "Mobile App",
-  "Digital Aggregator",
-  "Branch Walk-in",
-  "Outbound Call",
-  "Inbound Call",
-  "Referral",
+  { value: "Branch Walk-in", icon: "⌂", description: "Customer at branch" },
+  {
+    value: "Relationship Manager",
+    icon: "◎",
+    description: "RM-generated enquiry",
+  },
+  {
+    value: "Customer Referral",
+    icon: "↗",
+    description: "Existing customer referral",
+  },
+  { value: "Gold Loan Campaign", icon: "◆", description: "Campaign response" },
+  { value: "Website", icon: "⌁", description: "Digital enquiry" },
+  {
+    value: "Contact Centre",
+    icon: "◉",
+    description: "Inbound or outbound call",
+  },
 ];
 
 const emptyLeadForm = {
@@ -86,77 +89,123 @@ const emptyLeadForm = {
   lastName: "",
   mobile: "",
   email: "",
-  product: "",
+  product: "Gold Loan",
   source: "",
 };
 
 const channelData = [
-  { label: "Website", value: "34%", width: "74%", icon: "⌁" },
-  { label: "Mobile App", value: "26%", width: "58%", icon: "▣" },
-  { label: "Branch Walk-in", value: "18%", width: "42%", icon: "⌂" },
-  { label: "Referral", value: "12%", width: "31%", icon: "↗" },
-  { label: "Aggregator", value: "10%", width: "26%", icon: "◆" },
+  { label: "Branch Walk-in", value: "38%", width: "82%", icon: "⌂" },
+  { label: "RM Referral", value: "24%", width: "58%", icon: "↗" },
+  { label: "Campaign", value: "16%", width: "42%", icon: "◆" },
+  { label: "Contact Centre", value: "12%", width: "31%", icon: "◉" },
+  { label: "Website", value: "10%", width: "26%", icon: "⌁" },
 ];
 
 const funnelData = [
   { label: "Lead Captured", value: 186, icon: "01" },
-  { label: "Application In Progress", value: 74, icon: "02" },
-  { label: "Document Collection", value: 39, icon: "03" },
-  { label: "Verification Review", value: 31, icon: "04" },
-  { label: "Credit Review", value: 22, icon: "05" },
-  { label: "APS Generated", value: 16, icon: "06" },
+  { label: "Lead Converted", value: 124, icon: "02" },
+  { label: "Application Created", value: 108, icon: "03" },
+  { label: "Jewellery Appraised", value: 82, icon: "04" },
+  { label: "Checker Approved", value: 66, icon: "05" },
+  { label: "Documentation Complete", value: 54, icon: "06" },
+  { label: "Disbursed", value: 47, icon: "07" },
 ];
 
-const verificationQueue = [
-  { applicant: "Aarav Sharma", lead: "LD-10017", check: "PAN Verification", status: "Pending" },
-  { applicant: "Neha Mehta", lead: "LD-10012", check: "Mobile OTP", status: "Completed" },
-  { applicant: "Rohan Iyer", lead: "LD-10008", check: "Passport OCR", status: "Review" },
+const conversionQueue = [
+  {
+    applicant: "Aarav Sharma",
+    lead: "LD-10017",
+    check: "Residential proof",
+    status: "Pending",
+  },
+  {
+    applicant: "Neha Mehta",
+    lead: "LD-10012",
+    check: "Customer consent",
+    status: "Completed",
+  },
+  {
+    applicant: "Rohan Iyer",
+    lead: "LD-10008",
+    check: "CBS customer match",
+    status: "Review",
+  },
 ];
 
-const creditQueue = [
-  { application: "APP-24091", customer: "Karan Malhotra", stage: "Credit Review", aging: "2 Days" },
-  { application: "APP-24084", customer: "Priya Nair", stage: "Sent Back", aging: "4 Days" },
-  { application: "APP-24079", customer: "Vivek Rao", stage: "APS Pending", aging: "1 Day" },
+const appraisalQueue = [
+  {
+    application: "GL-2026-01842",
+    customer: "Karan Malhotra",
+    stage: "Awaiting Appraiser",
+    aging: "2 Hrs",
+  },
+  {
+    application: "GL-2026-01837",
+    customer: "Priya Nair",
+    stage: "Appraisal In Progress",
+    aging: "4 Hrs",
+  },
+  {
+    application: "GL-2026-01829",
+    customer: "Vivek Rao",
+    stage: "Maker Clarification",
+    aging: "1 Day",
+  },
 ];
 
 const documentExceptions = [
-  { lead: "LD-10015", document: "Income Proof", issue: "Document missing", severity: "High" },
-  { lead: "LD-10011", document: "PAN Card", issue: "Name mismatch", severity: "Medium" },
-  { lead: "LD-10006", document: "Bank Statement", issue: "Re-upload required", severity: "Low" },
+  {
+    lead: "GL-2026-01834",
+    document: "Ownership Proof",
+    issue: "Document missing",
+    severity: "High",
+  },
+  {
+    lead: "GL-2026-01822",
+    document: "Land Record",
+    issue: "Survey number mismatch",
+    severity: "Medium",
+  },
+  {
+    lead: "GL-2026-01811",
+    document: "Jewellery Photo",
+    issue: "Re-upload required",
+    severity: "Low",
+  },
 ];
 
 const activityData = [
   {
-    title: "PAN verification completed",
-    subtitle: "Applicant identity check completed for LD-10018.",
+    title: "Lead marked ready for conversion",
+    subtitle: "Required customer details completed for LD-10018.",
     time: "12 min ago",
     icon: "✓",
   },
   {
-    title: "Application sent back for rework",
-    subtitle: "Income proof missing for credit review.",
+    title: "Jewellery appraisal completed",
+    subtitle: "Net eligible weight recorded for GL-2026-01842.",
     time: "38 min ago",
-    icon: "↩",
+    icon: "◆",
   },
   {
-    title: "New digital lead assigned",
-    subtitle: "Website lead routed to Sales User.",
+    title: "Customer document request sent",
+    subtitle: "Secure email sent for missing land ownership proof.",
     time: "1 hr ago",
-    icon: "+",
+    icon: "✉",
   },
   {
-    title: "APS generated",
-    subtitle: "Loan file moved to APS generated stage.",
+    title: "Application approved by checker",
+    subtitle: "GL-2026-01829 moved to documentation.",
     time: "2 hrs ago",
-    icon: "★",
+    icon: "✓",
   },
 ];
 
 const navItems = [
   { icon: "▦", label: "Dashboard", active: true },
   { icon: "◎", label: "Leads", active: false },
-  { icon: "▣", label: "Loan Files", active: false },
-  { icon: "◌", label: "Applicants", active: false },
+  { icon: "▣", label: "Applications", active: false },
+  { icon: "◆", label: "Appraisals", active: false },
   { icon: "□", label: "Documents", active: false },
   { icon: "◇", label: "Approvals", active: false },
 ];
@@ -166,63 +215,75 @@ const navItems = [
 function DashboardPage({ leads = [], onCreateLead, onLogout }) {
   const navigate = useNavigate();
 
-  const [selectedListView, setSelectedListView] = useState("All Leads");
+  const [selectedListView, setSelectedListView] = useState(
+    "Leads Created Today",
+  );
   const [isCreatePanelOpen, setIsCreatePanelOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [leadForm, setLeadForm] = useState(emptyLeadForm);
   const [apiLeads, setApiLeads] = useState([]);
+  const [isTodayLeadsLoading, setIsTodayLeadsLoading] = useState(true);
+  const [todayLeadsError, setTodayLeadsError] = useState("");
+  const [isCreatingLead, setIsCreatingLead] = useState(false);
+  const [createLeadError, setCreateLeadError] = useState("");
+
   useEffect(() => {
-  fetchTodayLeads();
-}, []);
+    const fetchTodayLeads = async () => {
+      try {
+        setIsTodayLeadsLoading(true);
+        setTodayLeadsError("");
 
-const fetchTodayLeads = async () => {
-  try {
-    const response = await fetch(
-      "https://xx8ep3p2ue.execute-api.ap-south-1.amazonaws.com/prod/leads/today"
-    );
+        const response = await fetch(
+          "https://xx8ep3p2ue.execute-api.ap-south-1.amazonaws.com/prod/leads/today",
+        );
 
-    const data = await response.json();
+        if (!response.ok) {
+          throw new Error("Unable to load today's leads.");
+        }
 
-    if (data.success) {
-      const formattedLeads = data.data.map((lead) => ({
-        id: lead.leadnumber,
-        firstName: lead.first_name,
-        lastName: lead.last_name,
-        mobile: lead.mobile,
-        email: lead.email,
-        product: lead.product,
-        status: lead.stage || "New",
-        owner: "Sales User",
-        createdDate: new Date(lead.created_at).toLocaleDateString(
-          "en-GB",
-          {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }
-        ),
-      }));
+        const data = await response.json();
 
-      setApiLeads(formattedLeads);
-    }
-  } catch (error) {
-    console.error("Fetch Today Leads Error:", error);
-  }
-  };
+        if (data.success) {
+          const formattedLeads = data.data.map((lead) => ({
+            id: lead.leadnumber,
+            firstName: lead.first_name,
+            lastName: lead.last_name,
+            mobile: lead.mobile,
+            email: lead.email,
+            product: lead.product || "Gold Loan",
+            status: lead.stage || "New",
+            owner: lead.owner || "Sales User",
+            createdDate: new Date(lead.created_at).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
+          }));
+
+          setApiLeads(formattedLeads);
+        } else {
+          throw new Error(data.message || "Unable to load today's leads.");
+        }
+      } catch (error) {
+        console.error("Fetch Today Leads Error:", error);
+        setTodayLeadsError(error.message || "Unable to load today's leads.");
+      } finally {
+        setIsTodayLeadsLoading(false);
+      }
+    };
+
+    fetchTodayLeads();
+  }, []);
 
   const displayLeads =
-  selectedListView === "Leads created today"
-    ? apiLeads
-    : leads;
+    selectedListView === "Leads Created Today" ? apiLeads : leads;
 
   const filteredLeads = displayLeads.filter((lead) => {
     if (selectedListView === "All Leads") return true;
 
-    if (selectedListView === "My Leads")
-      return lead.owner !== "Contact Center";
+    if (selectedListView === "My Leads") return lead.owner !== "Contact Center";
 
-    if (selectedListView === "New Leads")
-      return lead.status === "New";
+    if (selectedListView === "New Leads") return lead.status === "New";
 
     if (selectedListView === "In Progress Leads")
       return lead.status === "In Progress";
@@ -233,18 +294,24 @@ const fetchTodayLeads = async () => {
     if (selectedListView === "Disqualified Leads")
       return lead.status === "Disqualified";
 
-    if (selectedListView === "Leads created today")
-      return true;
+    if (selectedListView === "Leads Created Today") return true;
 
     return true;
   });
 
   const totalLeads = leads.length;
   const newLeads = leads.filter((l) => l.status === "New").length;
-  const inProgressLeads = leads.filter((l) => l.status === "In Progress").length;
+  const inProgressLeads = leads.filter(
+    (l) => l.status === "In Progress",
+  ).length;
   const convertedLeads = leads.filter((l) => l.status === "Converted").length;
-  const disqualifiedLeads = leads.filter((l) => l.status === "Disqualified").length;
-  const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+  const conversionRate =
+    totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+  const currentDateLabel = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
 
   const handleSignOut = async () => {
     try {
@@ -257,12 +324,14 @@ const fetchTodayLeads = async () => {
 
   const handleOpenCreatePanel = () => {
     setLeadForm(emptyLeadForm);
+    setCreateLeadError("");
     setIsCreatePanelOpen(true);
   };
 
   const handleCloseCreatePanel = () => {
     setIsCreatePanelOpen(false);
     setLeadForm(emptyLeadForm);
+    setCreateLeadError("");
   };
 
   const handleLeadFormChange = (e) => {
@@ -270,20 +339,35 @@ const fetchTodayLeads = async () => {
     setLeadForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSourceSelect = (source) => {
+    setLeadForm((previousForm) => ({ ...previousForm, source }));
+    if (createLeadError) setCreateLeadError("");
+  };
+
   const handleCreateLead = async (e) => {
     e.preventDefault();
 
+    if (!leadForm.source) {
+      setCreateLeadError(
+        "Please select how the customer enquiry was received.",
+      );
+      return;
+    }
+
     try {
-      const res = await fetch("https://weaq9mioy2.execute-api.ap-south-1.amazonaws.com/create-lead", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      setIsCreatingLead(true);
+      setCreateLeadError("");
+      const res = await fetch(
+        "https://weaq9mioy2.execute-api.ap-south-1.amazonaws.com/create-lead",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(leadForm),
         },
-        body: JSON.stringify(leadForm),
-      });
-
+      );
       const data = await res.json();
-
       if (!res.ok) {
         throw new Error(data.message || "Failed to create lead");
       }
@@ -298,17 +382,26 @@ const fetchTodayLeads = async () => {
         source: leadForm.source,
         status: "New",
         owner: "Sales User",
-        createdDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+        createdDate: new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
         ...data,
       };
 
-      setSelectedListView("All Leads");
+      setApiLeads((currentLeads) => [newLead, ...currentLeads]);
       handleCloseCreatePanel();
 
       const newLeadId = onCreateLead ? onCreateLead(newLead) : newLead.id;
       navigate(`/leads/${newLeadId}`);
     } catch (err) {
-      alert(err.message || "An error occurred while creating the lead");
+      alert(err)
+      setCreateLeadError(
+        err.message || "An error occurred while creating the lead.",
+      );
+    } finally {
+      setIsCreatingLead(false);
     }
   };
 
@@ -318,11 +411,19 @@ const fetchTodayLeads = async () => {
       <aside className={`app-sidebar${isSidebarCollapsed ? " collapsed" : ""}`}>
         <div className="sidebar-brand">
           <div className="sidebar-logo">
-            <img src="/images/logo.png" alt="LOS Portal Logo" className="sidebar-logo-img" />
+            <img
+              src={
+                isSidebarCollapsed
+                  ? "/images/yes-bank-logo-icon.png"
+                  : "/images/yes-bank-logo-dark-bg.png"
+              }
+              alt="YES BANK"
+              className="sidebar-logo-img"
+            />
           </div>
           <div className="sidebar-brand-text">
-            <h2>LOS Portal</h2>
-            <p>Loan Origination Workspace</p>
+            <h2>Gold Loan Portal</h2>
+            <p>Origination &amp; Appraisal</p>
           </div>
         </div>
 
@@ -352,9 +453,9 @@ const fetchTodayLeads = async () => {
         </nav>
 
         <div className="sidebar-insight-card">
-          <span>Today's LOS Focus</span>
-          <strong>12 loan files need attention</strong>
-          <p>Inactive leads, document pending, and sent-back applications.</p>
+          <span>Today's Gold Loan Focus</span>
+          <strong>12 applications need attention</strong>
+          <p>Conversion readiness, appraisal hand-offs, and checker actions.</p>
         </div>
 
         <div className="sidebar-footer">
@@ -372,12 +473,9 @@ const fetchTodayLeads = async () => {
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-title-block">
-            <span className="page-eyebrow">LOS Command Center</span>
-            <h1>Morning Coffee View</h1>
-            <p>
-              A focused operational view of lead intake, loan file movement,
-              verification readiness, and credit review queues.
-            </p>
+            <span className="page-eyebrow">Branch Lending Workspace</span>
+            <h1>Gold Loan Operations</h1>
+            <p>Pune Camp Branch · {currentDateLabel}</p>
           </div>
 
           <div className="topbar-actions">
@@ -391,20 +489,101 @@ const fetchTodayLeads = async () => {
               <span className="logout-label">Sign Out</span>
             </button>
 
-            <button className="create-lead-button" onClick={handleOpenCreatePanel}>
+            <button
+              className="create-lead-button"
+              onClick={handleOpenCreatePanel}
+            >
               <span className="create-lead-plus">+</span>
-              Create Lead
+              Create Gold Loan Lead
             </button>
           </div>
         </header>
 
+        <section className="gold-dashboard-hero">
+          <div className="gold-hero-copy">
+            <span className="gold-hero-kicker">
+              <i aria-hidden="true" />
+              Sales User Work Queue
+            </span>
+            <h2>
+              Prioritize today's leads and move{" "}
+              <em>eligible customers to application.</em>
+            </h2>
+            <p>
+              Start with new enquiries, complete missing customer details, and
+              follow up on leads ready for conversion. Appraisal and checker
+              queues remain visible for timely coordination.
+            </p>
+
+            <div className="gold-journey-strip" aria-label="Gold loan stages">
+              <span className="active">
+                <b>01</b>Lead
+              </span>
+              <i aria-hidden="true" />
+              <span>
+                <b>02</b>Application
+              </span>
+              <i aria-hidden="true" />
+              <span>
+                <b>03</b>Appraisal
+              </span>
+              <i aria-hidden="true" />
+              <span>
+                <b>04</b>Sanction
+              </span>
+              <i aria-hidden="true" />
+              <span>
+                <b>05</b>Disbursement
+              </span>
+            </div>
+          </div>
+
+          <div className="gold-hero-snapshot">
+            <div className="snapshot-title">
+              <span>Branch snapshot</span>
+              <small>Live operational focus</small>
+            </div>
+            <div className="snapshot-metric appraisal">
+              <strong>14</strong>
+              <span>Awaiting appraisal</span>
+            </div>
+            <div className="snapshot-metric checker">
+              <strong>06</strong>
+              <span>Checker actions due</span>
+            </div>
+            <div className="snapshot-metric disbursed">
+              <strong>47</strong>
+              <span>Disbursed this week</span>
+            </div>
+          </div>
+
+          <div className="gold-hero-art" aria-hidden="true">
+            <span className="hero-gold-ring hero-ring-large" />
+            <span className="hero-gold-ring hero-ring-small" />
+            <span className="hero-gold-coin hero-coin-one">916</span>
+            <span className="hero-gold-coin hero-coin-two">24K</span>
+            <img src="/images/yes-bank-logo-icon.png" alt="" />
+            <b>✦</b>
+          </div>
+        </section>
+
         <section className="kpi-grid">
           <div className="kpi-card primary-kpi">
             <div className="kpi-content">
-              <span>Total Leads</span>
+              <span>Leads Created Today</span>
+              <strong>{isTodayLeadsLoading ? "—" : apiLeads.length}</strong>
+              <p>Gold loan enquiries received today</p>
+              <div className="kpi-trend up">Live from lead service</div>
+            </div>
+            <div className="kpi-icon">＋</div>
+          </div>
+
+          <div className="kpi-card">
+            <div className="kpi-content">
+              <span>Total Gold Loan Leads</span>
               <strong>{totalLeads}</strong>
-              <p>Across active LOS lead sources</p>
-              <div className="kpi-trend up">↑ 8% vs last week</div>
+              <p>Across active lead sources</p>
+              <div className="kpi-trend neutral">Current portfolio</div>
             </div>
             <div className="kpi-icon">◎</div>
           </div>
@@ -413,18 +592,18 @@ const fetchTodayLeads = async () => {
             <div className="kpi-content">
               <span>New Leads</span>
               <strong>{newLeads}</strong>
-              <p>Awaiting first action</p>
-              <div className="kpi-trend up">↑ 12%</div>
+              <p>Awaiting customer contact</p>
+              <div className="kpi-trend neutral">Action required</div>
             </div>
-            <div className="kpi-icon">+</div>
+            <div className="kpi-icon">◌</div>
           </div>
 
           <div className="kpi-card">
             <div className="kpi-content">
               <span>In Progress</span>
               <strong>{inProgressLeads}</strong>
-              <p>Application work started</p>
-              <div className="kpi-trend neutral">→ Stable</div>
+              <p>Details or documents being completed</p>
+              <div className="kpi-trend neutral">Follow-up active</div>
             </div>
             <div className="kpi-icon">▣</div>
           </div>
@@ -433,8 +612,8 @@ const fetchTodayLeads = async () => {
             <div className="kpi-content">
               <span>Converted</span>
               <strong>{convertedLeads}</strong>
-              <p>Moved to loan application</p>
-              <div className="kpi-trend up">↑ 5%</div>
+              <p>Moved to gold loan application</p>
+              <div className="kpi-trend up">Application created</div>
             </div>
             <div className="kpi-icon">✓</div>
           </div>
@@ -443,20 +622,10 @@ const fetchTodayLeads = async () => {
             <div className="kpi-content">
               <span>Conversion Rate</span>
               <strong>{conversionRate}%</strong>
-              <p>Lead to application ratio</p>
-              <div className="kpi-trend up">↑ 2pts</div>
+              <p>Lead-to-application conversion</p>
+              <div className="kpi-trend up">Portfolio performance</div>
             </div>
             <div className="kpi-icon">↗</div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-content">
-              <span>Disqualified</span>
-              <strong>{disqualifiedLeads}</strong>
-              <p>Rejected or not eligible</p>
-              <div className="kpi-trend down">↑ 3%</div>
-            </div>
-            <div className="kpi-icon">!</div>
           </div>
         </section>
 
@@ -464,9 +633,19 @@ const fetchTodayLeads = async () => {
           <section className="lead-panel compact-lead-panel">
             <div className="lead-panel-header">
               <div>
-                <span className="section-eyebrow">Leads</span>
+                <span className="section-eyebrow">Gold Loan Leads</span>
                 <h2>{selectedListView}</h2>
-                <p>Live LOS lead records based on selected view.</p>
+                <p>
+                  {selectedListView === "Leads Created Today"
+                    ? "Live enquiries created through today's lead service."
+                    : "Gold loan enquiries based on the selected view."}
+                </p>
+                {todayLeadsError &&
+                  selectedListView === "Leads Created Today" && (
+                    <span className="table-inline-error" role="status">
+                      {todayLeadsError}
+                    </span>
+                  )}
               </div>
 
               <div className="table-actions">
@@ -505,41 +684,71 @@ const fetchTodayLeads = async () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLeads.map((lead) => (
-                    <tr key={lead.id}>
-                      <td>
-                        <button
-                          type="button"
-                          className="lead-link-button"
-                          onClick={() => navigate(`/leads/${lead.id}`)}
-                        >
-                          {lead.id}
-                        </button>
-                      </td>
-                      <td>
-                        <div className="customer-cell">
-                          <span>
-                            {lead.firstName?.charAt(0)}
-                            {lead.lastName?.charAt(0)}
-                          </span>
-                          <div>
-                            <strong>
-                              {lead.firstName} {lead.lastName}
-                            </strong>
-                            <p>{lead.mobile}</p>
-                          </div>
+                  {isTodayLeadsLoading &&
+                  selectedListView === "Leads Created Today" ? (
+                    <tr>
+                      <td colSpan="6">
+                        <div className="table-empty-state">
+                          Loading today's leads…
                         </div>
                       </td>
-                      <td>{lead.product}</td>
-                      <td>
-                        <span className={`status-pill ${lead.status.toLowerCase().replaceAll(" ", "-")}`}>
-                          {lead.status}
-                        </span>
-                      </td>
-                      <td>{lead.owner}</td>
-                      <td>{lead.createdDate}</td>
                     </tr>
-                  ))}
+                  ) : filteredLeads.length === 0 ? (
+                    <tr>
+                      <td colSpan="6">
+                        <div className="table-empty-state">
+                          No gold loan leads found for this view.
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredLeads.map((lead) => (
+                      <tr key={lead.id}>
+                        <td>
+                          <button
+                            type="button"
+                            className="lead-link-button"
+                            onClick={() => navigate(`/leads/${lead.id}`)}
+                          >
+                            {lead.id}
+                          </button>
+                        </td>
+                        <td>
+                          <div className="customer-cell">
+                            <span>
+                              {lead.firstName?.charAt(0)}
+                              {lead.lastName?.charAt(0)}
+                            </span>
+                            <div>
+                              <strong>
+                                {lead.firstName} {lead.lastName}
+                              </strong>
+                              <p>{lead.mobile}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="gold-product-chip">
+                            <i aria-hidden="true">◆</i>
+                            {lead.product || "Gold Loan"}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`status-pill ${String(
+                              lead.status || "New",
+                            )
+                              .toLowerCase()
+                              .replaceAll(" ", "-")}`}
+                          >
+                            {lead.status || "New"}
+                          </span>
+                        </td>
+                        <td>{lead.owner}</td>
+                        <td>{lead.createdDate}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -550,7 +759,7 @@ const fetchTodayLeads = async () => {
               <div>
                 <span className="section-eyebrow">Lead Intake</span>
                 <h2>Source Mix</h2>
-                <p>Contribution by channel this week.</p>
+                <p>Gold loan enquiries by source this week.</p>
               </div>
             </div>
 
@@ -575,9 +784,9 @@ const fetchTodayLeads = async () => {
           <section className="insight-panel verification-panel">
             <div className="panel-header">
               <div>
-                <span className="section-eyebrow">Verification</span>
-                <h2>Readiness</h2>
-                <p>Identity and document health.</p>
+                <span className="section-eyebrow">Lead Conversion</span>
+                <h2>Conversion Readiness</h2>
+                <p>Customer details, consent, and document health.</p>
               </div>
             </div>
 
@@ -588,15 +797,15 @@ const fetchTodayLeads = async () => {
               <div className="donut-legend">
                 <div>
                   <i className="legend-dot completed" />
-                  Verified<strong>78%</strong>
+                  Ready<strong>78%</strong>
                 </div>
                 <div>
                   <i className="legend-dot pending" />
-                  Pending<strong>16%</strong>
+                  Details Pending<strong>16%</strong>
                 </div>
                 <div>
                   <i className="legend-dot failed" />
-                  Exception<strong>6%</strong>
+                  Attention Needed<strong>6%</strong>
                 </div>
               </div>
             </div>
@@ -607,9 +816,9 @@ const fetchTodayLeads = async () => {
           <section className="insight-panel funnel-panel">
             <div className="panel-header">
               <div>
-                <span className="section-eyebrow">Loan File Movement</span>
-                <h2>Origination Funnel</h2>
-                <p>Lead creation to APS generation.</p>
+                <span className="section-eyebrow">Gold Loan Movement</span>
+                <h2>Journey Funnel</h2>
+                <p>Lead capture through final disbursement.</p>
               </div>
               <span className="panel-pill">Current Week</span>
             </div>
@@ -622,7 +831,10 @@ const fetchTodayLeads = async () => {
                     <strong>{item.label}</strong>
                   </div>
                   <div className="funnel-bar-wrap">
-                    <div className="funnel-bar" style={{ width: `${Math.max(item.value / 2.2, 12)}%` }} />
+                    <div
+                      className="funnel-bar"
+                      style={{ width: `${Math.max(item.value / 2.2, 12)}%` }}
+                    />
                   </div>
                   <span className="funnel-value">{item.value}</span>
                 </div>
@@ -633,27 +845,27 @@ const fetchTodayLeads = async () => {
           <section className="insight-panel">
             <div className="panel-header">
               <div>
-                <span className="section-eyebrow">SLA Control</span>
-                <h2>Watchlist</h2>
-                <p>Cases requiring operational attention.</p>
+                <span className="section-eyebrow">Today's Attention</span>
+                <h2>Action Watchlist</h2>
+                <p>Gold loan cases requiring follow-up.</p>
               </div>
             </div>
 
             <div className="watchlist">
               <div>
-                <span>Inactive Leads &gt; 5 Days</span>
+                <span>Leads Awaiting First Contact</span>
                 <strong>09</strong>
               </div>
               <div>
-                <span>Document Pending Cases</span>
+                <span>Applications Awaiting Appraisal</span>
                 <strong>14</strong>
               </div>
               <div>
-                <span>Credit Review Aging</span>
+                <span>Checker Decisions Pending</span>
                 <strong>06</strong>
               </div>
               <div>
-                <span>Sent Back for Rework</span>
+                <span>Customer Documents Pending</span>
                 <strong>11</strong>
               </div>
             </div>
@@ -664,7 +876,7 @@ const fetchTodayLeads = async () => {
               <div>
                 <span className="section-eyebrow">Activity Trail</span>
                 <h2>Recent Activity</h2>
-                <p>Latest lead and loan file movement.</p>
+                <p>Latest gold loan journey updates.</p>
               </div>
             </div>
 
@@ -689,8 +901,8 @@ const fetchTodayLeads = async () => {
               <div>
                 <span className="mini-table-icon">✓</span>
                 <div>
-                  <h3>Verification Queue</h3>
-                  <p>Applicant checks pending with verification team</p>
+                  <h3>Conversion Readiness</h3>
+                  <p>Lead requirements pending before conversion</p>
                 </div>
               </div>
               <button>View All</button>
@@ -705,7 +917,7 @@ const fetchTodayLeads = async () => {
                 </tr>
               </thead>
               <tbody>
-                {verificationQueue.map((row) => (
+                {conversionQueue.map((row) => (
                   <tr key={`${row.lead}-${row.check}`}>
                     <td>
                       <strong>{row.applicant}</strong>
@@ -713,7 +925,9 @@ const fetchTodayLeads = async () => {
                     </td>
                     <td>{row.check}</td>
                     <td>
-                      <span className={`mini-pill ${row.status.toLowerCase()}`}>{row.status}</span>
+                      <span className={`mini-pill ${row.status.toLowerCase()}`}>
+                        {row.status}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -726,8 +940,8 @@ const fetchTodayLeads = async () => {
               <div>
                 <span className="mini-table-icon">◇</span>
                 <div>
-                  <h3>Credit Review Queue</h3>
-                  <p>Loan files awaiting credit action</p>
+                  <h3>Jewellery Appraisal Queue</h3>
+                  <p>Applications awaiting appraiser action</p>
                 </div>
               </div>
               <button>View All</button>
@@ -742,7 +956,7 @@ const fetchTodayLeads = async () => {
                 </tr>
               </thead>
               <tbody>
-                {creditQueue.map((row) => (
+                {appraisalQueue.map((row) => (
                   <tr key={row.application}>
                     <td>
                       <strong>{row.application}</strong>
@@ -762,7 +976,7 @@ const fetchTodayLeads = async () => {
                 <span className="mini-table-icon">!</span>
                 <div>
                   <h3>Document Exceptions</h3>
-                  <p>Cases requiring document correction</p>
+                  <p>Gold loan records requiring correction</p>
                 </div>
               </div>
               <button>View All</button>
@@ -785,7 +999,11 @@ const fetchTodayLeads = async () => {
                     </td>
                     <td>{row.issue}</td>
                     <td>
-                      <span className={`severity-pill ${row.severity.toLowerCase()}`}>{row.severity}</span>
+                      <span
+                        className={`severity-pill ${row.severity.toLowerCase()}`}
+                      >
+                        {row.severity}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -798,25 +1016,62 @@ const fetchTodayLeads = async () => {
       {/* ── CREATE LEAD DRAWER ─────────────────────────────── */}
       {isCreatePanelOpen && (
         <div className="drawer-backdrop" onClick={handleCloseCreatePanel}>
-          <aside className="create-lead-drawer" onClick={(e) => e.stopPropagation()}>
+          <aside
+            className="create-lead-drawer"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="drawer-header">
               <div>
-                <span className="drawer-eyebrow">Lead Capture</span>
-                <h2>Create New Lead</h2>
-                <p>Capture applicant and loan requirement details to start the LOS journey.</p>
+                <span className="drawer-eyebrow">Gold Loan Enquiry</span>
+                <h2>Create Gold Loan Lead</h2>
+                <p>
+                  Capture the customer's contact details and enquiry source to
+                  begin the gold loan journey.
+                </p>
               </div>
-              <button className="drawer-close-button" onClick={handleCloseCreatePanel}>
+              <button
+                type="button"
+                className="drawer-close-button"
+                onClick={handleCloseCreatePanel}
+                aria-label="Close create lead panel"
+              >
                 ×
               </button>
             </div>
 
             <form className="create-lead-form" onSubmit={handleCreateLead}>
+              <div className="drawer-product-card">
+                <div className="drawer-product-icon" aria-hidden="true">
+                  <span>◆</span>
+                  <small>916</small>
+                </div>
+                <div className="drawer-product-copy">
+                  <span>Selected product</span>
+                  <strong>YES BANK Gold Loan</strong>
+                  <p>Quick enquiry capture · Branch-assisted journey</p>
+                </div>
+                <span className="drawer-stage-pill">
+                  <i aria-hidden="true" /> New Lead
+                </span>
+              </div>
+
               <div className="form-section">
-                <h3>Applicant Information</h3>
+                <div className="form-section-heading">
+                  <span>01</span>
+                  <div>
+                    <h3>Customer details</h3>
+                    <p>
+                      Capture the minimum information required to register the
+                      enquiry.
+                    </p>
+                  </div>
+                </div>
 
                 <div className="form-grid two-column">
                   <div className="field-group">
-                    <label htmlFor="firstName">First Name</label>
+                    <label htmlFor="firstName">
+                      First Name <b aria-hidden="true">*</b>
+                    </label>
                     <input
                       id="firstName"
                       name="firstName"
@@ -829,7 +1084,9 @@ const fetchTodayLeads = async () => {
                   </div>
 
                   <div className="field-group">
-                    <label htmlFor="lastName">Last Name</label>
+                    <label htmlFor="lastName">
+                      Last Name <b aria-hidden="true">*</b>
+                    </label>
                     <input
                       id="lastName"
                       name="lastName"
@@ -842,90 +1099,128 @@ const fetchTodayLeads = async () => {
                   </div>
                 </div>
 
-                <div className="field-group">
-                  <label htmlFor="mobile">Mobile Number</label>
-                  <input
-                    id="mobile"
-                    name="mobile"
-                    type="tel"
-                    placeholder="Enter 10-digit mobile number"
-                    value={leadForm.mobile}
-                    onChange={handleLeadFormChange}
-                    maxLength="10"
-                    required
-                  />
-                </div>
+                <div className="form-grid two-column">
+                  <div className="field-group">
+                    <label htmlFor="mobile">
+                      Mobile Number <b aria-hidden="true">*</b>
+                    </label>
+                    <div className="lead-input-with-prefix">
+                      <span>+91</span>
+                      <input
+                        id="mobile"
+                        name="mobile"
+                        type="tel"
+                        inputMode="numeric"
+                        placeholder="10-digit mobile number"
+                        value={leadForm.mobile}
+                        onChange={handleLeadFormChange}
+                        pattern="[6-9][0-9]{9}"
+                        maxLength="10"
+                        required
+                      />
+                    </div>
+                  </div>
 
-                <div className="field-group">
-                  <label htmlFor="email">Email Address</label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter email address"
-                    value={leadForm.email}
-                    onChange={handleLeadFormChange}
-                    required
-                  />
+                  <div className="field-group">
+                    <label htmlFor="email">
+                      Email Address
+                      <span className="optional-label">Optional</span>
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="customer@example.com"
+                      value={leadForm.email}
+                      onChange={handleLeadFormChange}
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="form-section">
-                <h3>Loan Requirement</h3>
-
-                <div className="form-grid two-column">
-                  <div className="field-group">
-                    <label htmlFor="product">Loan Product</label>
-                    <select
-                      id="product"
-                      name="product"
-                      value={leadForm.product}
-                      onChange={handleLeadFormChange}
-                      required
-                    >
-                      <option value="">Select product</option>
-                      {productOptions.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
+                <div className="form-section-heading">
+                  <span>02</span>
+                  <div>
+                    <h3>Enquiry source</h3>
+                    <p>Select how this gold loan opportunity was received.</p>
                   </div>
+                </div>
 
-                  <div className="field-group">
-                    <label htmlFor="source">Lead Source</label>
-                    <select
-                      id="source"
-                      name="source"
-                      value={leadForm.source}
-                      onChange={handleLeadFormChange}
-                      required
+                <div
+                  className="source-choice-grid"
+                  role="radiogroup"
+                  aria-label="Lead source"
+                >
+                  {sourceOptions.map((source) => (
+                    <button
+                      key={source.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={leadForm.source === source.value}
+                      className={`source-choice${
+                        leadForm.source === source.value ? " selected" : ""
+                      }`}
+                      onClick={() => handleSourceSelect(source.value)}
                     >
-                      <option value="">Select source</option>
-                      {sourceOptions.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      <span className="source-choice-icon" aria-hidden="true">
+                        {source.icon}
+                      </span>
+                      <span>
+                        <strong>{source.value}</strong>
+                        <small>{source.description}</small>
+                      </span>
+                      <i aria-hidden="true">✓</i>
+                    </button>
+                  ))}
                 </div>
               </div>
 
               <div className="drawer-info-card">
-                <strong>Default LOS Assignment</strong>
-                <p>
-                  The lead will be created with stage <b>New</b> and assigned to the logged-in sales user.
-                </p>
+                <div className="drawer-info-heading">
+                  <span aria-hidden="true">✓</span>
+                  <div>
+                    <strong>After the lead is created</strong>
+                    <p>It will be assigned to you with status New.</p>
+                  </div>
+                </div>
+                <div className="drawer-next-steps">
+                  <span>
+                    <b>1</b>Open Lead Detail
+                  </span>
+                  <i aria-hidden="true" />
+                  <span>
+                    <b>2</b>Complete address &amp; OVD
+                  </span>
+                  <i aria-hidden="true" />
+                  <span>
+                    <b>3</b>Convert eligible lead
+                  </span>
+                </div>
               </div>
 
+              {createLeadError && (
+                <div className="drawer-error-message" role="alert">
+                  {createLeadError}
+                </div>
+              )}
+
               <div className="drawer-actions">
-                <button type="button" className="secondary-action-button" onClick={handleCloseCreatePanel}>
+                <button
+                  type="button"
+                  className="secondary-action-button"
+                  onClick={handleCloseCreatePanel}
+                  disabled={isCreatingLead}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="header-action-button create-action">
+                <button
+                  type="submit"
+                  className="header-action-button create-action"
+                  disabled={isCreatingLead}
+                >
                   <span className="header-action-icon">＋</span>
-                  Create Lead
+                  {isCreatingLead ? "Creating Lead…" : "Create Gold Loan Lead"}
                 </button>
               </div>
             </form>

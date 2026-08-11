@@ -1,1014 +1,2055 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./CustomerIdentityPage.css";
-import {
-  removeUploadedDocument,
-  saveUploadedDocument
-} from "../../utils/documentStore";
 
-/* ── AWS S3 Upload API ─────────────────────────────────────────────── */
-const GENERATE_UPLOAD_URL_API = import.meta.env.VITE_GENERATE_UPLOAD_URL_API;
+const CONSENT_WAIT_SECONDS = 6;
+const PAN_CARD_PATH = "/docs/PanCard.jpg";
+const ADDRESS_PROOF_PATH = "/docs/Voter Id_1550.pdf";
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-
-const ALLOWED_FILE_TYPES = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png"
+const MOCK_CUSTOMERS = [
+  {
+    firstName: "Shivanjali",
+    lastName: "Gaikwad",
+    fullName: "Shivanjali Gaikwad",
+    customerId: "YESC00918427",
+    aadhaarNumber: "312455018833",
+    accountNumber: "102345678901",
+    mobileNumber: "8552051111",
+    mobile: "+91 85520 51111",
+    email: "shivanjali.gaikwad@email.com",
+    dateOfBirth: "01 Nov 1996",
+    fatherName: "Sanjay Gaikwad",
+    gender: "Female",
+    maritalStatus: "Married",
+    occupation: "Salaried",
+    pan: "CIJPG1001N",
+    address: "D-303, Fortune Estate, Hadapsar, Pune, Maharashtra - 411028",
+    pincode: "411028",
+    homeBranch: "Pune - Hadapsar",
+    kycStatus: "Current",
+    kycUpdatedAt: "12 Mar 2025",
+    ckycNumber: "XXXXXXXX4812",
+    riskCategory: "Low",
+  },
+  {
+    firstName: "Aarav",
+    lastName: "Mehta",
+    fullName: "Aarav Mehta",
+    customerId: "YESC00467231",
+    aadhaarNumber: "487263951742",
+    accountNumber: "110023456789",
+    mobileNumber: "9876543210",
+    mobile: "+91 98765 43210",
+    email: "aarav.mehta@email.com",
+    dateOfBirth: "18 Jun 1989",
+    fatherName: "Rajesh Mehta",
+    gender: "Male",
+    maritalStatus: "Married",
+    occupation: "Self-employed",
+    pan: "AJPPM4821K",
+    address: "B-804, Lake View Residency, Baner, Pune, Maharashtra - 411045",
+    pincode: "411045",
+    homeBranch: "Pune - Baner",
+    kycStatus: "Current",
+    kycUpdatedAt: "05 Feb 2026",
+    ckycNumber: "XXXXXXXX7364",
+    riskCategory: "Low",
+  },
 ];
 
-/* ── Icons ───────────────────────────────────────────────────────────── */
-const CheckIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.7">
+const AUTHENTICATION_OPTIONS = {
+  CUSTOMER_ID: {
+    label: "Customer ID",
+    placeholder: "Enter 12-character Customer ID",
+    inputMode: "text",
+    maxLength: 12,
+    validate: (value) => /^YESC\d{8}$/i.test(value),
+    error: "Enter a valid Customer ID, for example YESC00918427.",
+  },
+  AADHAAR: {
+    label: "Aadhaar Number",
+    placeholder: "Enter 12-digit Aadhaar number",
+    inputMode: "numeric",
+    maxLength: 12,
+    validate: (value) => /^\d{12}$/.test(value),
+    error: "Enter a valid 12-digit Aadhaar number.",
+  },
+  MOBILE: {
+    label: "Mobile Number",
+    placeholder: "Enter 10-digit mobile number",
+    inputMode: "numeric",
+    maxLength: 10,
+    validate: (value) => /^\d{10}$/.test(value),
+    error: "Enter a valid 10-digit mobile number.",
+  },
+};
+
+const Icon = ({ children, size = 18, className = "" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {children}
+  </svg>
+);
+
+const CheckIcon = ({ size = 16 }) => (
+  <Icon size={size}>
     <path d="M20 6 9 17l-5-5" />
-  </svg>
+  </Icon>
 );
 
-const AlertIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-    <path d="M12 9v4" />
-    <path d="M12 17h.01" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v5l3 2" />
-  </svg>
-);
-
-const UploadIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <path d="M17 8 12 3 7 8" />
-    <path d="M12 3v12" />
-  </svg>
-);
-
-const RefreshIcon = () => (
-  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M21 12a9 9 0 0 1-15.2 6.5" />
-    <path d="M3 12A9 9 0 0 1 18.2 5.5" />
-    <path d="M18 3v5h-5" />
-    <path d="M6 21v-5h5" />
-  </svg>
+const UserIcon = () => (
+  <Icon>
+    <circle cx="12" cy="7" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </Icon>
 );
 
 const ShieldIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
+  <Icon>
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     <path d="m9 12 2 2 4-5" />
-  </svg>
+  </Icon>
 );
 
-const ScanIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M4 7V5a1 1 0 0 1 1-1h2" />
-    <path d="M17 4h2a1 1 0 0 1 1 1v2" />
-    <path d="M20 17v2a1 1 0 0 1-1 1h-2" />
-    <path d="M7 20H5a1 1 0 0 1-1-1v-2" />
-    <path d="M7 12h10" />
-  </svg>
+const PhoneIcon = () => (
+  <Icon>
+    <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.7 19.7 0 0 1-8.6-3.1 19.3 19.3 0 0 1-6-6A19.7 19.7 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2.1Z" />
+  </Icon>
 );
 
-const DocumentIcon = () => (
-  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.4">
+const FileIcon = () => (
+  <Icon>
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-    <path d="M14 2v6h6" />
-    <path d="M16 13H8M16 17H8M10 9H8" />
-  </svg>
+    <path d="M14 2v6h6M8 13h8M8 17h5" />
+  </Icon>
+);
+
+const UploadIcon = () => (
+  <Icon size={16}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="m17 8-5-5-5 5M12 3v12" />
+  </Icon>
 );
 
 const PencilIcon = () => (
-  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-  </svg>
+  <Icon size={15}>
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+  </Icon>
 );
 
-const SpinnerIcon = () => (
-  <svg className="cid-spin-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-  </svg>
+const EyeIcon = () => (
+  <Icon size={15}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </Icon>
 );
 
-const ConsentCheckIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.8">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
+const RefreshIcon = () => (
+  <Icon size={15}>
+    <path d="M21 12a9 9 0 0 1-15.2 6.5M3 12A9 9 0 0 1 18.2 5.5M18 3v5h-5M6 21v-5h5" />
+  </Icon>
 );
 
-/* ── Constants ───────────────────────────────────────────────────────── */
-const OCR_RESULT = {
-  panNumber: "ABCDE1234F",
-  firstName: "Rahul",
-  lastName: "Sharma",
-  fatherName: "Mahesh Sharma",
-  dateOfBirth: "1992-08-14"
+const AlertIcon = () => (
+  <Icon size={16}>
+    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+    <path d="M12 9v4M12 17h.01" />
+  </Icon>
+);
+
+const Spinner = ({ size = 16 }) => (
+  <Icon className="glci-spinner" size={size}>
+    <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+  </Icon>
+);
+
+const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
+const normaliseMobile = (value) => digitsOnly(value).slice(-10);
+
+const findCustomerByMobile = (mobile) => {
+  const normalisedMobile = normaliseMobile(mobile);
+  return (
+    MOCK_CUSTOMERS.find((item) => item.mobileNumber === normalisedMobile) ||
+    null
+  );
 };
 
-const VERIFY_SCENARIOS = [
-  {
-    status: "Verified",
-    variant: "success",
-    headline: "Identity confirmed",
-    subline: "Name, date of birth and PAN number match NSDL records."
-  },
-  {
-    status: "Mismatch",
-    variant: "warning",
-    headline: "Name on PAN differs",
-    subline: `NSDL records show "Rahul Sharma" — the application name does not match. Please review and correct before proceeding.`
-  },
-  {
-    status: "Mismatch",
-    variant: "warning",
-    headline: "Date of birth mismatch",
-    subline: "The date of birth on record does not match NSDL data. Confirm with the customer and update before re-submitting."
-  },
-  {
-    status: "NotFound",
-    variant: "error",
-    headline: "PAN not found in database",
-    subline: "No records were returned for the entered PAN number. Verify the PAN and ensure the document is legible."
+const findCustomerByAuthentication = (parameter, value) => {
+  const candidate = String(value || "").trim();
+  if (parameter === "CUSTOMER_ID") {
+    return (
+      MOCK_CUSTOMERS.find(
+        (item) => item.customerId.toUpperCase() === candidate.toUpperCase(),
+      ) || null
+    );
   }
-];
-
-/* ── Helpers ─────────────────────────────────────────────────────────── */
-const formatDob = (iso) => {
-  if (!iso) return "";
-
-  const [y, m, d] = iso.split("-");
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  return `${+d} ${months[+m - 1]} ${y}`;
+  if (parameter === "AADHAAR") {
+    return (
+      MOCK_CUSTOMERS.find(
+        (item) => item.aadhaarNumber === digitsOnly(candidate),
+      ) || null
+    );
+  }
+  return findCustomerByMobile(candidate);
 };
 
-const buildInitialData = (stepData = {}, lead = {}) => ({
-  consentStatus: stepData.consentStatus || "Not Sent",
-  consentLinkSentAt: stepData.consentLinkSentAt || "",
-  consentCapturedAt: stepData.consentCapturedAt || "",
-  panDocumentName: stepData.panDocumentName || "",
-  panDocumentPreview: stepData.panDocumentPreview || "",
-  panDocumentS3ObjectKey: stepData.panDocumentS3ObjectKey || "",
-  panOcrStatus: stepData.panOcrStatus || "Pending",
-  panVerificationStatus: stepData.panVerificationStatus || "Pending",
-  panNumber: stepData.panNumber || "",
-  firstName: stepData.firstName || lead.firstName || "",
-  lastName: stepData.lastName || lead.lastName || "",
-  fatherName: stepData.fatherName || "",
-  dateOfBirth: stepData.dateOfBirth || "",
-  mobileNumber: stepData.mobileNumber || lead.mobile || "",
-  email: stepData.email || "",
-  mobileVerified: stepData.mobileVerified || false,
-  emailVerified: stepData.emailVerified || false,
-  panVerified: stepData.panVerified || false,
-  nsdlReferenceNumber: stepData.nsdlReferenceNumber || "",
-  nsdlVerifiedAt: stepData.nsdlVerifiedAt || ""
+const toPersistableCustomer = (customer) =>
+  customer
+    ? {
+        fullName: customer.fullName,
+        firstName: customer.firstName,
+        middleName: customer.middleName || "",
+        lastName: customer.lastName,
+        customerId: customer.customerId,
+        mobile: customer.mobile,
+        email: customer.email,
+        dateOfBirth: customer.dateOfBirth,
+        fatherName: customer.fatherName || "",
+        gender: customer.gender || "",
+        maritalStatus: customer.maritalStatus || "",
+        occupation: customer.occupation || "",
+        pan: customer.pan,
+        address: customer.address,
+        pincode: customer.pincode || "",
+        homeBranch: customer.homeBranch,
+        kycStatus: customer.kycStatus,
+        kycUpdatedAt: customer.kycUpdatedAt,
+        ckycNumber: customer.ckycNumber,
+        riskCategory: customer.riskCategory,
+      }
+    : null;
+
+const parseLeadDetails = (value) => {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const buildLeadCustomer = (lead, leadDetails) => ({
+  firstName: lead.firstName || "",
+  middleName: lead.middleName || "",
+  lastName: lead.lastName || "",
+  fullName:
+    [lead.firstName, lead.middleName, lead.lastName]
+      .filter(Boolean)
+      .join(" ") || "Gold Loan applicant",
+  customerId: "",
+  mobile: lead.mobile || "—",
+  email: lead.email || "—",
+  dateOfBirth: leadDetails.dateOfBirth || lead.dateOfBirth || "—",
+  fatherName: leadDetails.fatherName || lead.fatherName || "",
+  gender: leadDetails.gender || lead.gender || "",
+  maritalStatus: leadDetails.maritalStatus || lead.maritalStatus || "",
+  occupation: leadDetails.occupation || lead.occupation || "",
+  pan: leadDetails.panNumber || lead.panNumber || "—",
+  address:
+    leadDetails.address ||
+    leadDetails.communicationAddress ||
+    lead.address ||
+    "—",
+  pincode:
+    leadDetails.pincode ||
+    lead.pincode ||
+    String(
+      leadDetails.address ||
+        leadDetails.communicationAddress ||
+        lead.address ||
+        "",
+    ).match(/\b\d{6}\b/)?.[0] ||
+    "",
+  homeBranch: leadDetails.homeBranchName || "To be assigned",
+  kycStatus: leadDetails.kycStatus || lead.kycStatus || "Pending",
+  kycUpdatedAt: leadDetails.kycLastUpdated || "—",
+  ckycNumber: leadDetails.ckycNumber || "—",
+  riskCategory: leadDetails.riskCategory || "Not assessed",
 });
 
-const validateFile = (file) => {
-  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-    return "Invalid file type. Please upload only PDF, JPG, JPEG or PNG files.";
-  }
+const createReference = (prefix) =>
+  `${prefix}-${Date.now().toString(36).toUpperCase().slice(-6)}-${Math.random()
+    .toString(36)
+    .slice(2, 6)
+    .toUpperCase()}`;
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return "File size is too large. Please upload a file up to 5 MB.";
-  }
-
-  return "";
+const maskMobile = (value) => {
+  const digits = normaliseMobile(value);
+  return digits ? `+91 XXXXX ${digits.slice(-5)}` : "—";
 };
 
-const readFileAsDataUrl = (file) => {
-  return new Promise((resolve, reject) => {
+const getInitials = (name) =>
+  String(name || "GL")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+const toDateInputValue = (value) => {
+  if (!value || value === "—") return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const formatDateForDisplay = (value) => {
+  const parsed = value ? new Date(`${value}T00:00:00`) : null;
+  return parsed && !Number.isNaN(parsed.getTime())
+    ? parsed.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
+};
+
+const buildBorrowerDetails = (customer, lead) => ({
+  firstName: customer.firstName || lead.firstName || "",
+  middleName: customer.middleName || lead.middleName || "",
+  lastName: customer.lastName || lead.lastName || "",
+  dateOfBirth: toDateInputValue(customer.dateOfBirth || lead.dateOfBirth),
+  fatherName: customer.fatherName || lead.fatherName || "",
+  gender: customer.gender || lead.gender || "",
+  maritalStatus: customer.maritalStatus || lead.maritalStatus || "",
+  occupation: customer.occupation || lead.occupation || "",
+  mobile: normaliseMobile(customer.mobile || lead.mobile),
+  email: customer.email === "—" ? "" : customer.email || lead.email || "",
+  pan: customer.pan === "—" ? "" : customer.pan || lead.panNumber || "",
+  address:
+    customer.address === "—" ? "" : customer.address || lead.address || "",
+  pincode: customer.pincode || lead.pincode || "",
+});
+
+const buildBorrowerDocuments = (customerType) =>
+  customerType === "ETB"
+    ? {
+        pan: {
+          name: "PanCard.jpg",
+          preview: PAN_CARD_PATH,
+          status: "Verified",
+          source: "CBS KYC",
+          verifiedAt: "CBS record",
+        },
+        addressProof: {
+          name: "Voter Id_1550.pdf",
+          preview: ADDRESS_PROOF_PATH,
+          status: "Verified",
+          source: "CBS KYC",
+        },
+      }
+    : {
+        pan: { name: "", preview: "", status: "Pending", source: "" },
+        addressProof: {
+          name: "",
+          preview: "",
+          status: "Pending",
+          source: "",
+        },
+      };
+
+const buildBorrowerInformation = (customerType, customer, lead) => ({
+  status: customerType === "ETB" ? "Saved" : "Draft",
+  savedAt: customerType === "ETB" ? "CBS record" : "",
+  details: buildBorrowerDetails(customer, lead),
+  documents: buildBorrowerDocuments(customerType),
+});
+
+const validateBorrower = (details) => {
+  const errors = {};
+  const namePattern = /^[A-Za-z][A-Za-z .'-]*$/;
+  if (!details.firstName.trim()) errors.firstName = "First name is required.";
+  else if (!namePattern.test(details.firstName.trim()))
+    errors.firstName = "Enter a valid first name.";
+  if (!details.lastName.trim()) errors.lastName = "Last name is required.";
+  else if (!namePattern.test(details.lastName.trim()))
+    errors.lastName = "Enter a valid last name.";
+  if (!details.fatherName.trim())
+    errors.fatherName = "Father's name is required.";
+  else if (!namePattern.test(details.fatherName.trim()))
+    errors.fatherName = "Enter a valid father's name.";
+  if (!details.dateOfBirth) {
+    errors.dateOfBirth = "Date of birth is required.";
+  } else {
+    const dob = new Date(`${details.dateOfBirth}T00:00:00`);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const beforeBirthday =
+      today.getMonth() < dob.getMonth() ||
+      (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate());
+    if (beforeBirthday) age -= 1;
+    if (Number.isNaN(dob.getTime()) || dob > today)
+      errors.dateOfBirth = "Enter a valid date of birth.";
+    else if (age < 18)
+      errors.dateOfBirth = "Borrower must be at least 18 years old.";
+    else if (age > 75)
+      errors.dateOfBirth = "Borrower age cannot exceed 75 years.";
+  }
+  if (!details.gender) errors.gender = "Select gender.";
+  if (!details.maritalStatus) errors.maritalStatus = "Select marital status.";
+  if (!details.occupation) errors.occupation = "Select occupation.";
+  if (!/^\d{10}$/.test(details.mobile))
+    errors.mobile = "Enter a valid 10-digit mobile number.";
+  if (details.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details.email))
+    errors.email = "Enter a valid email address.";
+  if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(details.pan.toUpperCase()))
+    errors.pan = "Enter a valid PAN, for example ABCDE1234F.";
+  if (details.address.trim().length < 10)
+    errors.address = "Enter the complete communication address.";
+  if (!/^\d{6}$/.test(details.pincode))
+    errors.pincode = "Enter a valid 6-digit PIN code.";
+  return errors;
+};
+
+const ensureLeadDetailsNodes = (rawLeadDetails, lead) => {
+  const leadDetails = parseLeadDetails(rawLeadDetails);
+  const mobileMatch = findCustomerByMobile(lead.mobile);
+  const existingIdentity = leadDetails.customerIdentity || {};
+  const matchedCustomer =
+    existingIdentity.matchedCustomer || toPersistableCustomer(mobileMatch);
+  const customerType =
+    existingIdentity.customerType || (matchedCustomer ? "ETB" : "NTB");
+  const borrowerDefaults = buildBorrowerInformation(
+    customerType,
+    matchedCustomer || buildLeadCustomer(lead, leadDetails),
+    lead,
+  );
+  const existingBorrower = leadDetails.borrowerInformation || {};
+
+  return {
+    ...leadDetails,
+    customerIdentity: {
+      matchSource: "VERIFIED_MOBILE",
+      customerIdentityConfirmed: false,
+      authenticationParameter: "",
+      authenticationReference: "",
+      confirmedAt: "",
+      ...existingIdentity,
+      customerType,
+      matchStatus: matchedCustomer ? "MATCH_FOUND" : "NO_MATCH",
+      matchedCustomer,
+    },
+    customerConsent: {
+      status: "Pending",
+      requestReference: "",
+      channel: "Secure SMS link with OTP",
+      sentAt: "",
+      capturedAt: "",
+      expiresAt: "",
+      resendCount: 0,
+      ...leadDetails.customerConsent,
+    },
+    ntbOnboarding: {
+      status: "Pending",
+      ...leadDetails.ntbOnboarding,
+      documents: {
+        pan: { name: "", preview: "", status: "Pending" },
+        ovd: { name: "", preview: "", status: "Pending" },
+        ...leadDetails.ntbOnboarding?.documents,
+      },
+    },
+    borrowerInformation: {
+      ...borrowerDefaults,
+      ...existingBorrower,
+      details: {
+        ...borrowerDefaults.details,
+        ...existingBorrower.details,
+      },
+      documents: {
+        ...borrowerDefaults.documents,
+        ...existingBorrower.documents,
+      },
+    },
+  };
+};
+
+const getTimestamp = (value = new Date()) =>
+  value.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const readFile = (file) =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Unable to read selected file."));
-
+    reader.onerror = () =>
+      reject(new Error("Unable to read the selected document."));
     reader.readAsDataURL(file);
   });
-};
 
-const uploadFileToS3 = (uploadUrl, file, contentType, onProgress) => {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
+function StatusBadge({ variant = "pending", children }) {
+  return <span className={`glci-badge ${variant}`}>{children}</span>;
+}
 
-    xhr.open("PUT", uploadUrl);
-    xhr.setRequestHeader("Content-Type", contentType);
-
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const progress = Math.round((event.loaded / event.total) * 100);
-        onProgress?.(progress);
-      }
-    };
-
-    xhr.onload = () => {
-      console.log("S3 upload response status:", xhr.status);
-      console.log("S3 upload response body:", xhr.responseText);
-
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-      } else {
-        reject(new Error(`S3 upload failed with status ${xhr.status}`));
-      }
-    };
-
-    xhr.onerror = () => {
-      reject(new Error("Network error while uploading file to S3."));
-    };
-
-    xhr.send(file);
-  });
-};
-
-/* ── Field component ─────────────────────────────────────────────────── */
-const Field = ({ label, value, placeholder, type = "text", onChange, editing, wide }) => (
-  <div className={`cid-field${wide ? " wide" : ""}`}>
-    <span className="cid-field-label">{label}</span>
-
-    {editing ? (
-      <input
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={onChange}
-        className="cid-field-input"
-      />
-    ) : (
-      <div className="cid-field-readonly">
-        {value || <span className="cid-field-empty">—</span>}
-      </div>
-    )}
-  </div>
-);
-
-/* ── Component ───────────────────────────────────────────────────────── */
-function CustomerIdentityPage({
-  lead,
-  stepData = {},
-  sectionKey = "customerIdentity",
-  updateApplicationData,
-  updateStepStatus
-}) {
-  const fileInputRef = useRef(null);
-
-  const [formData, setFormData] = useState(() => buildInitialData(stepData, lead));
-  const [notice, setNotice] = useState("");
-  const [uploadError, setUploadError] = useState("");
-  const [isConsentWaiting, setIsConsentWaiting] = useState(false);
-  const [isReadingDocument, setIsReadingDocument] = useState(false);
-  const [isUploadingToS3, setIsUploadingToS3] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isVerifyingPan, setIsVerifyingPan] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [ocrDone, setOcrDone] = useState(false);
-  const [verifyResult, setVerifyResult] = useState(null);
-  const [verifyAttempts, setVerifyAttempts] = useState(0);
-
-  const consentCaptured = formData.consentStatus === "Captured";
-  const consentSent = formData.consentStatus === "Sent";
-  const panUploaded = Boolean(formData.panDocumentPreview);
-  const panVerified = formData.panVerificationStatus === "Verified";
-
-  const isPdf =
-    formData.panDocumentName?.toLowerCase().endsWith(".pdf") ||
-    String(formData.panDocumentPreview).startsWith("data:application/pdf");
-
-  const isImage = String(formData.panDocumentPreview).startsWith("data:image");
-
-  const syncParent = (updates) => updateApplicationData?.(sectionKey, updates);
-
-  const setValues = (updates) =>
-    setFormData((prev) => {
-      const next = { ...prev, ...updates };
-      syncParent(updates);
-      return next;
-    });
-
-  const setField = (name, value) => setValues({ [name]: value });
-
-  const showNotice = (msg) => {
-    setNotice(msg);
-    window.setTimeout(() => setNotice(""), 2800);
-  };
-
-  const getTimestamp = () =>
-    new Date().toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-
-  /* ── Consent ── */
-  const sendConsent = () => {
-    setValues({
-      consentStatus: "Sent",
-      consentLinkSentAt: getTimestamp(),
-      consentCapturedAt: ""
-    });
-
-    setIsConsentWaiting(true);
-  };
-
-  useEffect(() => {
-    if (!isConsentWaiting) return undefined;
-
-    const timer = window.setTimeout(() => {
-      setValues({
-        consentStatus: "Captured",
-        consentCapturedAt: getTimestamp()
-      });
-
-      setIsConsentWaiting(false);
-      showNotice("Customer consent received.");
-    }, 5000);
-
-    return () => window.clearTimeout(timer);
-  }, [isConsentWaiting]); // eslint-disable-line
-
-  /* ── Step status ── */
-  useEffect(() => {
-    if (consentCaptured && panVerified) {
-      updateStepStatus?.("customer-identity", "Completed");
-      return;
-    }
-
-    if (consentCaptured || panUploaded || ocrDone) {
-      updateStepStatus?.("customer-identity", "In Progress");
-    }
-  }, [consentCaptured, panUploaded, ocrDone, panVerified, updateStepStatus]); // eslint-disable-line
-
-  /* ── Generate pre-signed URL from Lambda ── */
-  const generateUploadUrl = async (file) => {
-    console.log("Calling Lambda API to generate S3 pre-signed URL...");
-    console.log("Lambda API URL:", GENERATE_UPLOAD_URL_API);
-
-    if (!GENERATE_UPLOAD_URL_API) {
-      throw new Error("Upload API URL is missing. Please check VITE_GENERATE_UPLOAD_URL_API in .env file.");
-    }
-
-    const applicantId = lead?.applicantId || lead?.id || "APP-1001";
-
-    const response = await fetch(GENERATE_UPLOAD_URL_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        documentType: "PAN",
-        applicantId
-      })
-    });
-
-    const data = await response.json();
-
-    console.log("Lambda response status:", response.status);
-    console.log("Lambda response data:", data);
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || "Unable to generate S3 upload URL.");
-    }
-
-    return data;
-  };
-
-  /* ── File upload → S3 → local preview → auto-extract ── */
-  const handleFileUpload = async (event) => {
-    const file = event.target.files?.[0];
-
-    console.log("PAN file selected:", file);
-
-    setUploadError("");
-    setUploadProgress(0);
-
-    if (!file) return;
-
-    const validationError = validateFile(file);
-
-    if (validationError) {
-      setUploadError(validationError);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-      return;
-    }
-
-    try {
-      setIsUploadingToS3(true);
-      setIsReadingDocument(false);
-      setOcrDone(false);
-      setVerifyResult(null);
-      setIsEditing(false);
-
-      setValues({
-        panDocumentName: "",
-        panDocumentPreview: "",
-        panDocumentS3ObjectKey: "",
-        panOcrStatus: "Pending",
-        panVerificationStatus: "Pending",
-        panVerified: false,
-        nsdlReferenceNumber: "",
-        nsdlVerifiedAt: ""
-      });
-
-      console.log("Step 1: Generate S3 upload URL");
-      const presignData = await generateUploadUrl(file);
-
-      console.log("Step 2: Upload file to S3");
-      await uploadFileToS3(
-        presignData.uploadUrl,
-        file,
-        file.type,
-        setUploadProgress
-      );
-
-      console.log("S3 upload successful");
-      console.log("S3 object key:", presignData.objectKey);
-
-      console.log("Step 3: Creating local preview");
-      const previewValue = await readFileAsDataUrl(file);
-
-      setValues({
-        panDocumentName: file.name,
-        panDocumentPreview: previewValue,
-        panDocumentS3ObjectKey: presignData.objectKey,
-        panOcrStatus: "Ready",
-        panVerificationStatus: "Pending",
-        panVerified: false,
-        nsdlReferenceNumber: "",
-        nsdlVerifiedAt: ""
-      });
-
-      saveUploadedDocument({
-        applicant: "Primary Applicant",
-        type: "Identity Proof",
-        subtype: "PAN Card",
-        source: "Customer Identity",
-        fileName: file.name,
-        fileType: file.type.startsWith("image/") ? "Image" : "PDF / Document",
-        previewUrl: previewValue,
-        s3ObjectKey: presignData.objectKey,
-        ocrStatus: "Ready",
-        verificationStatus: "Pending Review"
-      });
-
-      showNotice("PAN document uploaded successfully to S3.");
-
-      console.log("Step 4: Starting mock OCR extraction");
-
-      window.setTimeout(() => {
-        setIsReadingDocument(true);
-
-        window.setTimeout(() => {
-          setValues({
-            ...OCR_RESULT,
-            panOcrStatus: "Completed",
-            panVerificationStatus: "Pending",
-            panVerified: false
-          });
-
-          saveUploadedDocument({
-            applicant: "Primary Applicant",
-            type: "Identity Proof",
-            subtype: "PAN Card",
-            source: "Customer Identity",
-            fileName: file.name,
-            fileType: file.type.startsWith("image/") ? "Image" : "PDF / Document",
-            previewUrl: previewValue,
-            s3ObjectKey: presignData.objectKey,
-            ocrStatus: "Completed",
-            verificationStatus: "Pending Review"
-          });
-
-          setIsReadingDocument(false);
-          setOcrDone(true);
-          setIsEditing(true);
-        }, 2800);
-      }, 500);
-    } catch (error) {
-      console.error("PAN S3 upload failed:", error);
-
-      setUploadError(
-        error.message ||
-          "PAN document upload failed. Please check API Gateway CORS, S3 CORS and Lambda logs."
-      );
-
-      setValues({
-        panDocumentName: "",
-        panDocumentPreview: "",
-        panDocumentS3ObjectKey: "",
-        panOcrStatus: "Pending",
-        panVerificationStatus: "Pending",
-        panVerified: false,
-        nsdlReferenceNumber: "",
-        nsdlVerifiedAt: ""
-      });
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    } finally {
-      setIsUploadingToS3(false);
-    }
-  };
-
-  /* ── Verification ── */
-  const verifyPan = () => {
-    setIsVerifyingPan(true);
-    setVerifyResult(null);
-
-    window.setTimeout(() => {
-      const scenario = VERIFY_SCENARIOS[verifyAttempts % VERIFY_SCENARIOS.length];
-
-      setVerifyAttempts((n) => n + 1);
-
-      const nsdlRef = `NSDL-${Math.floor(100000 + Math.random() * 900000)}`;
-      const verifiedAt = getTimestamp();
-      const isVerified = scenario.status === "Verified";
-
-      setValues({
-        panVerificationStatus: isVerified ? "Verified" : "Mismatch",
-        panVerified: isVerified,
-        nsdlReferenceNumber: nsdlRef,
-        nsdlVerifiedAt: verifiedAt
-      });
-
-      saveUploadedDocument({
-        applicant: "Primary Applicant",
-        type: "Identity Proof",
-        subtype: "PAN Card",
-        source: "Customer Identity",
-        fileName: formData.panDocumentName,
-        fileType: isImage ? "Image" : "PDF / Document",
-        previewUrl: formData.panDocumentPreview,
-        s3ObjectKey: formData.panDocumentS3ObjectKey,
-        ocrStatus: "Completed",
-        verificationStatus: isVerified ? "Verified" : "Mismatch"
-      });
-
-      setVerifyResult({
-        ...scenario,
-        nsdlRef,
-        verifiedAt
-      });
-
-      setIsVerifyingPan(false);
-    }, 3000);
-  };
-
-  /* ── Remove PAN ── */
-  const removePan = () => {
-    setValues({
-      panDocumentName: "",
-      panDocumentPreview: "",
-      panDocumentS3ObjectKey: "",
-      panOcrStatus: "Pending",
-      panVerificationStatus: "Pending",
-      panNumber: "",
-      firstName: lead?.firstName || "",
-      lastName: lead?.lastName || "",
-      fatherName: "",
-      dateOfBirth: "",
-      panVerified: false,
-      nsdlReferenceNumber: "",
-      nsdlVerifiedAt: ""
-    });
-
-    removeUploadedDocument({
-      applicant: "Primary Applicant",
-      type: "Identity Proof",
-      subtype: "PAN Card"
-    });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-
-    setUploadError("");
-    setUploadProgress(0);
-    setOcrDone(false);
-    setVerifyResult(null);
-    setIsEditing(false);
-  };
-
-  /* ── Render ── */
+function SectionHeader({ number, title, description, status, statusVariant }) {
   return (
-    <div className="cid-page">
-      {notice && (
-        <div className="cid-toast">
-          <CheckIcon /> {notice}
-        </div>
-      )}
-
-      <div className="cid-steps">
-        {/* ── Step 1: Consent ──────────────────────────────────────────── */}
-        <div className="cid-step">
-          <div className="cid-step-track">
-            <div className={`cid-step-node ${consentCaptured ? "complete" : consentSent ? "active" : "idle"}`}>
-              {consentCaptured ? <CheckIcon /> : <span>1</span>}
-            </div>
-
-            <div className={`cid-step-line ${consentCaptured ? "filled" : ""}`} />
-          </div>
-
-          <div className="cid-step-panel">
-            <div className="cid-panel-head">
-              <div>
-                <span className="cid-panel-title">Customer Consent</span>
-                <span className="cid-panel-sub">
-                  Obtain authorization before processing identity documents
-                </span>
-              </div>
-
-              <span className={`cid-badge ${consentCaptured ? "green" : consentSent ? "amber" : "gray"}`}>
-                {consentCaptured ? <CheckIcon /> : <ClockIcon />}
-                {consentCaptured ? "Captured" : consentSent ? "Awaiting" : "Pending"}
-              </span>
-            </div>
-
-            <div className="cid-panel-body">
-              {consentCaptured ? (
-                <div className="cid-consent-confirmed">
-                  <div className="cid-check-badge">
-                    <ConsentCheckIcon />
-                  </div>
-
-                  <div className="cid-consent-confirmed-body">
-                    <span className="cid-consent-confirmed-title">Consent received</span>
-                    <span className="cid-consent-confirmed-meta">
-                      Captured {formData.consentCapturedAt}
-                      {formData.mobileNumber && <> &nbsp;·&nbsp; {formData.mobileNumber}</>}
-                    </span>
-                  </div>
-
-                  <button className="cid-btn-ghost small" type="button" onClick={sendConsent}>
-                    <RefreshIcon /> Resend
-                  </button>
-                </div>
-              ) : (
-                <div className="cid-consent-send-area">
-                  <div>
-                    <div className="cid-copy-main">
-                      Send a secure consent link to the customer
-                    </div>
-
-                    <div className="cid-copy-sub">
-                      Delivered to{" "}
-                      <strong>{formData.mobileNumber || "the registered mobile number"}</strong>
-                    </div>
-                  </div>
-
-                  <button className="cid-btn-primary" type="button" onClick={sendConsent} disabled={isConsentWaiting}>
-                    {isConsentWaiting ? (
-                      <>
-                        <SpinnerIcon /> Sending…
-                      </>
-                    ) : consentSent ? (
-                      <>
-                        <RefreshIcon /> Resend Link
-                      </>
-                    ) : (
-                      "Send Link"
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {formData.consentLinkSentAt && !consentCaptured && (
-                <div className="cid-timeline">
-                  <div className="cid-tl-item">
-                    <span className="cid-tl-dot amber" />
-                    Link sent at <b>{formData.consentLinkSentAt}</b>
-                  </div>
-                </div>
-              )}
-
-              {consentSent && !consentCaptured && (
-                <div className="cid-alert amber">
-                  <SpinnerIcon /> Awaiting customer response on their registered device
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Step 2: PAN ──────────────────────────────────────────────── */}
-        <div className={`cid-step${!consentCaptured ? " cid-step--locked" : ""}`}>
-          <div className="cid-step-track">
-            <div className={`cid-step-node ${panVerified ? "complete" : panUploaded ? "active" : "idle"}`}>
-              {panVerified ? <CheckIcon /> : <span>2</span>}
-            </div>
-          </div>
-
-          <div className="cid-step-panel">
-            <div className="cid-panel-head">
-              <div>
-                <span className="cid-panel-title">PAN Verification</span>
-                <span className="cid-panel-sub">
-                  Upload PAN document, extract details, and verify with NSDL
-                </span>
-              </div>
-
-              <span className={`cid-badge ${panVerified ? "green" : panUploaded ? "amber" : "gray"}`}>
-                {panVerified ? <CheckIcon /> : <ClockIcon />}
-                {panVerified ? "Verified" : panUploaded ? "In progress" : "Pending"}
-              </span>
-            </div>
-
-            {!consentCaptured && (
-              <div className="cid-lock-note">
-                Complete consent capture to enable PAN verification
-              </div>
-            )}
-
-            <div className={`cid-panel-body${!consentCaptured ? " locked" : ""}`}>
-              <div className="cid-pan-layout">
-                {/* ── Upload column ── */}
-                <div className="cid-upload-col">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    hidden
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileUpload}
-                    disabled={!consentCaptured || isUploadingToS3 || isReadingDocument}
-                  />
-
-                  <div
-                    className={`cid-upload-zone${!panUploaded && consentCaptured ? " clickable" : ""}`}
-                    onClick={
-                      !panUploaded && consentCaptured && !isUploadingToS3 && !isReadingDocument
-                        ? () => fileInputRef.current?.click()
-                        : undefined
-                    }
-                  >
-                    {(isUploadingToS3 || isReadingDocument) && (
-                      <div className="cid-ocr-overlay">
-                        <div className="cid-scan-beam" />
-
-                        <div className="cid-scan-status">
-                          <SpinnerIcon />
-                          {isUploadingToS3
-                            ? `Uploading to S3${uploadProgress ? ` ${uploadProgress}%` : ""}`
-                            : "Reading document"}
-                        </div>
-                      </div>
-                    )}
-
-                    {!panUploaded ? (
-                      <div className="cid-upload-placeholder">
-                        <div className="cid-upload-icon-wrap">
-                          <UploadIcon />
-                        </div>
-
-                        <span className="cid-upload-label">Upload PAN document</span>
-                        <span className="cid-upload-hint">JPG, PNG or PDF · Max 5 MB</span>
-                      </div>
-                    ) : isImage ? (
-                      <img
-                        src={formData.panDocumentPreview}
-                        alt="PAN preview"
-                        className="cid-preview-img"
-                      />
-                    ) : isPdf ? (
-                      <iframe
-                        src={formData.panDocumentPreview}
-                        title="PAN Document"
-                        className="cid-preview-pdf"
-                      />
-                    ) : (
-                      <div className="cid-upload-placeholder">
-                        <DocumentIcon />
-                        <span className="cid-upload-label">{formData.panDocumentName}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {uploadProgress > 0 && uploadProgress < 100 && (
-                    <div className="cid-upload-progress">
-                      <div className="cid-upload-progress-head">
-                        <span>Uploading</span>
-                        <strong>{uploadProgress}%</strong>
-                      </div>
-
-                      <div className="cid-upload-progress-bar">
-                        <div style={{ width: `${uploadProgress}%` }} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="cid-upload-actions">
-                    <button
-                      className="cid-btn-secondary small"
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={!consentCaptured || isUploadingToS3 || isReadingDocument}
-                    >
-                      <UploadIcon /> {panUploaded ? "Replace" : "Upload"}
-                    </button>
-
-                    {panUploaded && (
-                      <button
-                        className="cid-btn-ghost danger"
-                        type="button"
-                        onClick={removePan}
-                        disabled={isUploadingToS3 || isReadingDocument}
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-
-                </div>
-
-                {/* ── Form column ── */}
-                <div className="cid-form-col">
-                  <div className="cid-fields-toolbar">
-                    <span className="cid-fields-label">PAN Details</span>
-
-                    {consentCaptured && (
-                      <button
-                        className={`cid-edit-toggle${isEditing ? " active" : ""}`}
-                        type="button"
-                        onClick={() => setIsEditing((value) => !value)}
-                      >
-                        {isEditing ? (
-                          <>
-                            <CheckIcon /> Done
-                          </>
-                        ) : (
-                          <>
-                            <PencilIcon /> Edit
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  {uploadError && (
-                    <div className="cid-banner error">
-                      <AlertIcon />
-                      <div className="cid-banner-body">
-                        <strong>Document upload failed</strong>
-                        <p>{uploadError}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {ocrDone && !isReadingDocument && (
-                    <div className="cid-banner info">
-                      <ScanIcon />
-
-                      <div className="cid-banner-body">
-                        <strong>Details read from document</strong>
-                        <p>
-                          {formData.panNumber}
-                          {formData.firstName && ` · ${formData.firstName} ${formData.lastName}`}
-                          {formData.dateOfBirth && ` · ${formatDob(formData.dateOfBirth)}`}
-                          {formData.fatherName && ` · S/o ${formData.fatherName}`}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {isVerifyingPan && (
-                    <div className="cid-banner info">
-                      <SpinnerIcon />
-                      <span>Verifying with NSDL database…</span>
-                    </div>
-                  )}
-
-                  {verifyResult && !isVerifyingPan && (
-                    <div className={`cid-banner ${verifyResult.variant}`}>
-                      {verifyResult.variant === "success" ? <CheckIcon /> : <AlertIcon />}
-
-                      <div className="cid-banner-body">
-                        <strong>{verifyResult.headline}</strong>
-                        {verifyResult.subline && <p>{verifyResult.subline}</p>}
-
-                        <span className="cid-banner-meta">
-                          Ref {verifyResult.nsdlRef} &nbsp;·&nbsp; {verifyResult.verifiedAt}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="cid-form-grid">
-                    <Field
-                      label="PAN Number"
-                      value={formData.panNumber}
-                      placeholder="ABCDE1234F"
-                      editing={isEditing}
-                      onChange={(event) => setField("panNumber", event.target.value.toUpperCase())}
-                    />
-
-                    <Field
-                      label="Date of Birth"
-                      value={formData.dateOfBirth}
-                      type="date"
-                      editing={isEditing}
-                      onChange={(event) => setField("dateOfBirth", event.target.value)}
-                    />
-
-                    <Field
-                      label="First Name"
-                      value={formData.firstName}
-                      placeholder="First name"
-                      editing={isEditing}
-                      onChange={(event) => setField("firstName", event.target.value)}
-                    />
-
-                    <Field
-                      label="Last Name"
-                      value={formData.lastName}
-                      placeholder="Last name"
-                      editing={isEditing}
-                      onChange={(event) => setField("lastName", event.target.value)}
-                    />
-
-                    <Field
-                      label="Father / Spouse Name"
-                      value={formData.fatherName}
-                      placeholder="As on PAN card"
-                      editing={isEditing}
-                      wide
-                      onChange={(event) => setField("fatherName", event.target.value)}
-                    />
-
-                    <Field
-                      label="Mobile"
-                      value={formData.mobileNumber}
-                      placeholder="Mobile"
-                      editing={isEditing}
-                      onChange={(event) => setField("mobileNumber", event.target.value)}
-                    />
-
-                    <Field
-                      label="Email"
-                      value={formData.email}
-                      placeholder="Email"
-                      editing={isEditing}
-                      onChange={(event) => setField("email", event.target.value)}
-                    />
-                  </div>
-
-                  <div className="cid-verify-row">
-                    {panVerified ? (
-                      <div className="cid-verified-status">
-                        <span className="cid-verified-dot" />
-                        PAN verified &nbsp;·&nbsp; {formData.nsdlReferenceNumber}
-                      </div>
-                    ) : (
-                      <span className="cid-copy-sub">
-                        {ocrDone
-                          ? "Confirm the details above, then verify"
-                          : "Upload a document to proceed"}
-                      </span>
-                    )}
-
-                    <button
-                      className={`cid-btn-primary${panVerified ? " verified" : ""}`}
-                      type="button"
-                      onClick={verifyPan}
-                      disabled={
-                        !consentCaptured ||
-                        isVerifyingPan ||
-                        isUploadingToS3 ||
-                        isReadingDocument ||
-                        !ocrDone
-                      }
-                    >
-                      {isVerifyingPan ? (
-                        <>
-                          <SpinnerIcon /> Verifying…
-                        </>
-                      ) : panVerified ? (
-                        <>
-                          <RefreshIcon /> Re-verify
-                        </>
-                      ) : (
-                        <>
-                          <ShieldIcon /> Verify PAN
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div> 
+    <div className="glci-section-head">
+      <span
+        className={`glci-section-number ${statusVariant === "success" ? "complete" : ""}`}
+      >
+        {statusVariant === "success" ? <CheckIcon size={14} /> : number}
+      </span>
+      <div className="glci-section-copy">
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </div>
+      <StatusBadge variant={statusVariant}>{status}</StatusBadge>
     </div>
   );
 }
 
-export default CustomerIdentityPage;
+function Detail({ label, value, verified = false, wide = false }) {
+  return (
+    <div className={`glci-detail ${wide ? "wide" : ""}`}>
+      <span>{label}</span>
+      <div>
+        <strong>{value || "—"}</strong>
+        {verified && (
+          <StatusBadge variant="success">
+            <CheckIcon size={11} /> Verified
+          </StatusBadge>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BorrowerField({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  required = false,
+  type = "text",
+  options,
+  inputMode,
+  maxLength,
+  wide = false,
+}) {
+  const controlProps = {
+    id: `borrower-${name}`,
+    name,
+    value,
+    onChange,
+    "aria-invalid": Boolean(error),
+    "aria-describedby": error ? `borrower-${name}-error` : undefined,
+    required,
+  };
+
+  return (
+    <label className={`glci-borrower-field ${wide ? "wide" : ""}`}>
+      <span>
+        {label}
+        {required && <em>*</em>}
+      </span>
+      {options ? (
+        <select {...controlProps}>
+          <option value="">Select {label.toLowerCase()}</option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      ) : wide ? (
+        <textarea {...controlProps} rows="3" maxLength={maxLength} />
+      ) : (
+        <input
+          {...controlProps}
+          type={type}
+          inputMode={inputMode}
+          maxLength={maxLength}
+        />
+      )}
+      {error && (
+        <small id={`borrower-${name}-error`} className="glci-field-error">
+          {error}
+        </small>
+      )}
+    </label>
+  );
+}
+
+function BorrowerDocument({
+  label,
+  description,
+  document,
+  onUpload,
+  onVerify,
+  disabled,
+}) {
+  const inputRef = useRef(null);
+  const scanning = document.status === "Verifying";
+  const verified = document.status === "Verified";
+  const isImage =
+    String(document.preview || "").startsWith("data:image") ||
+    /\.(jpg|jpeg|png)$/i.test(document.preview || "");
+  const canView = Boolean(document.preview);
+
+  return (
+    <div className={`glci-borrower-document ${verified ? "verified" : ""}`}>
+      <div className="glci-borrower-document-preview">
+        {document.preview && isImage ? (
+          <img src={document.preview} alt="Uploaded document preview" />
+        ) : (
+          <span className="glci-document-placeholder">
+            <FileIcon />
+          </span>
+        )}
+
+        {scanning && (
+          <span className="glci-scan-overlay" role="status" aria-live="polite">
+            <span className="glci-scan-beam" />
+            <span className="glci-scan-label">
+              <Spinner size={14} /> Verifying PAN
+            </span>
+          </span>
+        )}
+
+        {verified && (
+          <span className="glci-document-check">
+            <CheckIcon size={13} />
+          </span>
+        )}
+      </div>
+
+      <div className="glci-document-copy">
+        <strong>
+          {label}
+          <em>*</em>
+        </strong>
+        <span>{document.name || description}</span>
+        <small className={verified ? "verified" : scanning ? "scanning" : ""}>
+          {verified
+            ? `${document.source || "Document"} · Verified`
+            : scanning
+              ? "Matching PAN data with borrower information…"
+              : document.status === "Uploaded"
+                ? "Uploaded · Verification pending"
+                : "PDF, JPG or PNG · Max 5 MB"}
+        </small>
+      </div>
+
+      <div className="glci-document-actions">
+        {canView && (
+          <a
+            className="glci-link-button"
+            href={document.preview}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <EyeIcon /> View
+          </a>
+        )}
+        <button
+          type="button"
+          className="glci-link-button"
+          onClick={() => inputRef.current?.click()}
+          disabled={disabled || scanning}
+        >
+          <UploadIcon /> {document.name ? "Re-upload" : "Upload"}
+        </button>
+        {onVerify && document.status === "Uploaded" && (
+          <button
+            type="button"
+            className="glci-secondary-button compact"
+            onClick={onVerify}
+            disabled={disabled}
+          >
+            Verify PAN
+          </button>
+        )}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png"
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) onUpload(file);
+          event.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+function CustomerIdentity({
+  lead = {},
+  sectionKey = "customerIdentity",
+  updateApplicationData,
+  updateStepStatus,
+  updateLeadDetails,
+  onLeadDetailsChange,
+  setLead,
+}) {
+  const [leadDetailsJson, setLeadDetailsJson] = useState(() =>
+    ensureLeadDetailsNodes(lead.leadDetails, lead),
+  );
+  const [showCustomerSearch, setShowCustomerSearch] = useState(
+    () => !findCustomerByMobile(lead.mobile),
+  );
+  const [searchMethod, setSearchMethod] = useState("CUSTOMER_ID");
+  const [searchValue, setSearchValue] = useState("");
+  const [searchRunning, setSearchRunning] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [searchResultStatus, setSearchResultStatus] = useState("IDLE");
+  const [consentSeconds, setConsentSeconds] = useState(CONSENT_WAIT_SECONDS);
+  const [notice, setNotice] = useState("");
+  const [borrowerDraft, setBorrowerDraft] = useState(
+    () =>
+      ensureLeadDetailsNodes(lead.leadDetails, lead).borrowerInformation
+        .details,
+  );
+  const [borrowerErrors, setBorrowerErrors] = useState({});
+  const [isBorrowerEditing, setIsBorrowerEditing] = useState(
+    () =>
+      ensureLeadDetailsNodes(lead.leadDetails, lead).borrowerInformation
+        .status !== "Saved",
+  );
+  const uploadTimers = useRef([]);
+
+  const identityNode = leadDetailsJson.customerIdentity;
+  const consentNode = leadDetailsJson.customerConsent;
+  const ntbNode = leadDetailsJson.ntbOnboarding;
+  const borrowerNode = leadDetailsJson.borrowerInformation;
+  const customerType = identityNode.customerType;
+  const customerConfirmed = identityNode.customerIdentityConfirmed;
+  const consentStatus = consentNode.status;
+  const consentSentAt = consentNode.sentAt;
+  const consentCapturedAt = consentNode.capturedAt;
+  const ntbOnboardingStatus = ntbNode.status;
+  const borrowerDocuments = borrowerNode.documents;
+  const customer = useMemo(
+    () =>
+      identityNode.matchedCustomer || buildLeadCustomer(lead, leadDetailsJson),
+    [identityNode.matchedCustomer, lead, leadDetailsJson],
+  );
+  const authOption = AUTHENTICATION_OPTIONS[searchMethod];
+
+  const updateNode = useCallback((nodeName, patchOrUpdater) => {
+    setLeadDetailsJson((current) => {
+      const currentNode = current[nodeName];
+      const patch =
+        typeof patchOrUpdater === "function"
+          ? patchOrUpdater(currentNode)
+          : patchOrUpdater;
+      return {
+        ...current,
+        [nodeName]: { ...currentNode, ...patch },
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    const initialisedDetails = ensureLeadDetailsNodes(lead.leadDetails, lead);
+    setLeadDetailsJson(initialisedDetails);
+    setShowCustomerSearch(
+      initialisedDetails.customerIdentity.customerType === "NTB" &&
+        !initialisedDetails.customerIdentity.customerIdentityConfirmed,
+    );
+    setSearchValue("");
+    setSearchError("");
+    setSearchResultStatus("IDLE");
+  }, [lead.id, lead.leadNumber, lead.mobile]);
+
+  useEffect(() => {
+    setBorrowerDraft(borrowerNode.details);
+    setBorrowerErrors({});
+    setIsBorrowerEditing(borrowerNode.status !== "Saved");
+  }, [borrowerNode.details, borrowerNode.status]);
+
+  useEffect(() => {
+    setLead?.((currentLead) => ({
+      ...currentLead,
+      leadDetails: leadDetailsJson,
+    }));
+    updateLeadDetails?.(leadDetailsJson);
+    onLeadDetailsChange?.(leadDetailsJson);
+    // Parent callbacks commonly change identity on every render. Persistence
+    // is intentionally driven only by a business change to leadDetailsJson.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadDetailsJson]);
+
+  const consentCaptured = consentStatus === "Captured";
+  const borrowerInformationSaved = borrowerNode.status === "Saved";
+  const borrowerDocumentsComplete =
+    borrowerDocuments.pan.status === "Verified" &&
+    borrowerDocuments.addressProof.status === "Verified";
+  const ntbOnboarded = ntbOnboardingStatus === "Completed";
+  const profileReady = customerConfirmed && consentCaptured;
+  const stepComplete =
+    customerConfirmed &&
+    consentCaptured &&
+    borrowerInformationSaved &&
+    borrowerDocumentsComplete &&
+    (customerType === "ETB" || ntbOnboarded);
+
+  useEffect(
+    () => () => {
+      uploadTimers.current.forEach((timer) => window.clearTimeout(timer));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (consentStatus !== "Sent") return undefined;
+
+    const timer = window.setInterval(() => {
+      setConsentSeconds((seconds) => {
+        if (seconds > 1) return seconds - 1;
+
+        updateNode("customerConsent", {
+          status: "Captured",
+          capturedAt: getTimestamp(),
+        });
+        setNotice("Customer consent received and recorded.");
+        return 0;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [consentStatus, updateNode]);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = window.setTimeout(() => setNotice(""), 3200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    updateApplicationData?.(sectionKey, {
+      customerType,
+      relationshipSource: "Verified mobile number at lead creation",
+      customerIdentityConfirmed: customerConfirmed,
+      customerName: customer.fullName,
+      cbsCustomerId:
+        customerType === "ETB" || ntbOnboarded ? customer.customerId : "",
+      consentStatus,
+      consentSentAt,
+      consentCapturedAt,
+      consentMode: consentCaptured ? "Secure mobile link / OTP" : "",
+      applicationConsent: consentCaptured,
+      cbsKycConsent: consentCaptured,
+      internalEligibilityConsent: consentCaptured,
+      conditionalCibilConsent: consentCaptured,
+      communicationConsent: consentCaptured,
+      authenticationParameter: identityNode.authenticationParameter,
+      authenticationReference: identityNode.authenticationReference,
+      kycStatus:
+        customerType === "ETB" ? customer.kycStatus : ntbOnboardingStatus,
+      borrowerInformation: borrowerNode,
+      documents: borrowerDocuments,
+      freshKycDocumentsRequired: customerType === "NTB",
+      leadDetails: leadDetailsJson,
+    });
+
+    updateStepStatus?.(
+      "customer-identity",
+      stepComplete ? "Completed" : "In Progress",
+    );
+    // Parent callbacks commonly change identity on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    consentCaptured,
+    consentCapturedAt,
+    consentSentAt,
+    consentStatus,
+    customer.fullName,
+    customer.customerId,
+    customer.kycStatus,
+    customerConfirmed,
+    customerType,
+    borrowerDocuments,
+    borrowerNode,
+    ntbOnboarded,
+    ntbOnboardingStatus,
+    sectionKey,
+    stepComplete,
+  ]);
+
+  const confirmCustomer = () => {
+    updateNode("customerIdentity", {
+      customerIdentityConfirmed: true,
+      confirmedAt: getTimestamp(),
+    });
+    setShowCustomerSearch(false);
+    setNotice(
+      customerType === "ETB"
+        ? "CBS customer confirmed against the lead."
+        : "Lead customer confirmed. Continue with consent and onboarding.",
+    );
+  };
+
+  const confirmationBeforeSearchRef = useRef(false);
+
+  const startCustomerSearch = () => {
+    confirmationBeforeSearchRef.current = customerConfirmed;
+    updateNode("customerIdentity", {
+      customerIdentityConfirmed: false,
+      confirmedAt: "",
+    });
+    setShowCustomerSearch(true);
+    setSearchError("");
+    setSearchResultStatus("IDLE");
+    setSearchValue("");
+  };
+
+  const cancelCustomerSearch = () => {
+    if (confirmationBeforeSearchRef.current) {
+      updateNode("customerIdentity", {
+        customerIdentityConfirmed: true,
+        confirmedAt: identityNode.confirmedAt || getTimestamp(),
+      });
+    }
+    setShowCustomerSearch(false);
+    setSearchError("");
+    setSearchResultStatus("IDLE");
+    setSearchValue("");
+  };
+
+  const searchCustomer = () => {
+    const value = searchValue.trim();
+    if (!authOption.validate(value)) {
+      setSearchError(authOption.error);
+      return;
+    }
+
+    setSearchError("");
+    setSearchResultStatus("IDLE");
+    setSearchRunning(true);
+
+    const timer = window.setTimeout(() => {
+      const match = findCustomerByAuthentication(searchMethod, value);
+      const reference = createReference(
+        searchMethod === "CUSTOMER_ID"
+          ? "AUTH-CID"
+          : searchMethod === "AADHAAR"
+            ? "AUTH-AAD"
+            : "AUTH-MOB",
+      );
+      setSearchRunning(false);
+      setSearchValue("");
+
+      if (!match) {
+        setSearchResultStatus("NO_MATCH");
+        updateNode("customerIdentity", {
+          lastAuthenticationAttempt: {
+            parameter: searchMethod,
+            authenticationReference: reference,
+            result: "NO_MATCH",
+            attemptedAt: getTimestamp(),
+          },
+        });
+        return;
+      }
+
+      setSearchResultStatus("MATCH_FOUND");
+      setShowCustomerSearch(false);
+      updateNode("customerIdentity", {
+        customerType: "ETB",
+        matchStatus: "MATCH_FOUND",
+        matchSource: searchMethod,
+        matchedCustomer: toPersistableCustomer(match),
+        customerIdentityConfirmed: false,
+        authenticationParameter: searchMethod,
+        authenticationReference: reference,
+        confirmedAt: "",
+      });
+      updateNode(
+        "borrowerInformation",
+        buildBorrowerInformation("ETB", toPersistableCustomer(match), lead),
+      );
+      updateNode("customerConsent", {
+        status: "Pending",
+        requestReference: "",
+        sentAt: "",
+        capturedAt: "",
+        expiresAt: "",
+        resendCount: 0,
+      });
+      setNotice(
+        `${authOption.label} verified. CBS match updated with reference ${reference}.`,
+      );
+    }, 1800);
+
+    uploadTimers.current.push(timer);
+  };
+
+  const continueAsNtb = () => {
+    const attempt = identityNode.lastAuthenticationAttempt;
+
+    updateNode("customerIdentity", {
+      customerType: "NTB",
+      matchStatus: "NO_MATCH",
+      matchSource: attempt?.parameter || "VERIFIED_MOBILE",
+      matchedCustomer: null,
+      customerIdentityConfirmed: true,
+      authenticationParameter: attempt?.parameter || "",
+      authenticationReference: attempt?.authenticationReference || "",
+      confirmedAt: getTimestamp(),
+    });
+    updateNode("customerConsent", {
+      status: "Pending",
+      requestReference: "",
+      sentAt: "",
+      capturedAt: "",
+      expiresAt: "",
+      resendCount: 0,
+    });
+    updateNode(
+      "borrowerInformation",
+      buildBorrowerInformation(
+        "NTB",
+        buildLeadCustomer(lead, leadDetailsJson),
+        lead,
+      ),
+    );
+    setShowCustomerSearch(false);
+    setSearchValue("");
+    setSearchError("");
+    setSearchResultStatus("IDLE");
+    setNotice("No CBS match found. Applicant confirmed as an NTB customer.");
+  };
+
+  const sendConsent = () => {
+    const resendCount =
+      consentStatus === "Sent" || consentStatus === "Captured"
+        ? (consentNode.resendCount || 0) + 1
+        : consentNode.resendCount || 0;
+    const expiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    setConsentSeconds(CONSENT_WAIT_SECONDS);
+    updateNode("customerConsent", {
+      status: "Sent",
+      requestReference: createReference("CONSENT"),
+      sentAt: getTimestamp(),
+      capturedAt: "",
+      expiresAt: getTimestamp(expiry),
+      resendCount,
+    });
+    setNotice(
+      resendCount
+        ? "Consent request resent to the registered mobile."
+        : "Consent request sent to the registered mobile.",
+    );
+  };
+
+  const handleDocumentUpload = async (key, file) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setNotice("Please upload a document up to 5 MB.");
+      return;
+    }
+
+    try {
+      const preview = await readFile(file);
+      updateNode("borrowerInformation", (current) => ({
+        documents: {
+          ...current.documents,
+          [key]: {
+            name: file.name,
+            preview,
+            status: key === "pan" ? "Uploaded" : "Verified",
+            source: "Fresh upload",
+            uploadedAt: getTimestamp(),
+            verification: null,
+          },
+        },
+      }));
+      setNotice(
+        key === "pan"
+          ? "PAN uploaded. Select Verify PAN to match the document details."
+          : "Address proof uploaded and marked available for KYC review.",
+      );
+    } catch (error) {
+      setNotice(error.message);
+    }
+  };
+
+  const handleBorrowerChange = (event) => {
+    const { name, value } = event.target;
+    const normalisedValue =
+      name === "mobile" || name === "pincode"
+        ? digitsOnly(value).slice(0, name === "mobile" ? 10 : 6)
+        : name === "pan"
+          ? value
+              .toUpperCase()
+              .replace(/[^A-Z0-9]/g, "")
+              .slice(0, 10)
+          : value;
+    setBorrowerDraft((current) => ({ ...current, [name]: normalisedValue }));
+    setBorrowerErrors((current) => ({ ...current, [name]: "" }));
+  };
+
+  const saveBorrowerInformation = () => {
+    const errors = validateBorrower(borrowerDraft);
+    if (Object.keys(errors).length) {
+      setBorrowerErrors(errors);
+      setNotice("Please correct the highlighted borrower information.");
+      return;
+    }
+
+    const details = {
+      ...borrowerDraft,
+      firstName: borrowerDraft.firstName.trim(),
+      middleName: borrowerDraft.middleName.trim(),
+      lastName: borrowerDraft.lastName.trim(),
+      fatherName: borrowerDraft.fatherName.trim(),
+      email: borrowerDraft.email.trim().toLowerCase(),
+      pan: borrowerDraft.pan.trim().toUpperCase(),
+      address: borrowerDraft.address.trim(),
+    };
+    const fullName = [details.firstName, details.middleName, details.lastName]
+      .filter(Boolean)
+      .join(" ");
+
+    const panChanged = details.pan !== borrowerNode.details.pan;
+    updateNode("borrowerInformation", (current) => ({
+      status: "Saved",
+      savedAt: getTimestamp(),
+      details,
+      documents: panChanged
+        ? {
+            ...current.documents,
+            pan: {
+              ...current.documents.pan,
+              status: current.documents.pan.preview ? "Uploaded" : "Pending",
+              verification: null,
+              verifiedAt: "",
+              verificationReference: "",
+            },
+          }
+        : current.documents,
+    }));
+    updateNode("customerIdentity", {
+      matchedCustomer: {
+        ...customer,
+        ...details,
+        fullName,
+        dateOfBirth: formatDateForDisplay(details.dateOfBirth),
+        mobile: `+91 ${details.mobile.slice(0, 5)} ${details.mobile.slice(5)}`,
+      },
+    });
+    setIsBorrowerEditing(false);
+    setBorrowerErrors({});
+    setNotice("Borrower information saved successfully.");
+  };
+
+  const verifyPan = () => {
+    if (!borrowerInformationSaved) {
+      setNotice("Save the borrower information before verifying PAN.");
+      return;
+    }
+    updateNode("borrowerInformation", (current) => ({
+      documents: {
+        ...current.documents,
+        pan: { ...current.documents.pan, status: "Verifying" },
+      },
+    }));
+
+    const timer = window.setTimeout(() => {
+      updateNode("borrowerInformation", (current) => ({
+        documents: {
+          ...current.documents,
+          pan: {
+            ...current.documents.pan,
+            status: "Verified",
+            verifiedAt: getTimestamp(),
+            verificationReference: createReference("PAN-VER"),
+            verification: {
+              nameMatch: true,
+              dateOfBirthMatch: true,
+              fatherNameMatch: true,
+            },
+          },
+        },
+      }));
+      setNotice("PAN verified. Name, date of birth and father's name matched.");
+    }, 2400);
+    uploadTimers.current.push(timer);
+  };
+
+  const completeNtbOnboarding = () => {
+    updateNode("ntbOnboarding", { status: "Running" });
+    const timer = window.setTimeout(() => {
+      const generatedCustomerId = `YESC${String(Date.now()).slice(-8)}`;
+      updateNode("ntbOnboarding", {
+        status: "Completed",
+        completedAt: getTimestamp(),
+      });
+      updateNode("customerIdentity", {
+        matchedCustomer: {
+          ...customer,
+          ...borrowerNode.details,
+          fullName: [
+            borrowerNode.details.firstName,
+            borrowerNode.details.middleName,
+            borrowerNode.details.lastName,
+          ]
+            .filter(Boolean)
+            .join(" "),
+          dateOfBirth: formatDateForDisplay(borrowerNode.details.dateOfBirth),
+          customerId: generatedCustomerId,
+          kycStatus: "Current",
+          kycUpdatedAt: getTimestamp(),
+        },
+      });
+      setNotice("KYC completed and CBS customer profile created.");
+    }, 2600);
+    uploadTimers.current.push(timer);
+  };
+
+  return (
+    <div className="glci-page">
+      {notice && (
+        <div className="glci-toast" role="status">
+          <CheckIcon /> {notice}
+        </div>
+      )}
+
+      <header className={`glci-relationship ${customerType.toLowerCase()}`}>
+        <div className="glci-relationship-main">
+          <span className="glci-relationship-icon">
+            <UserIcon />
+          </span>
+          <div>
+            <span className="glci-eyebrow">
+              IDENTIFIED DURING LEAD CREATION
+            </span>
+            <div className="glci-relationship-title">
+              <h2>{customer.fullName}</h2>
+              <StatusBadge variant={customerType === "ETB" ? "gold" : "light"}>
+                {customerType}
+              </StatusBadge>
+              <StatusBadge variant="success">
+                <CheckIcon size={11} /> Mobile verified
+              </StatusBadge>
+            </div>
+            <p>
+              {customerType === "ETB"
+                ? "A CBS relationship was found using the verified lead mobile number. Confirm the matched customer before obtaining consent."
+                : "No CBS relationship was found using the verified lead mobile number. Confirm the lead customer, obtain consent, then complete onboarding."}
+            </p>
+          </div>
+        </div>
+        <div className="glci-lead-meta">
+          <span>Lead</span>
+          <strong>{lead.id || lead.leadNumber || "GL-LEAD-10284"}</strong>
+          <small>{customer.mobile}</small>
+        </div>
+      </header>
+
+      <div className="glci-flow">
+        <section className="glci-section">
+          <SectionHeader
+            number="1"
+            title="Confirm customer identity"
+            description={
+              customerType === "ETB"
+                ? "A CBS match was found using the verified mobile number. Confirm the match or update it using another authentication parameter."
+                : "No CBS customer was found using the verified mobile number. Continue the applicant as a new-to-bank customer."
+            }
+            status={customerConfirmed ? "Confirmed" : "Action required"}
+            statusVariant={customerConfirmed ? "success" : "pending"}
+          />
+
+          {customerType === "ETB" ? (
+            <div className="glci-card glci-match-card">
+              <div className="glci-avatar">
+                {getInitials(customer.fullName)}
+              </div>
+              <div className="glci-match-details">
+                <div className="glci-match-name">
+                  <strong>{customer.fullName}</strong>
+                  <span>CBS match found</span>
+                </div>
+                <div className="glci-match-grid">
+                  <span>
+                    <small>Registered mobile</small>
+                    <strong>{customer.mobile}</strong>
+                  </span>
+                  <span>
+                    <small>CBS Customer ID</small>
+                    <strong>{customer.customerId}</strong>
+                  </span>
+                  <span>
+                    <small>Home branch</small>
+                    <strong>{customer.homeBranch}</strong>
+                  </span>
+                </div>
+                {identityNode.authenticationReference && (
+                  <div className="glci-reference-line">
+                    Authentication reference{" "}
+                    <strong>{identityNode.authenticationReference}</strong>
+                  </div>
+                )}
+              </div>
+              <div className="glci-match-actions">
+                <button
+                  type="button"
+                  className="glci-primary-button"
+                  onClick={confirmCustomer}
+                  disabled={customerConfirmed}
+                >
+                  {customerConfirmed ? (
+                    <>
+                      <CheckIcon /> Match confirmed
+                    </>
+                  ) : (
+                    "Confirm match"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="glci-secondary-button"
+                  onClick={startCustomerSearch}
+                >
+                  Update match
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="glci-card glci-no-match-card">
+              <span className="glci-no-match-icon">
+                <UserIcon />
+              </span>
+              <div>
+                <strong>No customer found in CBS</strong>
+                <p>
+                  No existing relationship is linked to verified mobile{" "}
+                  {maskMobile(lead.mobile)}. Search using Customer ID, Aadhaar
+                  or another mobile number, or continue through NTB onboarding.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="glci-primary-button"
+                onClick={confirmCustomer}
+                disabled={customerConfirmed}
+              >
+                {customerConfirmed ? (
+                  <>
+                    <CheckIcon /> NTB identity confirmed
+                  </>
+                ) : (
+                  "Continue as NTB customer"
+                )}
+              </button>
+            </div>
+          )}
+
+          {showCustomerSearch && !customerConfirmed && (
+            <div className="glci-customer-search-wrap">
+              <div className="glci-search-heading">
+                <div>
+                  <strong>Update customer match</strong>
+                  <span>
+                    Use one authentication parameter. The entered value is not
+                    retained.
+                  </span>
+                </div>
+                {customerType === "ETB" && (
+                  <button
+                    type="button"
+                    className="glci-text-button"
+                    onClick={cancelCustomerSearch}
+                  >
+                    Back to matched customer
+                  </button>
+                )}
+              </div>
+              <div className="glci-customer-search">
+                <label>
+                  <span>Authentication parameter</span>
+                  <select
+                    value={searchMethod}
+                    onChange={(event) => {
+                      setSearchMethod(event.target.value);
+                      setSearchValue("");
+                      setSearchError("");
+                      setSearchResultStatus("IDLE");
+                    }}
+                  >
+                    <option value="CUSTOMER_ID">Customer ID</option>
+                    <option value="AADHAAR">Aadhaar Number</option>
+                    <option value="MOBILE">Mobile Number</option>
+                  </select>
+                </label>
+                <label className="glci-search-value">
+                  <span>{authOption.label}</span>
+                  <input
+                    type={searchMethod === "AADHAAR" ? "password" : "text"}
+                    inputMode={authOption.inputMode}
+                    autoComplete="off"
+                    maxLength={authOption.maxLength}
+                    value={searchValue}
+                    onChange={(event) => {
+                      const nextValue =
+                        searchMethod === "CUSTOMER_ID"
+                          ? event.target.value.toUpperCase()
+                          : digitsOnly(event.target.value);
+                      setSearchValue(nextValue);
+                      setSearchError("");
+                      setSearchResultStatus("IDLE");
+                    }}
+                    placeholder={authOption.placeholder}
+                    aria-invalid={Boolean(searchError)}
+                    aria-describedby={
+                      searchError ? "glci-auth-error" : undefined
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="glci-primary-button"
+                  onClick={searchCustomer}
+                  disabled={!searchValue.trim() || searchRunning}
+                >
+                  {searchRunning ? (
+                    <>
+                      <Spinner /> Searching CBS…
+                    </>
+                  ) : (
+                    "Search CBS"
+                  )}
+                </button>
+              </div>
+              {searchError && (
+                <div
+                  id="glci-auth-error"
+                  className="glci-field-error"
+                  role="alert"
+                >
+                  {searchError}
+                </div>
+              )}
+              {searchResultStatus === "NO_MATCH" && (
+                <div className="glci-search-no-result" role="status">
+                  <AlertIcon />
+                  <div>
+                    <strong>No customer found</strong>
+                    <span>
+                      Reference{" "}
+                      {
+                        identityNode.lastAuthenticationAttempt
+                          ?.authenticationReference
+                      }{" "}
+                      · Check the value and try again, or continue the applicant
+                      as a new-to-bank customer.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="glci-primary-button"
+                    onClick={continueAsNtb}
+                  >
+                    Continue as NTB
+                  </button>
+                </div>
+              )}
+              {searchMethod === "AADHAAR" && (
+                <small className="glci-privacy-note">
+                  Aadhaar is masked while typing. Only the generated
+                  authentication reference is saved in lead details.
+                </small>
+              )}
+            </div>
+          )}
+        </section>
+
+        <section
+          className={`glci-section ${!customerConfirmed ? "locked" : ""}`}
+        >
+          <SectionHeader
+            number="2"
+            title="Obtain customer consent"
+            description="Send one secure consent request covering application processing, CBS/KYC use, internal checks, conditional CIBIL pull and communications."
+            status={
+              consentCaptured
+                ? "Captured"
+                : consentStatus === "Sent"
+                  ? "Awaiting customer"
+                  : "Pending"
+            }
+            statusVariant={
+              consentCaptured
+                ? "success"
+                : consentStatus === "Sent"
+                  ? "running"
+                  : "pending"
+            }
+          />
+
+          {!customerConfirmed && (
+            <div className="glci-lock-note">
+              <ShieldIcon /> Confirm the customer to enable consent.
+            </div>
+          )}
+
+          <div className="glci-card glci-consent-card">
+            <div className="glci-consent-summary">
+              <span className="glci-consent-icon">
+                <PhoneIcon />
+              </span>
+              <div>
+                <strong>
+                  {consentCaptured
+                    ? "Consent received"
+                    : consentStatus === "Sent"
+                      ? "Consent request sent"
+                      : "Send secure consent request"}
+                </strong>
+                <p>
+                  Secure SMS link with OTP to{" "}
+                  <b>{maskMobile(customer.mobile)}</b>
+                </p>
+              </div>
+            </div>
+
+            {consentCaptured ? (
+              <div className="glci-consent-result">
+                <span className="glci-success-mark">
+                  <CheckIcon />
+                </span>
+                <div>
+                  <strong>All preliminary consents recorded</strong>
+                  <small>
+                    Captured {consentCapturedAt} · Reference{" "}
+                    {consentNode.requestReference}
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="glci-secondary-button"
+                  onClick={sendConsent}
+                >
+                  <RefreshIcon /> Resend
+                </button>
+              </div>
+            ) : consentStatus === "Sent" ? (
+              <div
+                className="glci-consent-wait"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="glci-pulse-ring">
+                  <Spinner />
+                </span>
+                <div>
+                  <strong>Consent request sent successfully</strong>
+                  <small>
+                    Reference {consentNode.requestReference} · Sent{" "}
+                    {consentSentAt}
+                  </small>
+                  <small>
+                    Link valid until {consentNode.expiresAt}. Waiting for
+                    customer confirmation.
+                  </small>
+                </div>
+                <div className="glci-consent-actions">
+                  <span className="glci-countdown">{consentSeconds}s</span>
+                  <button
+                    type="button"
+                    className="glci-secondary-button"
+                    onClick={sendConsent}
+                  >
+                    <RefreshIcon /> Resend
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="glci-primary-button"
+                onClick={sendConsent}
+                disabled={!customerConfirmed}
+              >
+                Send consent request
+              </button>
+            )}
+
+            <div className="glci-consent-scope">
+              {[
+                "Gold Loan application processing",
+                "CBS and KYC information retrieval",
+                "Internal eligibility and knock-off checks",
+                "CIC/CIBIL enquiry if the applicable threshold is met",
+                "SMS, email and phone communication",
+              ].map((item) => (
+                <span key={item}>
+                  <CheckIcon size={12} /> {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className={`glci-section ${!profileReady ? "locked" : ""}`}>
+          <SectionHeader
+            number="3"
+            title="Borrower information"
+            description={
+              customerType === "ETB"
+                ? "Review the CBS borrower profile, update details where required and manage the KYC documents."
+                : "Enter the borrower's details, save the profile and verify the mandatory KYC documents."
+            }
+            status={
+              !profileReady
+                ? "Locked"
+                : isBorrowerEditing
+                  ? customerType === "ETB"
+                    ? "Editing"
+                    : "Details required"
+                  : borrowerDocumentsComplete
+                    ? "Information saved"
+                    : "Documents pending"
+            }
+            statusVariant={
+              profileReady &&
+              borrowerInformationSaved &&
+              borrowerDocumentsComplete
+                ? "success"
+                : "pending"
+            }
+          />
+
+          {!profileReady && (
+            <div className="glci-lock-note">
+              <ShieldIcon /> Confirm the customer and capture consent before
+              borrower details are processed.
+            </div>
+          )}
+
+          <div className="glci-profile-card">
+            <div className="glci-profile-top">
+              <span className="glci-profile-avatar">
+                {getInitials(customer.fullName)}
+              </span>
+              <div>
+                <strong>{customer.fullName}</strong>
+                <small>
+                  {customerType === "ETB"
+                    ? "Existing YES BANK customer"
+                    : ntbOnboarded
+                      ? "Newly onboarded YES BANK customer"
+                      : "New-to-bank borrower"}
+                  {customer.customerId ? ` · ${customer.customerId}` : ""}
+                </small>
+              </div>
+              <div className="glci-profile-actions">
+                {!isBorrowerEditing ? (
+                  <button
+                    type="button"
+                    className="glci-secondary-button"
+                    onClick={() => {
+                      setBorrowerDraft(borrowerNode.details);
+                      setBorrowerErrors({});
+                      setIsBorrowerEditing(true);
+                      updateNode("borrowerInformation", { status: "Editing" });
+                    }}
+                  >
+                    <PencilIcon /> Edit information
+                  </button>
+                ) : (
+                  borrowerNode.savedAt && (
+                    <button
+                      type="button"
+                      className="glci-link-button"
+                      onClick={() => {
+                        setBorrowerDraft(borrowerNode.details);
+                        setBorrowerErrors({});
+                        setIsBorrowerEditing(false);
+                        updateNode("borrowerInformation", { status: "Saved" });
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {isBorrowerEditing ? (
+              <div className="glci-borrower-form">
+                <BorrowerField
+                  label="First name"
+                  name="firstName"
+                  value={borrowerDraft.firstName}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.firstName}
+                  required
+                />
+                <BorrowerField
+                  label="Middle name"
+                  name="middleName"
+                  value={borrowerDraft.middleName}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.middleName}
+                />
+                <BorrowerField
+                  label="Last name"
+                  name="lastName"
+                  value={borrowerDraft.lastName}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.lastName}
+                  required
+                />
+                <BorrowerField
+                  label="Date of birth"
+                  name="dateOfBirth"
+                  type="date"
+                  value={borrowerDraft.dateOfBirth}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.dateOfBirth}
+                  required
+                />
+                <BorrowerField
+                  label="Father's name"
+                  name="fatherName"
+                  value={borrowerDraft.fatherName}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.fatherName}
+                  required
+                />
+                <BorrowerField
+                  label="Gender"
+                  name="gender"
+                  value={borrowerDraft.gender}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.gender}
+                  options={[
+                    "Female",
+                    "Male",
+                    "Transgender",
+                    "Prefer not to say",
+                  ]}
+                  required
+                />
+                <BorrowerField
+                  label="Marital status"
+                  name="maritalStatus"
+                  value={borrowerDraft.maritalStatus}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.maritalStatus}
+                  options={["Single", "Married", "Divorced", "Widowed"]}
+                  required
+                />
+                <BorrowerField
+                  label="Occupation"
+                  name="occupation"
+                  value={borrowerDraft.occupation}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.occupation}
+                  options={[
+                    "Salaried",
+                    "Self-employed",
+                    "Business",
+                    "Agriculture",
+                    "Retired",
+                    "Homemaker",
+                  ]}
+                  required
+                />
+                <BorrowerField
+                  label="Mobile number"
+                  name="mobile"
+                  value={borrowerDraft.mobile}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.mobile}
+                  inputMode="numeric"
+                  maxLength={10}
+                  required
+                />
+                <BorrowerField
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={borrowerDraft.email}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.email}
+                />
+                <BorrowerField
+                  label="PAN"
+                  name="pan"
+                  value={borrowerDraft.pan}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.pan}
+                  maxLength={10}
+                  required
+                />
+                <BorrowerField
+                  label="PIN code"
+                  name="pincode"
+                  value={borrowerDraft.pincode}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.pincode}
+                  inputMode="numeric"
+                  maxLength={6}
+                  required
+                />
+                <BorrowerField
+                  label="Communication / current address"
+                  name="address"
+                  value={borrowerDraft.address}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.address}
+                  maxLength={250}
+                  required
+                  wide
+                />
+                <div className="glci-borrower-form-actions">
+                  <span>
+                    Fields marked * are mandatory. Borrower age must be between
+                    18 and 75 years.
+                  </span>
+                  <button
+                    type="button"
+                    className="glci-primary-button"
+                    onClick={saveBorrowerInformation}
+                  >
+                    Save borrower information
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="glci-detail-grid">
+                  <Detail
+                    label="First name"
+                    value={borrowerNode.details.firstName}
+                  />
+                  <Detail
+                    label="Middle name"
+                    value={borrowerNode.details.middleName}
+                  />
+                  <Detail
+                    label="Last name"
+                    value={borrowerNode.details.lastName}
+                  />
+                  <Detail
+                    label="Date of birth"
+                    value={formatDateForDisplay(
+                      borrowerNode.details.dateOfBirth,
+                    )}
+                  />
+                  <Detail
+                    label="Father's name"
+                    value={borrowerNode.details.fatherName}
+                  />
+                  <Detail label="Gender" value={borrowerNode.details.gender} />
+                  <Detail
+                    label="Marital status"
+                    value={borrowerNode.details.maritalStatus}
+                  />
+                  <Detail
+                    label="Occupation"
+                    value={borrowerNode.details.occupation}
+                  />
+                  <Detail
+                    label="Mobile number"
+                    value={borrowerNode.details.mobile}
+                    verified={customerType === "ETB"}
+                  />
+                  <Detail
+                    label="Email"
+                    value={borrowerNode.details.email}
+                    verified={customerType === "ETB"}
+                  />
+                  <Detail
+                    label="PAN"
+                    value={borrowerNode.details.pan}
+                    verified={borrowerDocuments.pan.status === "Verified"}
+                  />
+                  <Detail
+                    label="PIN code"
+                    value={borrowerNode.details.pincode}
+                  />
+                  <Detail
+                    label="Communication / current address"
+                    value={borrowerNode.details.address}
+                    wide
+                  />
+                  {customerType === "ETB" && (
+                    <>
+                      <Detail
+                        label="KYC status"
+                        value={`${customer.kycStatus} · ${customer.kycUpdatedAt}`}
+                        verified
+                      />
+                      <Detail label="CKYC number" value={customer.ckycNumber} />
+                      <Detail label="Home branch" value={customer.homeBranch} />
+                      <Detail
+                        label="Risk category"
+                        value={customer.riskCategory}
+                      />
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div className="glci-document-section">
+              <div className="glci-document-section-head">
+                <div>
+                  <strong>KYC documents</strong>
+                  <span>
+                    View the available evidence or re-upload a fresher copy.
+                  </span>
+                </div>
+                <StatusBadge
+                  variant={borrowerDocumentsComplete ? "success" : "pending"}
+                >
+                  {borrowerDocumentsComplete ? (
+                    <CheckIcon size={11} />
+                  ) : (
+                    <AlertIcon />
+                  )}{" "}
+                  {borrowerDocumentsComplete
+                    ? "Documents complete"
+                    : "Action required"}
+                </StatusBadge>
+              </div>
+              <div className="glci-borrower-document-grid">
+                <BorrowerDocument
+                  label="PAN Card"
+                  description="Upload PAN card"
+                  document={borrowerDocuments.pan}
+                  onUpload={(file) => handleDocumentUpload("pan", file)}
+                  onVerify={verifyPan}
+                  disabled={
+                    isBorrowerEditing || ntbOnboardingStatus === "Running"
+                  }
+                />
+                <BorrowerDocument
+                  label="Address proof"
+                  description="Upload an accepted OVD / address proof"
+                  document={borrowerDocuments.addressProof}
+                  onUpload={(file) =>
+                    handleDocumentUpload("addressProof", file)
+                  }
+                  disabled={
+                    isBorrowerEditing || ntbOnboardingStatus === "Running"
+                  }
+                />
+              </div>
+
+              {borrowerDocuments.pan.verification && (
+                <div className="glci-pan-match-result" role="status">
+                  <div>
+                    <CheckIcon size={13} />
+                    <span>
+                      <small>Name</small>
+                      <strong>Matched</strong>
+                    </span>
+                  </div>
+                  <div>
+                    <CheckIcon size={13} />
+                    <span>
+                      <small>Date of birth</small>
+                      <strong>Matched</strong>
+                    </span>
+                  </div>
+                  <div>
+                    <CheckIcon size={13} />
+                    <span>
+                      <small>Father's name</small>
+                      <strong>Matched</strong>
+                    </span>
+                  </div>
+                  <StatusBadge variant="success">
+                    <ShieldIcon /> PAN verified
+                  </StatusBadge>
+                </div>
+              )}
+            </div>
+
+            {customerType === "NTB" && (
+              <div className="glci-ntb-action">
+                <div>
+                  <strong>
+                    {ntbOnboarded
+                      ? "CBS customer profile created"
+                      : "Create customer after borrower and document verification"}
+                  </strong>
+                  <p>
+                    {ntbOnboarded
+                      ? `Customer ID ${customer.customerId} is now linked to this application.`
+                      : "The original relationship remains NTB for acquisition reporting."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="glci-primary-button"
+                  onClick={completeNtbOnboarding}
+                  disabled={
+                    !borrowerInformationSaved ||
+                    !borrowerDocumentsComplete ||
+                    ntbOnboardingStatus === "Running" ||
+                    ntbOnboarded
+                  }
+                >
+                  {ntbOnboardingStatus === "Running" ? (
+                    <>
+                      <Spinner /> Creating customer…
+                    </>
+                  ) : ntbOnboarded ? (
+                    <>
+                      <CheckIcon /> Customer created
+                    </>
+                  ) : (
+                    "Complete KYC & create customer"
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <footer
+        className={`glci-readiness ${stepComplete ? "ready" : "pending"}`}
+      >
+        <span>{stepComplete ? <CheckIcon /> : <AlertIcon />}</span>
+        <div>
+          <strong>
+            {stepComplete
+              ? "Customer verification and consent complete"
+              : "Complete the outstanding Step 1 requirements"}
+          </strong>
+          <p>
+            {stepComplete
+              ? "Proceed to Facility, Branch & Loan Details. CIBIL consent is already recorded; the bureau pull remains conditional on the amount threshold."
+              : customerType === "ETB"
+                ? "Customer confirmation and consent are mandatory before continuing."
+                : "Customer confirmation, consent and NTB onboarding are mandatory before continuing."}
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export default CustomerIdentity;

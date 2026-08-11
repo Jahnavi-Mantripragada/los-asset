@@ -208,5 +208,81 @@ export const EMAIL_TEMPLATES = {
         </p>
       </div>
     `
+  },
+
+  GOLD_LOAN_APPLICATION_CREATED: {
+    key: "GOLD_LOAN_APPLICATION_CREATED",
+    subject:
+      "Your YES BANK Gold Loan application {{applicationNumber}} has been created",
+    bodyHtml: `
+      <div style="margin:0;padding:24px;background:#f4f7f9;font-family:Arial,Helvetica,sans-serif;color:#14212b;">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #d4e0e7;border-radius:16px;overflow:hidden;">
+          <div style="background:#00518f;padding:22px 28px;border-bottom:5px solid #c4261d;">
+            <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.2px;">YES BANK</div>
+            <div style="margin-top:5px;color:#dceef8;font-size:13px;">Gold Loan Application</div>
+          </div>
+
+          <div style="padding:28px;">
+            <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Dear {{customerName}},</p>
+
+            <p style="margin:0 0 18px;font-size:14px;line-height:1.65;color:#445764;">
+              Thank you for choosing YES BANK for your Gold Loan requirement. Your application has been created successfully and our branch team will guide you through verification, jewellery appraisal and the remaining documentation.
+            </p>
+
+            <div style="margin:20px 0;padding:18px;background:#f1f7fa;border-left:4px solid #00518f;border-radius:10px;">
+              <div style="margin-bottom:12px;font-size:12px;font-weight:700;color:#00518f;text-transform:uppercase;letter-spacing:.6px;">Application summary</div>
+              <table role="presentation" style="width:100%;border-collapse:collapse;font-size:13px;">
+                <tr>
+                  <td style="padding:7px 0;color:#667985;">Application number</td>
+                  <td style="padding:7px 0;text-align:right;font-weight:700;color:#14212b;">{{applicationNumber}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:7px 0;color:#667985;">Facility preference</td>
+                  <td style="padding:7px 0;text-align:right;font-weight:700;color:#14212b;">{{facilityInterest}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:7px 0;color:#667985;">Indicative requirement</td>
+                  <td style="padding:7px 0;text-align:right;font-weight:700;color:#14212b;">{{requestedLoanAmount}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:7px 0;color:#667985;">Servicing branch</td>
+                  <td style="padding:7px 0;text-align:right;font-weight:700;color:#14212b;">{{branchName}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:7px 0;color:#667985;">Appointment</td>
+                  <td style="padding:7px 0;text-align:right;font-weight:700;color:#14212b;">{{appointmentDate}}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="margin:22px 0;">
+              <div style="margin-bottom:10px;font-size:14px;font-weight:700;color:#14212b;">What happens next</div>
+              <ol style="margin:0;padding-left:20px;color:#445764;font-size:13px;line-height:1.75;">
+                <li>Our branch team will confirm your customer details and required consents.</li>
+                <li>Please bring the gold jewellery and original supporting documents to the branch.</li>
+                <li>Eligibility and the final loan amount will be confirmed after jewellery appraisal and policy checks.</li>
+              </ol>
+            </div>
+
+            <div style="margin-top:20px;padding:13px 15px;background:#fff8df;border:1px solid #edd58c;border-radius:9px;color:#74540c;font-size:12px;line-height:1.55;">
+              The amount shown above is the customer’s indicative requirement. Final eligibility, pricing and sanction are subject to jewellery appraisal and YES BANK policy.
+            </div>
+
+            <p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#445764;">
+              For assistance, please contact {{branchName}} and quote application number <strong>{{applicationNumber}}</strong>.
+            </p>
+
+            <p style="margin:20px 0 0;font-size:13px;line-height:1.6;">
+              Regards,<br />
+              <strong>YES BANK Gold Loan Team</strong>
+            </p>
+          </div>
+
+          <div style="padding:16px 28px;background:#f7fafc;border-top:1px solid #e5edf1;color:#71838e;font-size:10.5px;line-height:1.55;">
+            For your security, never share your OTP, PIN, password or card details with anyone. This is an automated service communication related to your Gold Loan application.
+          </div>
+        </div>
+      </div>
+    `
   }
 };

@@ -65,23 +65,6 @@ const listViews = [
 
 const sourceOptions = [
   { value: "Branch Walk-in", icon: "⌂", description: "Customer at branch" },
-  {
-    value: "Relationship Manager",
-    icon: "◎",
-    description: "RM-generated enquiry",
-  },
-  {
-    value: "Customer Referral",
-    icon: "↗",
-    description: "Existing customer referral",
-  },
-  { value: "Gold Loan Campaign", icon: "◆", description: "Campaign response" },
-  { value: "Website", icon: "⌁", description: "Digital enquiry" },
-  {
-    value: "Contact Centre",
-    icon: "◉",
-    description: "Inbound or outbound call",
-  },
 ];
 
 const emptyLeadForm = {
@@ -90,15 +73,11 @@ const emptyLeadForm = {
   mobile: "",
   email: "",
   product: "Gold Loan",
-  source: "",
+  source: "Branch Walk-in",
 };
 
 const channelData = [
   { label: "Branch Walk-in", value: "38%", width: "82%", icon: "⌂" },
-  { label: "RM Referral", value: "24%", width: "58%", icon: "↗" },
-  { label: "Campaign", value: "16%", width: "42%", icon: "◆" },
-  { label: "Contact Centre", value: "12%", width: "31%", icon: "◉" },
-  { label: "Website", value: "10%", width: "26%", icon: "⌁" },
 ];
 
 const funnelData = [

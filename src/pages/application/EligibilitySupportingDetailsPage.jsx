@@ -643,6 +643,7 @@ function EligibilitySupportingDetailsPage({
             </div>
 
             {stepData.cibil.status === "Completed" && (
+              <>
               <div className="esd-result-grid">
                 <div><span>CIBIL score</span><strong>{stepData.cibil.score}</strong><small>Good credit profile</small></div>
                 <div>
@@ -652,6 +653,21 @@ function EligibilitySupportingDetailsPage({
                 </div>
                 <div><span>Assessment outcome</span><strong className="success-text">{stepData.cibil.assessmentOutcome}</strong><small>No blocking bureau rule</small></div>
               </div>
+              {/* PRE-FILLED ELIGIBILITY BANNER */}
+              <div className="esd-eligibility-banner" role="status">
+                <span className="esd-eligibility-banner-icon">
+                  <CheckIcon />
+                </span>
+                <div className="esd-eligibility-banner-text">
+                  <strong>
+                    You are eligible for loan amount of {formatCurrency(3500000)} (₹35 Lakhs)
+                  </strong>
+                  <p>
+                    Based on CIBIL score ({stepData.cibil.score}) and CBS credit evaluation.
+                  </p>
+                </div>
+              </div>
+              </>
             )}
           </div>
         ) : (

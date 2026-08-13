@@ -261,7 +261,11 @@ function FacilityBranchLoanDetailsPage({
   const existingOutstanding = 0;
   const requestedLoanAmount = Number(form.requestedLoanAmount || 0);
   const aggregateLoanAmount = existingOutstanding + requestedLoanAmount;
-  const cibilRequired = requestedLoanAmount > 250000;
+  // BEFORE: const cibilRequired = requestedLoanAmount > 250000;
+  const relationshipType = lead?.relationship?.type || lead?.customerIdentity?.type || "";
+  const isNTB = relationshipType === "NTB" || leadIdentity.startsWith("LD-");
+  // NTB = ALWAYS required | ETB = required only when loan > ₹1,00,000
+  const cibilRequired = isNTB ? true : requestedLoanAmount > 100000;
   const landDetailsRequired =
     form.productType === "Agri" && aggregateLoanAmount >= 100000;
 

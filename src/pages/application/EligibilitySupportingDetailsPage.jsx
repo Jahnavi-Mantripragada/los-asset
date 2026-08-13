@@ -246,7 +246,8 @@ function EligibilitySupportingDetailsPage({
   const exposure = facilityData.exposure || {};
 
   // These two stored flags are the only source of truth for conditional sections.
-  const cibilRequired = exposure.cibilRequired === true;
+  // BEFORE:
+  // const cibilRequired = exposure.cibilRequired === true;
   const landDetailsRequired = exposure.landDetailsRequired === true;
   const requestedLoanAmount = Number(
     exposure.requestedLoanAmount ?? facilityData.requestedLoanAmount ?? 0
@@ -257,6 +258,17 @@ function EligibilitySupportingDetailsPage({
   const facilityType =
     facilityData.facilityType || facilityData.productType || "Gold Loan";
   const leadIdentity = lead?.id || lead?.leadId || lead?.leadNumber || "";
+
+  const customerIdentity = leadDetails.customerIdentity || {};
+  const relationship = customerIdentity.relationship || leadDetails.relationship || "";
+
+  const relationshipType = relationship.type || customerIdentity.type || leadDetails.customerType || "";
+
+  const isNTB = relationshipType === "NTB";
+
+  // AFTER: 
+  // NTB = Always required, ETB = Required if exposure.cibilRequired is true (> ₹1L / ₹2.5L)
+  const cibilRequired = isNTB ? true : exposure.cibilRequired === true;
 
   const initialStep = normalizeStep({
     existing: leadDetails[SECTION_KEY],

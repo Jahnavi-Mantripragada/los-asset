@@ -10,16 +10,35 @@ const CheckIcon = () => (
   </svg>
 );
 
-const BankIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <path d="m3 9 9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 21h18" />
-  </svg>
-);
-
 const LoanIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <rect x="3" y="5" width="18" height="14" rx="2" />
     <path d="M3 10h18M7 15h3" />
+  </svg>
+);
+
+const JewelleryIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+    <path d="m4 8 4-5h8l4 5-8 13Z" />
+    <path d="M4 8h16M8 3l4 5 4-5M8 8l4 13 4-13" />
+  </svg>
+);
+
+const UploadIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5" />
   </svg>
 );
 
@@ -73,38 +92,47 @@ const FACILITY_OPTIONS = {
     label: "Retail Gold Loan",
     purposes: ["Marriage", "Medical", "Personal Needs", "Others"],
     schemes: [
-      {
-        name: "YES Gold Loan - Regular",
-        tenureOptions: ["12 Months"]
-      },
-      {
-        name: "YES Gold Loan - Bullet",
-        tenureOptions: ["6 Months", "12 Months"]
-      },
+      { name: "YES Gold Loan - Regular", tenureOptions: ["12 Months"] },
+      { name: "YES Gold Loan - Bullet", tenureOptions: ["6 Months", "12 Months"] },
     ],
   },
   Agri: {
     label: "Agri Gold Loan",
     purposes: ["Land Development", "Cultivation Requirement"],
     schemes: [
-      {
-        name: "YES Agri Gold - Crop",
-        tenureOptions: ["6 Months", "12 Months"]
-      },
-      {
-        name: "YES Agri Gold - Development",
-        tenureOptions: ["18 Months"]
-      },
+      { name: "YES Agri Gold - Crop", tenureOptions: ["6 Months", "12 Months"] },
+      { name: "YES Agri Gold - Development", tenureOptions: ["18 Months"] },
     ],
   },
 };
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
+const ORNAMENTS = [
+  "Gold Necklace",
+  "Gold Chain",
+  "Gold Bangles",
+  "Gold Earrings",
+  "Gold Ring",
+  "Gold Coin",
+  "Other Gold Ornament",
+];
+
+const createJewelleryItem = (sequence = 1) => ({
+  id: `JWL-${Date.now()}-${sequence}`,
+  serialNumber: sequence,
+  description: "Gold Necklace",
+  numberOfItems: 1,
+  customerDeclaredOwnership: "Yes",
+  ownershipProof: null,
+  remarks: "",
+});
+
+const isItemComplete = (item) =>
+  Boolean(
+    item.description &&
+      Number(item.numberOfItems) > 0 &&
+      item.customerDeclaredOwnership === "Yes" &&
+      item.ownershipProof?.fileName
+  );
 
 const parseLeadDetails = (leadDetails) => {
   if (!leadDetails) return {};
@@ -135,7 +163,6 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
   const storedBranch = stored.branchSelection || {};
   const storedLoan = stored.productFacilityAndScheme || {};
 
-  // These fallbacks also migrate the former flat Step 2 structure.
   const productType = storedLoan.productType || stored.facilityType || "Retail";
   const facility = FACILITY_OPTIONS[productType] || FACILITY_OPTIONS.Retail;
   const schemeName =
@@ -147,6 +174,10 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
   const branchType = storedBranch.type || stored.branchType || "Home";
   const storedSelectedBranch =
     storedBranch.selectedBranch || stored.selectedBranch || null;
+
+  const storedItems = Array.isArray(stored.jewelleryItems) && stored.jewelleryItems.length > 0
+    ? stored.jewelleryItems
+    : [createJewelleryItem(1)];
 
   return {
     branchType,
@@ -167,7 +198,8 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
     requestedLoanAmount: Number(
       storedLoan.requestedLoanAmount ?? stored.requestedLoanAmount ?? 0
     ),
-    tenure: storedLoan.tenure || stored.tenure || scheme.tenureOptions[0] || ""
+    tenure: storedLoan.tenure || stored.tenure || scheme.tenureOptions[0] || "",
+    jewelleryItems: storedItems,
   };
 };
 
@@ -215,7 +247,6 @@ function FacilityBranchLoanDetailsPage({
     latestLeadRef.current = lead;
   }, [lead]);
 
-  // Rehydrate when the parent finishes loading a different lead.
   useEffect(() => {
     if (hydratedLeadRef.current === leadIdentity) return;
 
@@ -261,10 +292,8 @@ function FacilityBranchLoanDetailsPage({
   const existingOutstanding = 0;
   const requestedLoanAmount = Number(form.requestedLoanAmount || 0);
   const aggregateLoanAmount = existingOutstanding + requestedLoanAmount;
-  // BEFORE: const cibilRequired = requestedLoanAmount > 250000;
   const relationshipType = lead?.relationship?.type || lead?.customerIdentity?.type || "";
   const isNTB = relationshipType === "NTB" || leadIdentity.startsWith("LD-");
-  // NTB = ALWAYS required | ETB = required only when loan > ₹1,00,000
   const cibilRequired = isNTB ? true : requestedLoanAmount > 100000;
   const landDetailsRequired =
     form.productType === "Agri" && aggregateLoanAmount >= 100000;
@@ -273,13 +302,19 @@ function FacilityBranchLoanDetailsPage({
     selectedBranch?.code &&
       (form.branchType === "Home" || form.pinCode.length === 6)
   );
+
+  const jewelleryComplete =
+    form.jewelleryItems.length > 0 &&
+    form.jewelleryItems.every(isItemComplete);
+
   const stepComplete = Boolean(
     branchComplete &&
       form.productType &&
       selectedScheme?.name &&
       form.purpose &&
       requestedLoanAmount > 0 &&
-      form.tenure
+      form.tenure &&
+      jewelleryComplete
   );
 
   const stepNode = useMemo(
@@ -306,8 +341,9 @@ function FacilityBranchLoanDetailsPage({
         schemeName: selectedScheme?.name || "",
         purpose: form.purpose,
         requestedLoanAmount,
-        tenure: form.tenure
+        tenure: form.tenure,
       },
+      jewelleryItems: form.jewelleryItems,
       existingGoldLoans: [],
       exposure: {
         existingOutstandingAmount: existingOutstanding,
@@ -335,10 +371,9 @@ function FacilityBranchLoanDetailsPage({
       stepComplete,
     ]
   );
+
   const serializedStepNode = JSON.stringify(stepNode);
 
-  // Every form action changes stepNode. Merge it into the parent's lead state,
-  // update the application state, and persist the same section through PATCH.
   useEffect(() => {
     if (leadIdentity === "unresolved-lead") return;
     if (lastPersistedNodeRef.current === serializedStepNode) return;
@@ -359,7 +394,6 @@ function FacilityBranchLoanDetailsPage({
         leadDetails: mergedLeadDetails,
       };
 
-      // Keep the snake_case alias synchronized when the fetched lead uses it.
       if (Object.prototype.hasOwnProperty.call(sourceLead, "lead_details")) {
         nextLead.lead_details = mergedLeadDetails;
       }
@@ -415,25 +449,6 @@ function FacilityBranchLoanDetailsPage({
     updateStepStatus,
   ]);
 
-  const handleBranchTypeChange = (branchType) => {
-    setForm((current) => ({
-      ...current,
-      branchType,
-      pinCode: branchType === "Home" ? homeBranch.pinCode : "",
-      selectedBranchCode: branchType === "Home" ? homeBranch.code : "",
-    }));
-  };
-
-  const handlePinCodeChange = (event) => {
-    const pinCode = event.target.value.replace(/\D/g, "").slice(0, 6);
-    setForm((current) => ({
-      ...current,
-      pinCode,
-      selectedBranchCode: "",
-    }));
-  };
-
-  // HANDLER FOR COMBINED PRODUCT, SCHEME & PURPOSE SELECTION
   const handleCombinedConfigChange = (event) => {
     const value = event.target.value;
     if (!value || value === "||") return;
@@ -449,13 +464,53 @@ function FacilityBranchLoanDetailsPage({
       productType,
       schemeName: targetScheme.name,
       purpose,
-      tenure: targetScheme.tenureOptions[0] || ""
+      tenure: targetScheme.tenureOptions[0] || "",
     }));
+  };
+
+  /* Jewellery Items Handlers */
+  const addJewelleryItem = () => {
+    setForm((current) => ({
+      ...current,
+      jewelleryItems: [
+        ...current.jewelleryItems,
+        createJewelleryItem(current.jewelleryItems.length + 1),
+      ],
+    }));
+  };
+
+  const removeJewelleryItem = (id) => {
+    if (form.jewelleryItems.length === 1) return;
+    setForm((current) => ({
+      ...current,
+      jewelleryItems: current.jewelleryItems
+        .filter((item) => item.id !== id)
+        .map((item, index) => ({ ...item, serialNumber: index + 1 })),
+    }));
+  };
+
+  const updateJewelleryItem = (id, field, value) => {
+    setForm((current) => ({
+      ...current,
+      jewelleryItems: current.jewelleryItems.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const uploadJewelleryProof = (id, file) => {
+    if (!file) return;
+    updateJewelleryItem(id, "ownershipProof", {
+      fileName: file.name,
+      fileType: file.type || "application/octet-stream",
+      fileSize: file.size,
+      uploadedAt: new Date().toISOString(),
+      documentStatus: "Captured",
+    });
   };
 
   return (
     <div className="fbl-page">
-
       <section className="fbl-section fbl-card">
         <SectionHeading
           icon={<LoanIcon />}
@@ -466,7 +521,6 @@ function FacilityBranchLoanDetailsPage({
         />
 
         <div className="fbl-form-grid">
-          {/* COMBINED PRODUCT, SCHEME & PURPOSE SELECTION DROPDOWN */}
           <label>
             <span>Product, Scheme & Purpose *</span>
             <select
@@ -547,12 +601,102 @@ function FacilityBranchLoanDetailsPage({
         </div>
       </section>
 
+      {/* NEW JEWELLERY OFFERED SECTION */}
+      <section className="fbl-section fbl-card">
+        <SectionHeading
+          icon={<JewelleryIcon />}
+          eyebrow="02 · JEWELLERY OFFERED"
+          title="Record the jewellery items presented"
+          description="Upload ownership proof and ornament details. Appraisal and valuation will happen later."
+          badge={
+            <button className="jds-add-button" type="button" onClick={addJewelleryItem}>
+              <PlusIcon /> Add ornament
+            </button>
+          }
+        />
+
+        <div className="jds-items">
+          {form.jewelleryItems.map((item, index) => (
+            <div className={`jds-item ${isItemComplete(item) ? "complete" : ""}`} key={item.id}>
+              <div className="jds-item-number">
+                <span>ITEM</span>
+                <strong>{String(index + 1).padStart(2, "0")}</strong>
+              </div>
+              <div className="jds-item-fields">
+                <label>
+                  <span>Ornament description *</span>
+                  <select
+                    value={item.description}
+                    onChange={(event) => updateJewelleryItem(item.id, "description", event.target.value)}
+                  >
+                    {ORNAMENTS.map((ornament) => (
+                      <option key={ornament}>{ornament}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Number of items *</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.numberOfItems}
+                    onChange={(event) => updateJewelleryItem(item.id, "numberOfItems", Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  <span>Customer-declared ownership *</span>
+                  <select
+                    value={item.customerDeclaredOwnership}
+                    onChange={(event) => updateJewelleryItem(item.id, "customerDeclaredOwnership", event.target.value)}
+                  >
+                    <option value="Yes">Yes - Owned by customer</option>
+                    <option value="No">No</option>
+                  </select>
+                </label>
+                <label className="jds-proof-upload">
+                  <span>Proof of ownership *</span>
+                  <span className={`jds-upload-box ${item.ownershipProof?.fileName ? "complete" : ""}`}>
+                    {item.ownershipProof?.fileName ? <CheckIcon /> : <UploadIcon />}
+                    <strong>{item.ownershipProof?.fileName || "Upload proof"}</strong>
+                    <small>{item.ownershipProof?.fileName ? "Click to replace" : "PDF, JPG or PNG"}</small>
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    hidden
+                    onChange={(event) => uploadJewelleryProof(item.id, event.target.files?.[0])}
+                  />
+                </label>
+                <label className="jds-remarks-field">
+                  <span>Maker remarks</span>
+                  <input
+                    value={item.remarks}
+                    placeholder="Optional remarks about the item"
+                    onChange={(event) => updateJewelleryItem(item.id, "remarks", event.target.value)}
+                  />
+                </label>
+              </div>
+              <button
+                className="jds-remove-button"
+                type="button"
+                onClick={() => removeJewelleryItem(item.id)}
+                disabled={form.jewelleryItems.length === 1}
+                aria-label={`Remove jewellery item ${index + 1}`}
+              >
+                <TrashIcon />
+              </button>
+              {isItemComplete(item) && <span className="jds-item-complete"><CheckIcon /> Complete</span>}
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className={`fbl-readiness ${stepComplete ? "ready" : "pending"}`}>
         <span>{stepComplete ? <CheckIcon /> : "!"}</span>
         <div>
           <strong>
             {stepComplete
-              ? "Facility, branch and loan details are complete"
+              ? "Facility, branch, loan and jewellery details are complete"
               : "Complete the mandatory Step 2 details"}
           </strong>
           <p>
@@ -562,7 +706,7 @@ function FacilityBranchLoanDetailsPage({
                     ? "Agri land details are required"
                     : "land details are not required"
                 } in Step 3.`
-              : "Select a branch, scheme, purpose, requested amount, tenure"}
+              : "Select scheme, purpose, requested amount, tenure, and upload jewellery details."}
           </p>
         </div>
       </div>

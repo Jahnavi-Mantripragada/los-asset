@@ -4,7 +4,6 @@ import "./ApplicationOnboardingPage.css";
 import CustomerIdentityPage from "./CustomerIdentityPage";
 import FacilityBranchLoanDetailsPage from "./FacilityBranchLoanDetailsPage";
 import EligibilitySupportingDetailsPage from "./EligibilitySupportingDetailsPage";
-import JewelleryDetailsSubmissionPage from "./JewelleryDetailsSubmissionPage";
 
 const LEAD_API =
   "https://xx8ep3p2ue.execute-api.ap-south-1.amazonaws.com/prod/leads";
@@ -21,58 +20,26 @@ const isForcedEtbMobile = (mobile) =>
   normalizeMobile(mobile) === FORCED_ETB_MOBILE;
 
 const BackIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.2"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
     <path d="M19 12H5" />
     <path d="M12 19l-7-7 7-7" />
   </svg>
 );
 
 const CheckIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="13"
-    height="13"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.8"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.8" aria-hidden="true">
     <path d="M20 6 9 17l-5-5" />
   </svg>
 );
 
 const ChevronIcon = ({ left = false }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width="13"
-    height="13"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
     <path d={left ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} />
   </svg>
 );
 
 const SaveIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="15"
-    height="15"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.1"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.1" aria-hidden="true">
     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
     <path d="M17 21v-8H7v8" />
     <path d="M7 3v5h8" />
@@ -80,60 +47,28 @@ const SaveIcon = () => (
 );
 
 const CustomerIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <circle cx="12" cy="7" r="4" />
     <path d="M4 21a8 8 0 0 1 16 0" />
   </svg>
 );
 
 const JewelleryIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.9"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
     <path d="m4 8 4-5h8l4 5-8 13Z" />
     <path d="M4 8h16M8 3l4 5 4-5M8 8l4 13 4-13" />
   </svg>
 );
 
 const ShieldIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     <path d="m9 12 2 2 4-5" />
   </svg>
 );
 
 const FacilityIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <rect x="3" y="5" width="18" height="14" rx="2" />
     <path d="M3 10h18M7 15h3" />
   </svg>
@@ -145,8 +80,7 @@ const STEPS = [
     number: "01",
     title: "Customer Identity & Consent",
     shortTitle: "Identity & Consent",
-    description:
-      "ETB/NTB identity, KYC confirmation and initial consent",
+    description: "ETB/NTB identity, KYC confirmation and initial consent",
     icon: CustomerIcon,
     component: CustomerIdentityPage,
     dataKey: "customerIdentity",
@@ -154,10 +88,9 @@ const STEPS = [
   {
     id: "facility-branch-loan",
     number: "02",
-    title: "Facility, Branch & Loan Details",
-    shortTitle: "Facility & Loan",
-    description:
-      "Branch, exposure, scheme, facility, requested amount and accounts",
+    title: "Facility, Branch, Loan & Jewellery Details",
+    shortTitle: "Facility, Loan & Jewellery",
+    description: "Branch, scheme, requested amount and jewellery details",
     icon: FacilityIcon,
     component: FacilityBranchLoanDetailsPage,
     dataKey: "facilityBranchLoanDetails",
@@ -167,22 +100,10 @@ const STEPS = [
     number: "03",
     title: "Eligibility & Supporting Details",
     shortTitle: "Eligibility & Docs",
-    description:
-      "Conditional CIBIL assessment and Agri supporting details",
+    description: "Conditional CIBIL assessment and Agri supporting details",
     icon: ShieldIcon,
     component: EligibilitySupportingDetailsPage,
     dataKey: "eligibilitySupportingDetails",
-  },
-  {
-    id: "jewellery-submission",
-    number: "04",
-    title: "Jewellery Details & Submission",
-    shortTitle: "Jewellery & Submit",
-    description:
-      "Jewellery offered, ownership proof, declarations and submission",
-    icon: JewelleryIcon,
-    component: JewelleryDetailsSubmissionPage,
-    dataKey: "jewelleryDetailsSubmission",
   },
 ];
 
@@ -198,6 +119,7 @@ const INITIAL_APPLICATION_DATA = {
     repaymentType: "",
     chargesAccount: "",
     disbursementAccount: "",
+    jewelleryItems: [],
   },
   eligibilitySupportingDetails: {
     cibilRequired: false,
@@ -205,19 +127,12 @@ const INITIAL_APPLICATION_DATA = {
     cibilStatus: "Not evaluated",
     landDetailsRequired: false,
   },
-  jewelleryDetailsSubmission: {
-    items: [],
-    makerDeclaration: false,
-    customerDeclaration: false,
-    applicationCreated: false,
-  },
 };
 
 const DEFAULT_STEP_STATUSES = {
   "customer-identity": "In Progress",
   "facility-branch-loan": "Not Started",
   "eligibility-supporting": "Not Started",
-  "jewellery-submission": "Not Started",
 };
 
 const VALID_STEP_STATUSES = [
@@ -355,7 +270,7 @@ function ApplicationActivityPanel({
     {
       title: "Conditional controls",
       text:
-        "CIBIL is required when the requested amount exceeds ₹2.5 lakh; Agri land details are evaluated at ₹1 lakh aggregate exposure.",
+        "CIBIL is required when the requested amount exceeds ₹1 lakh; Agri land details are evaluated at ₹1 lakh aggregate exposure.",
       state: activeStepIndex >= 2 ? "active" : "upcoming",
     },
     {
@@ -364,7 +279,7 @@ function ApplicationActivityPanel({
         : "Next operational stage",
       text: applicationCreated
         ? "Application created and placed in the Awaiting Gold Appraisal queue."
-        : "After Step 4, the application number is generated and the branch jeweller/appraiser can record ornament valuation.",
+        : "After Step 3, the application number is generated and the branch jeweller/appraiser can record ornament valuation.",
       state: applicationCreated ? "complete" : "upcoming",
     },
   ];
@@ -415,7 +330,7 @@ function ApplicationActivityPanel({
 
           <p>
             Ornament, purity, weight and valuation are
-            intentionally outside these four steps.
+            intentionally outside these three steps.
           </p>
         </div>
       </div>
@@ -486,10 +401,6 @@ function ApplicationOnboardingPage({ onLogout }) {
           const savedApplicationNumber =
             savedOnboarding.applicationNumber ||
             details.applicationNumber ||
-            details.jewelleryDetailsSubmission
-              ?.application?.applicationNumber ||
-            details.jewelleryDetailsSubmission
-              ?.applicationNumber ||
             `GL-${String(data.data.leadnumber || leadId)
               .replace(/\D/g, "")
               .slice(-6)
@@ -503,10 +414,6 @@ function ApplicationOnboardingPage({ onLogout }) {
             .filter(Boolean)
             .join(" ");
 
-          /*
-           * If this lead already has a created application,
-           * skip onboarding and open ApplicationDetailPage.
-           */
           if (isApplicationCreated) {
             navigate(
               `/applications/${encodeURIComponent(
@@ -653,7 +560,7 @@ function ApplicationOnboardingPage({ onLogout }) {
         label: "Application No.",
         value:
           applicationNumber ||
-          "Generated after Step 4",
+          "Generated after Step 3",
       },
       {
         label: "Lead No.",
@@ -863,7 +770,7 @@ function ApplicationOnboardingPage({ onLogout }) {
     try {
       await persistLeadDetails();
     } catch {
-      // Error is displayed in the action bar.
+      // Error handled in UI
     }
   };
 
@@ -872,12 +779,6 @@ function ApplicationOnboardingPage({ onLogout }) {
 
     if (isLastStep) {
       const generatedNumber =
-        applicationData
-          .jewelleryDetailsSubmission
-          ?.application?.applicationNumber ||
-        applicationData
-          .jewelleryDetailsSubmission
-          ?.applicationNumber ||
         `GL-${new Date().getFullYear()}-${String(
           lead?.id || leadId
         )
@@ -887,15 +788,6 @@ function ApplicationOnboardingPage({ onLogout }) {
 
       const nextApplicationData = {
         ...applicationData,
-
-        jewelleryDetailsSubmission: {
-          ...(applicationData
-            .jewelleryDetailsSubmission || {}),
-
-          applicationCreated: true,
-          applicationNumber: generatedNumber,
-          status: "Awaiting Gold Appraisal",
-        },
       };
 
       const nextStepStatuses = {
@@ -908,23 +800,16 @@ function ApplicationOnboardingPage({ onLogout }) {
           nextApplicationData,
           nextStepStatuses,
           nextActiveStepId: activeStep.id,
-          nextCurrentStep: 4,
+          nextCurrentStep: 3,
           nextApplicationCreated: true,
           nextApplicationNumber: generatedNumber,
         });
 
-        setApplicationData(
-          nextApplicationData
-        );
-
+        setApplicationData(nextApplicationData);
         setStepStatuses(nextStepStatuses);
         setApplicationNumber(generatedNumber);
         setApplicationCreated(true);
 
-        /*
-         * Open ApplicationDetailPage after the final
-         * application PATCH succeeds.
-         */
         navigate(
           `/applications/${encodeURIComponent(
             generatedNumber
@@ -938,23 +823,19 @@ function ApplicationOnboardingPage({ onLogout }) {
           }
         );
       } catch {
-        // Stay on Step 4 if persistence fails.
+        // Stay on step if persistence fails.
       }
 
       return;
     }
 
-    const nextStep =
-      STEPS[activeStepIndex + 1];
+    const nextStep = STEPS[activeStepIndex + 1];
 
     const nextStepStatuses = {
       ...stepStatuses,
-
       [activeStep.id]: "Completed",
-
       [nextStep.id]:
-        stepStatuses[nextStep.id] ===
-        "Not Started"
+        stepStatuses[nextStep.id] === "Not Started"
           ? "In Progress"
           : stepStatuses[nextStep.id],
     };
@@ -963,15 +844,13 @@ function ApplicationOnboardingPage({ onLogout }) {
       await persistLeadDetails({
         nextStepStatuses,
         nextActiveStepId: nextStep.id,
-        nextCurrentStep:
-          activeStepIndex + 1,
+        nextCurrentStep: activeStepIndex + 1,
       });
 
       setStepStatuses(nextStepStatuses);
       setActiveStepId(nextStep.id);
     } catch {
-      // Keep the maker on the current step
-      // when persistence fails.
+      // Keep on current step on error
     }
   };
 
@@ -1075,38 +954,24 @@ function ApplicationOnboardingPage({ onLogout }) {
 
         <div className="application-summary-strip">
           {stepStats.map((item) => (
-            <div
-              className="summary-item"
-              key={item.label}
-            >
-              <span className="summary-label">
-                {item.label}
-              </span>
-
-              <strong className="summary-value">
-                {item.value}
-              </strong>
+            <div className="summary-item" key={item.label}>
+              <span className="summary-label">{item.label}</span>
+              <strong className="summary-value">{item.value}</strong>
             </div>
           ))}
 
           <div className="summary-item summary-progress-item">
             <div className="summary-progress-header">
-              <span className="summary-label">
-                Completion
-              </span>
-
+              <span className="summary-label">Completion</span>
               <strong className="summary-value">
-                {progressPercent}% ·{" "}
-                {completedCount}/{STEPS.length}
+                {progressPercent}% · {completedCount}/{STEPS.length}
               </strong>
             </div>
 
             <div className="progress-track-thin">
               <div
                 className="progress-fill-thin"
-                style={{
-                  width: `${progressPercent}%`,
-                }}
+                style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
@@ -1114,23 +979,16 @@ function ApplicationOnboardingPage({ onLogout }) {
       </div>
 
       {applicationCreated && (
-        <div
-          className="application-created-banner"
-          role="status"
-        >
+        <div className="application-created-banner" role="status">
           <span className="application-created-icon">
             <CheckIcon />
           </span>
 
           <div>
-            <strong>
-              {applicationNumber} created successfully
-            </strong>
-
+            <strong>{applicationNumber} created successfully</strong>
             <p>
-              The application is now Awaiting Gold
-              Appraisal and can be opened by the branch
-              jeweller/appraiser.
+              The application is now Awaiting Gold Appraisal and can be opened
+              by the branch jeweller/appraiser.
             </p>
           </div>
         </div>
@@ -1158,40 +1016,25 @@ function ApplicationOnboardingPage({ onLogout }) {
             <div className="stepper-timeline">
               {STEPS.map((step, index) => {
                 const Icon = step.icon;
-                const status =
-                  stepStatuses[step.id];
-
-                const isActive =
-                  step.id === activeStepId;
-
-                const completed =
-                  status === "Completed";
-
+                const status = stepStatuses[step.id];
+                const isActive = step.id === activeStepId;
+                const completed = status === "Completed";
                 const statusClass =
-                  STATUS_CLASS[status] ||
-                  "not-started";
+                  STATUS_CLASS[status] || "not-started";
 
                 return (
                   <button
                     key={step.id}
                     type="button"
-                    className={`stepper-row ${
-                      isActive ? "active" : ""
-                    }`}
-                    onClick={() =>
-                      setActiveStepId(step.id)
-                    }
+                    className={`stepper-row ${isActive ? "active" : ""}`}
+                    onClick={() => setActiveStepId(step.id)}
                   >
                     <span
                       className={`step-node ${statusClass} ${
                         isActive ? "active" : ""
                       }`}
                     >
-                      {completed ? (
-                        <CheckIcon />
-                      ) : (
-                        <Icon />
-                      )}
+                      {completed ? <CheckIcon /> : <Icon />}
                     </span>
 
                     <span className="stepper-copy">
@@ -1232,8 +1075,7 @@ function ApplicationOnboardingPage({ onLogout }) {
               <div className="step-card-header">
                 <div>
                   <span className="step-card-breadcrumb">
-                    Step {activeStep.number} /{" "}
-                    {STEPS.length}
+                    Step {activeStep.number} / {STEPS.length}
                   </span>
 
                   <h2 className="step-card-title">
@@ -1247,9 +1089,7 @@ function ApplicationOnboardingPage({ onLogout }) {
 
                 <span
                   className={`status-pill ${
-                    STATUS_CLASS[
-                      stepStatuses[activeStep.id]
-                    ] || "not-started"
+                    STATUS_CLASS[stepStatuses[activeStep.id]] || "not-started"
                   }`}
                 >
                   {stepStatuses[activeStep.id]}
@@ -1262,34 +1102,15 @@ function ApplicationOnboardingPage({ onLogout }) {
                   setLead={setLead}
                   leadId={leadId}
                   leadDetails={lead.leadDetails}
-                  relationshipType={
-                    relationshipType
-                  }
-                  stepData={
-                    applicationData[
-                      activeStep.dataKey
-                    ]
-                  }
-                  sectionKey={
-                    activeStep.dataKey
-                  }
+                  relationshipType={relationshipType}
+                  stepData={applicationData[activeStep.dataKey]}
+                  sectionKey={activeStep.dataKey}
                   stepId={activeStep.id}
-                  applicationData={
-                    applicationData
-                  }
-                  loanData={
-                    applicationData
-                      .facilityBranchLoanDetails
-                  }
-                  updateApplicationData={
-                    updateApplicationData
-                  }
-                  updateLeadDetails={
-                    updateLeadDetails
-                  }
-                  updateStepStatus={
-                    updateStepStatus
-                  }
+                  applicationData={applicationData}
+                  loanData={applicationData.facilityBranchLoanDetails}
+                  updateApplicationData={updateApplicationData}
+                  updateLeadDetails={updateLeadDetails}
+                  updateStepStatus={updateStepStatus}
                 />
               </div>
             </div>
@@ -1297,9 +1118,7 @@ function ApplicationOnboardingPage({ onLogout }) {
 
           <ApplicationActivityPanel
             relationshipType={relationshipType}
-            applicationCreated={
-              applicationCreated
-            }
+            applicationCreated={applicationCreated}
             activeStepIndex={activeStepIndex}
           />
         </section>
@@ -1308,21 +1127,15 @@ function ApplicationOnboardingPage({ onLogout }) {
       <footer className="application-action-bar">
         <div className="footer-step-info">
           <span>
-            Step {activeStepIndex + 1} of{" "}
-            {STEPS.length}
+            Step {activeStepIndex + 1} of {STEPS.length}
           </span>
 
-          <strong>
-            {activeStep.shortTitle}
-          </strong>
+          <strong>{activeStep.shortTitle}</strong>
         </div>
 
         <div className="footer-actions">
           {saveError && (
-            <span
-              className="status-pill needs-rework"
-              role="alert"
-            >
+            <span className="status-pill needs-rework" role="alert">
               {saveError}
             </span>
           )}
@@ -1330,15 +1143,8 @@ function ApplicationOnboardingPage({ onLogout }) {
           <button
             className="btn-prev"
             type="button"
-            onClick={() =>
-              setActiveStepId(
-                STEPS[activeStepIndex - 1]?.id
-              )
-            }
-            disabled={
-              activeStepIndex === 0 ||
-              saving
-            }
+            onClick={() => setActiveStepId(STEPS[activeStepIndex - 1]?.id)}
+            disabled={activeStepIndex === 0 || saving}
           >
             <ChevronIcon left />
             Previous
@@ -1348,27 +1154,17 @@ function ApplicationOnboardingPage({ onLogout }) {
             className="secondary-button"
             type="button"
             onClick={saveDraft}
-            disabled={
-              saving ||
-              applicationCreated
-            }
+            disabled={saving || applicationCreated}
           >
             <SaveIcon />
-
-            {saving
-              ? "Saving…"
-              : "Save Draft"}
+            {saving ? "Saving…" : "Save Draft"}
           </button>
 
           <button
             className="primary-button"
             type="button"
             onClick={saveAndContinue}
-            disabled={
-              saving ||
-              applicationCreated ||
-              !canContinue
-            }
+            disabled={saving || applicationCreated || !canContinue}
           >
             {saving
               ? "Saving…"
@@ -1376,10 +1172,7 @@ function ApplicationOnboardingPage({ onLogout }) {
                 ? "Create & Send for Gold Appraisal"
                 : "Save & Continue"}
 
-            {!saving &&
-              !isLastStep && (
-                <ChevronIcon />
-              )}
+            {!saving && !isLastStep && <ChevronIcon />}
           </button>
         </div>
       </footer>

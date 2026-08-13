@@ -75,13 +75,11 @@ const FACILITY_OPTIONS = {
     schemes: [
       {
         name: "YES Gold Loan - Regular",
-        tenureOptions: ["12 Months"],
-        repaymentOptions: ["Term Loan"],
+        tenureOptions: ["12 Months"]
       },
       {
         name: "YES Gold Loan - Bullet",
-        tenureOptions: ["6 Months", "12 Months"],
-        repaymentOptions: ["Bullet Repayment"],
+        tenureOptions: ["6 Months", "12 Months"]
       },
     ],
   },
@@ -91,13 +89,11 @@ const FACILITY_OPTIONS = {
     schemes: [
       {
         name: "YES Agri Gold - Crop",
-        tenureOptions: ["6 Months", "12 Months"],
-        repaymentOptions: ["Bullet Repayment", "Monthly Interest"],
+        tenureOptions: ["6 Months", "12 Months"]
       },
       {
         name: "YES Agri Gold - Development",
-        tenureOptions: ["18 Months"],
-        repaymentOptions: ["Term Loan"],
+        tenureOptions: ["18 Months"]
       },
     ],
   },
@@ -167,16 +163,11 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
           "",
     productType,
     schemeName: scheme.name,
-    purpose: storedLoan.purpose || stored.purpose || "",
+    purpose: storedLoan.purpose || stored.purpose || facility.purposes[0],
     requestedLoanAmount: Number(
       storedLoan.requestedLoanAmount ?? stored.requestedLoanAmount ?? 0
     ),
-    tenure: storedLoan.tenure || stored.tenure || scheme.tenureOptions[0] || "",
-    repaymentType:
-      storedLoan.repaymentType ||
-      stored.repaymentType ||
-      scheme.repaymentOptions[0] ||
-      "",
+    tenure: storedLoan.tenure || stored.tenure || scheme.tenureOptions[0] || ""
   };
 };
 
@@ -284,8 +275,7 @@ function FacilityBranchLoanDetailsPage({
       selectedScheme?.name &&
       form.purpose &&
       requestedLoanAmount > 0 &&
-      form.tenure &&
-      form.repaymentType
+      form.tenure
   );
 
   const stepNode = useMemo(
@@ -312,8 +302,7 @@ function FacilityBranchLoanDetailsPage({
         schemeName: selectedScheme?.name || "",
         purpose: form.purpose,
         requestedLoanAmount,
-        tenure: form.tenure,
-        repaymentType: form.repaymentType,
+        tenure: form.tenure
       },
       existingGoldLoans: [],
       exposure: {
@@ -382,7 +371,6 @@ function FacilityBranchLoanDetailsPage({
       [sectionKey]: stepNode,
     };
 
-    // Serialize requests so rapid input changes cannot reach the API out of order.
     persistQueueRef.current = persistQueueRef.current
       .catch(() => undefined)
       .then(async () => {
@@ -441,32 +429,23 @@ function FacilityBranchLoanDetailsPage({
     }));
   };
 
-  const handleProductTypeChange = (event) => {
-    const productType = event.target.value;
-    const nextFacility = FACILITY_OPTIONS[productType];
-    const nextScheme = nextFacility.schemes[0];
+  // HANDLER FOR COMBINED PRODUCT, SCHEME & PURPOSE SELECTION
+  const handleCombinedConfigChange = (event) => {
+    const value = event.target.value;
+    if (!value || value === "||") return;
+
+    const [productType, schemeName, purpose] = value.split("|");
+    const targetFacility = FACILITY_OPTIONS[productType] || FACILITY_OPTIONS.Retail;
+    const targetScheme =
+      targetFacility.schemes.find((scheme) => scheme.name === schemeName) ||
+      targetFacility.schemes[0];
 
     setForm((current) => ({
       ...current,
       productType,
-      schemeName: nextScheme.name,
-      purpose: "",
-      tenure: nextScheme.tenureOptions[0],
-      repaymentType: nextScheme.repaymentOptions[0],
-    }));
-  };
-
-  const handleSchemeChange = (event) => {
-    const schemeName = event.target.value;
-    const nextScheme = facility.schemes.find(
-      (scheme) => scheme.name === schemeName
-    );
-
-    setForm((current) => ({
-      ...current,
-      schemeName,
-      tenure: nextScheme?.tenureOptions[0] || "",
-      repaymentType: nextScheme?.repaymentOptions[0] || "",
+      schemeName: targetScheme.name,
+      purpose,
+      tenure: targetScheme.tenureOptions[0] || ""
     }));
   };
 
@@ -632,39 +611,32 @@ function FacilityBranchLoanDetailsPage({
         />
 
         <div className="fbl-form-grid">
+          {/* COMBINED PRODUCT, SCHEME & PURPOSE SELECTION DROPDOWN */}
           <label>
-            <span>Product type *</span>
-            <select value={form.productType} onChange={handleProductTypeChange}>
-              <option value="Retail">Retail Gold Loan</option>
-              <option value="Agri">Agri Gold Loan</option>
-            </select>
-          </label>
-          <label>
-            <span>Scheme *</span>
-            <select value={form.schemeName} onChange={handleSchemeChange}>
-              {facility.schemes.map((scheme) => (
-                <option value={scheme.name} key={scheme.name}>
-                  {scheme.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Purpose of loan *</span>
+            <span>Product, Scheme & Purpose *</span>
             <select
-              value={form.purpose}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  purpose: event.target.value,
-                }))
+              value={
+                form.productType && form.schemeName && form.purpose
+                  ? `${form.productType}|${form.schemeName}|${form.purpose}`
+                  : "||"
               }
+              onChange={handleCombinedConfigChange}
             >
-              <option value="">Select purpose</option>
-              {facility.purposes.map((purpose) => (
-                <option value={purpose} key={purpose}>
-                  {purpose}
-                </option>
+              <option value="||">Select Configuration</option>
+
+              {Object.entries(FACILITY_OPTIONS).map(([productKey, facilityConfig]) => (
+                <optgroup label={facilityConfig.label} key={productKey}>
+                  {facilityConfig.schemes.flatMap((scheme) =>
+                    facilityConfig.purposes.map((purpose) => (
+                      <option
+                        value={`${productKey}|${scheme.name}|${purpose}`}
+                        key={`${productKey}-${scheme.name}-${purpose}`}
+                      >
+                        {facilityConfig.label} - {scheme.name} ({purpose})
+                      </option>
+                    ))
+                  )}
+                </optgroup>
               ))}
             </select>
           </label>
@@ -709,38 +681,13 @@ function FacilityBranchLoanDetailsPage({
               </select>
             )}
           </label>
-          <label>
-            <span>Repayment type *</span>
-            {selectedScheme.repaymentOptions.length === 1 ? (
-              <>
-                <input value={form.repaymentType} readOnly />
-                <small>Auto-populated for the selected scheme</small>
-              </>
-            ) : (
-              <select
-                value={form.repaymentType}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    repaymentType: event.target.value,
-                  }))
-                }
-              >
-                {selectedScheme.repaymentOptions.map((type) => (
-                  <option value={type} key={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            )}
-          </label>
         </div>
 
         <div className="fbl-selection-note">
           <span><CheckIcon /></span>
           <div>
             <strong>{selectedScheme.name}</strong>
-            <p>{facility.label} · {form.tenure} · {form.repaymentType}</p>
+            <p>{facility.label} · {form.tenure} </p>
           </div>
         </div>
       </section>
@@ -760,7 +707,7 @@ function FacilityBranchLoanDetailsPage({
                     ? "Agri land details are required"
                     : "land details are not required"
                 } in Step 3.`
-              : "Select a branch, scheme, purpose, requested amount, tenure and repayment type."}
+              : "Select a branch, scheme, purpose, requested amount, tenure"}
           </p>
         </div>
       </div>

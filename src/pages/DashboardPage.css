@@ -261,6 +261,21 @@
   transition: background 0.16s ease;
 }
 
+.nav-icon svg,
+.kpi-icon svg,
+.activity-icon svg,
+.source-choice-icon svg,
+.channel-label i svg,
+.gold-product-chip i svg,
+.drawer-product-icon svg,
+.create-lead-plus svg,
+.header-action-icon svg,
+.small-action-button span svg,
+.drawer-info-heading > span svg,
+.drawer-close-button svg {
+  display: block;
+}
+
 /* Nav text fades out when collapsed */
 .nav-label {
   overflow: hidden;
@@ -1511,10 +1526,17 @@
 }
 
 .status-pill.disqualified,
+.mini-pill.breached,
 .severity-pill.high {
   background: var(--los-red-bg);
   color: var(--los-red);
   border: 1px solid rgba(196, 38, 29, 0.15);
+}
+
+.mini-pill.at-risk {
+  background: var(--los-gold-bg);
+  color: var(--los-gold);
+  border: 1px solid rgba(160, 92, 10, 0.15);
 }
 
 /* ─── SOURCE MIX ─────────────────────────── */
@@ -1640,6 +1662,23 @@
   letter-spacing: -0.5px;
 }
 
+.donut-chart.loan-type-donut {
+  background:
+    radial-gradient(circle closest-side, #ffffff 68%, transparent 69%),
+    conic-gradient(var(--los-blue) 0 71%, var(--los-gold) 71% 100%);
+}
+
+.donut-chart span small {
+  display: block;
+  margin-top: 2px;
+  color: var(--los-soft);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .donut-legend {
   width: 100%;
   display: grid;
@@ -1679,6 +1718,74 @@
 }
 .legend-dot.failed {
   background: var(--los-red);
+}
+
+/* ─── HOURLY THROUGHPUT ─────────────────── */
+
+.throughput-panel {
+  min-height: 320px;
+}
+
+.throughput-chart {
+  height: 210px;
+  padding: 12px 8px 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(44px, 1fr));
+  gap: 12px;
+  align-items: end;
+  border-bottom: 1px solid var(--los-border);
+  background: repeating-linear-gradient(
+    to top,
+    transparent 0,
+    transparent 46px,
+    var(--los-border-soft) 47px
+  );
+}
+
+.throughput-column {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 22px 1fr 25px;
+  align-items: end;
+  text-align: center;
+}
+
+.throughput-column strong {
+  color: var(--los-text);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.throughput-track {
+  height: 145px;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+}
+
+.throughput-track span {
+  width: min(36px, 78%);
+  min-height: 18px;
+  border-radius: 8px 8px 3px 3px;
+  background: linear-gradient(180deg, var(--los-blue-mid), var(--los-blue));
+  box-shadow: 0 7px 14px rgba(0, 81, 143, 0.16);
+  transition: filter 0.16s ease, transform 0.16s ease;
+}
+
+.throughput-column:nth-child(3) .throughput-track span {
+  background: linear-gradient(180deg, #efc65f, var(--los-gold));
+}
+
+.throughput-column:hover .throughput-track span {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
+.throughput-column small {
+  color: var(--los-muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 /* ─── FUNNEL ─────────────────────────────── */
@@ -1813,7 +1920,7 @@
 
 .activity-item {
   display: grid;
-  grid-template-columns: 30px 1fr;
+  grid-template-columns: 90% minmax(0, 1fr);
   gap: 11px;
   transition: transform 0.15s ease;
   padding: 8px;
@@ -2415,6 +2522,10 @@
   gap: 9px;
 }
 
+.source-choice-grid.fixed-source-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .source-choice {
   position: relative;
   min-height: 64px;
@@ -2450,6 +2561,16 @@
 .source-choice.selected {
   border-color: var(--los-blue);
   background: var(--los-blue-tint);
+  box-shadow: 0 0 0 2px rgba(0, 81, 143, 0.08);
+}
+
+.source-choice.locked-source {
+  cursor: default;
+}
+
+.source-choice.locked-source:hover {
+  transform: none;
+  border-color: var(--los-blue);
   box-shadow: 0 0 0 2px rgba(0, 81, 143, 0.08);
 }
 
@@ -2510,6 +2631,11 @@
   color: #ffffff;
   border-color: var(--los-blue);
   background: var(--los-blue);
+}
+
+.source-choice.locked-source > i svg {
+  width: 11px;
+  height: 11px;
 }
 
 .drawer-info-card {
@@ -2739,7 +2865,8 @@
   .dashboard-second-row {
     grid-template-columns: 1fr 1fr;
   }
-  .funnel-panel {
+  .funnel-panel,
+  .throughput-panel {
     grid-column: span 2;
   }
   .kpi-grid {
@@ -2882,7 +3009,8 @@
     grid-template-columns: 1fr;
   }
   .compact-lead-panel,
-  .funnel-panel {
+  .funnel-panel,
+  .throughput-panel {
     grid-column: auto;
   }
   .lead-panel-header {
@@ -2907,6 +3035,10 @@
   }
   .funnel-value {
     text-align: left;
+  }
+  .throughput-chart {
+    gap: 6px;
+    overflow-x: auto;
   }
   .create-lead-drawer {
     width: 100%;

@@ -22,12 +22,8 @@ const MOCK_CUSTOMERS = [
     maritalStatus: "Married",
     occupation: "Salaried",
     pan: "CIJPG1001N",
-    addressLine1: "D-303, Fortune Estate",
-    addressLine2: "Hadapsar",
-    city: "Pune",
-    state: "Maharashtra",
-    pincode: "411028",
     address: "D-303, Fortune Estate, Hadapsar, Pune, Maharashtra - 411028",
+    pincode: "411028",
     homeBranch: "Pune - Hadapsar",
     kycStatus: "Current",
     kycUpdatedAt: "12 Mar 2025",
@@ -50,12 +46,8 @@ const MOCK_CUSTOMERS = [
     maritalStatus: "Married",
     occupation: "Self-employed",
     pan: "AJPPM4821K",
-    addressLine1: "B-804, Lake View Residency",
-    addressLine2: "Baner",
-    city: "Pune",
-    state: "Maharashtra",
-    pincode: "411045",
     address: "B-804, Lake View Residency, Baner, Pune, Maharashtra - 411045",
+    pincode: "411045",
     homeBranch: "Pune - Baner",
     kycStatus: "Current",
     kycUpdatedAt: "05 Feb 2026",
@@ -222,16 +214,11 @@ const toPersistableCustomer = (customer) =>
         mobile: customer.mobile,
         email: customer.email,
         dateOfBirth: customer.dateOfBirth,
-        fatherName: customer.fatherName || "",
         gender: customer.gender || "",
-        maritalStatus: customer.maritalStatus || "",
-        occupation: customer.occupation || "",
         pan: customer.pan,
         addressLine1: customer.addressLine1 || "",
         addressLine2: customer.addressLine2 || "",
         city: customer.city || "",
-        state: customer.state || "",
-        address: customer.address,
         pincode: customer.pincode || "",
         homeBranch: customer.homeBranch,
         kycStatus: customer.kycStatus,
@@ -264,20 +251,16 @@ const buildLeadCustomer = (lead, leadDetails) => ({
   mobile: lead.mobile || "—",
   email: lead.email || "—",
   dateOfBirth: leadDetails.dateOfBirth || lead.dateOfBirth || "—",
-  fatherName: leadDetails.fatherName || lead.fatherName || "",
   gender: leadDetails.gender || lead.gender || "",
-  maritalStatus: leadDetails.maritalStatus || lead.maritalStatus || "",
-  occupation: leadDetails.occupation || lead.occupation || "",
   pan: leadDetails.panNumber || lead.panNumber || "—",
-  addressLine1: leadDetails.addressLine1 || "",
-  addressLine2: leadDetails.addressLine2 || "",
-  city: leadDetails.city || "",
-  state: leadDetails.state || "",
-  address:
+  addressLine1:
+    leadDetails.addressLine1 ||
     leadDetails.address ||
     leadDetails.communicationAddress ||
     lead.address ||
-    "—",
+    "",
+  addressLine2: leadDetails.addressLine2 || "",
+  city: leadDetails.city || lead.city || "",
   pincode:
     leadDetails.pincode ||
     lead.pincode ||
@@ -342,18 +325,14 @@ const buildBorrowerDetails = (customer, lead) => ({
   middleName: customer.middleName || lead.middleName || "",
   lastName: customer.lastName || lead.lastName || "",
   dateOfBirth: toDateInputValue(customer.dateOfBirth || lead.dateOfBirth),
-  fatherName: customer.fatherName || lead.fatherName || "",
   gender: customer.gender || lead.gender || "",
-  maritalStatus: customer.maritalStatus || lead.maritalStatus || "",
-  occupation: customer.occupation || lead.occupation || "",
   mobile: normaliseMobile(customer.mobile || lead.mobile),
   email: customer.email === "—" ? "" : customer.email || lead.email || "",
   pan: customer.pan === "—" ? "" : customer.pan || lead.panNumber || "",
-  addressLine1: customer.addressLine1 || "",
+  addressLine1:
+    customer.addressLine1 === "—" ? "" : customer.addressLine1 || lead.address || "",
   addressLine2: customer.addressLine2 || "",
-  city: customer.city || "",
-  state: customer.state || "",
-  address: customer.address === "—" ? "" : customer.address || lead.address || "",
+  city: customer.city || lead.city || "",
   pincode: customer.pincode || lead.pincode || "",
 });
 
@@ -363,13 +342,14 @@ const buildBorrowerDocuments = (customerType) =>
         pan: {
           name: "PanCard.jpg",
           preview: PAN_CARD_PATH,
-          status: "Uploaded",
+          status: "Verified",
           source: "CBS KYC",
+          verifiedAt: "CBS record",
         },
         addressProof: {
           name: "Voter Id_1550.pdf",
           preview: ADDRESS_PROOF_PATH,
-          status: "Uploaded",
+          status: "Verified",
           source: "CBS KYC",
         },
       }
@@ -390,14 +370,15 @@ const buildBorrowerInformation = (customerType, customer, lead) => ({
   documents: buildBorrowerDocuments(customerType),
 });
 
-const validateBorrower = (details, documents) => {
+const validateBorrower = (details) => {
   const errors = {};
   const namePattern = /^[A-Za-z][A-Za-z .'-]*$/;
-
   if (!details.firstName.trim()) errors.firstName = "Name is required.";
   else if (!namePattern.test(details.firstName.trim()))
     errors.firstName = "Enter a valid name.";
-
+  if (!details.lastName.trim()) errors.lastName = "Last name is required.";
+  else if (!namePattern.test(details.lastName.trim()))
+    errors.lastName = "Enter a valid last name.";
   if (!details.dateOfBirth) {
     errors.dateOfBirth = "Date of birth is required.";
   } else {
@@ -415,31 +396,19 @@ const validateBorrower = (details, documents) => {
     else if (age > 75)
       errors.dateOfBirth = "Borrower age cannot exceed 75 years.";
   }
-
   if (!details.gender) errors.gender = "Select gender.";
   if (!/^\d{10}$/.test(details.mobile))
     errors.mobile = "Enter a valid 10-digit mobile number.";
   if (details.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details.email))
     errors.email = "Enter a valid email address.";
-
-  // Conditional PAN validation post-upload
-  if (documents?.pan?.preview) {
-    if (!details.pan || !/^[A-Z]{5}\d{4}[A-Z]$/.test(details.pan.toUpperCase()))
-      errors.pan = "Enter a valid PAN, for example ABCDE1234F.";
-  }
-
-  // Conditional Address validation post-upload (Salesforce breakdown)
-  if (documents?.addressProof?.preview) {
-    if (!details.addressLine1 || details.addressLine1.trim().length < 3)
-      errors.addressLine1 = "Enter Address Line 1.";
-    if (!details.city || details.city.trim().length < 2)
-      errors.city = "Enter City.";
-    if (!details.state || details.state.trim().length < 2)
-      errors.state = "Enter State.";
-    if (!details.pincode || !/^\d{6}$/.test(details.pincode))
-      errors.pincode = "Enter a valid 6-digit PIN code.";
-  }
-
+  if (details.pan && details.pan.trim() && !/^[A-Z]{5}\d{4}[A-Z]$/.test(details.pan.toUpperCase()))
+    errors.pan = "Enter a valid PAN, for example ABCDE1234F.";
+  if (details.addressLine1 && details.addressLine1.trim().length > 0 && details.addressLine1.trim().length < 5)
+    errors.addressLine1 = "Enter the address line 1.";
+  if (details.city && details.city.trim().length > 0 && details.city.trim().length < 2)
+    errors.city = "Enter the city.";
+  if (details.pincode && details.pincode.trim() && !/^\d{6}$/.test(details.pincode))
+    errors.pincode = "Enter a valid 6-digit PIN code.";
   return errors;
 };
 
@@ -543,10 +512,13 @@ function SectionHeader({ number, title, description, status, statusVariant }) {
   );
 }
 
-function Detail({ label, value, verified = false, wide = false }) {
+function Detail({ label, value, verified = false, wide = false, required = false }) {
   return (
     <div className={`glci-detail ${wide ? "wide" : ""}`}>
-      <span>{label}</span>
+      <span>
+        {label}
+        {required && <span style={{ color: "red" }}>*</span>}
+      </span>
       <div>
         <strong>{value || "—"}</strong>
         {verified && (
@@ -624,14 +596,14 @@ function BorrowerDocument({
   disabled,
 }) {
   const inputRef = useRef(null);
-  const uploaded = document.status === "Uploaded" || document.status === "Verified";
+  const verified = document.status === "Verified";
   const isImage =
     String(document.preview || "").startsWith("data:image") ||
     /\.(jpg|jpeg|png)$/i.test(document.preview || "");
   const canView = Boolean(document.preview);
 
   return (
-    <div className={`glci-borrower-document ${uploaded ? "verified" : ""}`}>
+    <div className={`glci-borrower-document ${verified ? "verified" : ""}`}>
       <div className="glci-borrower-document-preview">
         {document.preview && isImage ? (
           <img src={document.preview} alt="Uploaded document preview" />
@@ -641,7 +613,7 @@ function BorrowerDocument({
           </span>
         )}
 
-        {uploaded && (
+        {verified && (
           <span className="glci-document-check">
             <CheckIcon size={13} />
           </span>
@@ -654,10 +626,12 @@ function BorrowerDocument({
           <em>*</em>
         </strong>
         <span>{document.name || description}</span>
-        <small className={uploaded ? "verified" : ""}>
-          {uploaded
-            ? `${document.source || "Document"} · Uploaded`
-            : "PDF, JPG or PNG · Max 5 MB"}
+        <small className={verified ? "verified" : ""}>
+          {verified
+            ? `${document.source || "Document"} · Verified`
+            : document.status === "Uploaded"
+              ? "Uploaded"
+              : "PDF, JPG or PNG · Max 5 MB"}
         </small>
       </div>
 
@@ -730,6 +704,7 @@ function CustomerIdentity({
       ensureLeadDetailsNodes(lead.leadDetails, lead).borrowerInformation
         .status !== "Saved",
   );
+  const [isAddressIdentityEditing, setIsAddressIdentityEditing] = useState(false);
   const uploadTimers = useRef([]);
 
   const identityNode = leadDetailsJson.customerIdentity;
@@ -789,6 +764,9 @@ function CustomerIdentity({
     }));
     updateLeadDetails?.(leadDetailsJson);
     onLeadDetailsChange?.(leadDetailsJson);
+    // Parent callbacks commonly change identity on every render. Persistence
+    // is intentionally driven only by a business change to leadDetailsJson.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadDetailsJson]);
 
   const consentCaptured = consentStatus === "Captured";
@@ -868,6 +846,8 @@ function CustomerIdentity({
       "customer-identity",
       stepComplete ? "Completed" : "In Progress",
     );
+    // Parent callbacks commonly change identity on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     consentCaptured,
     consentCapturedAt,
@@ -1070,13 +1050,14 @@ function CustomerIdentity({
             status: "Uploaded",
             source: "Fresh upload",
             uploadedAt: getTimestamp(),
+            verification: null,
           },
         },
       }));
       setNotice(
         key === "pan"
-          ? "PAN uploaded. You can now edit the extracted PAN details below."
-          : "Address proof uploaded. You can now edit the extracted address details below.",
+          ? "PAN uploaded successfully."
+          : "Address proof uploaded successfully.",
       );
     } catch (error) {
       setNotice(error.message);
@@ -1127,23 +1108,12 @@ function CustomerIdentity({
   };
 
   const saveBorrowerInformation = () => {
-    const errors = validateBorrower(borrowerDraft, borrowerDocuments);
+    const errors = validateBorrower(borrowerDraft);
     if (Object.keys(errors).length) {
       setBorrowerErrors(errors);
       setNotice("Please correct the highlighted borrower information.");
       return;
     }
-
-    // Build complete formatted address string for summary and backend
-    const fullAddress = [
-      borrowerDraft.addressLine1,
-      borrowerDraft.addressLine2,
-      borrowerDraft.city,
-      borrowerDraft.state,
-      borrowerDraft.pincode ? `- ${borrowerDraft.pincode}` : "",
-    ]
-      .filter(Boolean)
-      .join(", ");
 
     const details = {
       ...borrowerDraft,
@@ -1155,19 +1125,98 @@ function CustomerIdentity({
       addressLine1: borrowerDraft.addressLine1.trim(),
       addressLine2: borrowerDraft.addressLine2.trim(),
       city: borrowerDraft.city.trim(),
-      state: borrowerDraft.state.trim(),
       pincode: borrowerDraft.pincode.trim(),
-      address: fullAddress,
     };
+    const fullName = [details.firstName, details.middleName, details.lastName]
+      .filter(Boolean)
+      .join(" ");
+
+    const panChanged = details.pan !== borrowerNode.details.pan;
+    updateNode("borrowerInformation", (current) => ({
+      status: "Saved",
+      savedAt: getTimestamp(),
+      details,
+      documents: panChanged
+        ? {
+            ...current.documents,
+            pan: {
+              ...current.documents.pan,
+              status: current.documents.pan.preview ? "Uploaded" : "Pending",
+              verification: null,
+              verifiedAt: "",
+              verificationReference: "",
+            },
+          }
+        : current.documents,
+    }));
+    updateNode("customerIdentity", {
+      matchedCustomer: {
+        ...customer,
+        ...details,
+        fullName,
+        dateOfBirth: formatDateForDisplay(details.dateOfBirth),
+        mobile: `+91 ${details.mobile.slice(0, 5)} ${details.mobile.slice(5)}`,
+      },
+    });
+    setIsBorrowerEditing(false);
+    setBorrowerErrors({});
+    setNotice("Borrower information saved successfully.");
+  };
+
+  const validateAddressIdentity = (details) => {
+    const errors = {};
+
+    if (!details.pan.trim()) {
+      errors.pan = "PAN is required.";
+    } else if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(details.pan.trim().toUpperCase())) {
+      errors.pan = "Enter a valid PAN, for example ABCDE1234F.";
+    }
+
+    if (!details.addressLine1.trim()) {
+      errors.addressLine1 = "Address line 1 is required.";
+    } else if (details.addressLine1.trim().length < 5) {
+      errors.addressLine1 = "Enter the address line 1.";
+    }
+
+    if (details.city && details.city.trim().length < 2) {
+      errors.city = "Enter the city.";
+    } else if (!details.city.trim()) {
+      errors.city = "City is required.";
+    }
+
+    if (!/^\d{6}$/.test(details.pincode.trim())) {
+      errors.pincode = "Enter a valid 6-digit PIN code.";
+    }
+
+    return errors;
+  };
+
+  const saveAddressIdentity = () => {
+    const errors = validateAddressIdentity(borrowerDraft);
+    if (Object.keys(errors).length) {
+      setBorrowerErrors((current) => ({ ...current, ...errors }));
+      setNotice("Please correct the highlighted Address & Identity fields.");
+      return;
+    }
+
+    const details = {
+      ...borrowerNode.details,
+      ...borrowerDraft,
+      pan: borrowerDraft.pan.trim().toUpperCase(),
+      addressLine1: borrowerDraft.addressLine1.trim(),
+      addressLine2: borrowerDraft.addressLine2.trim(),
+      city: borrowerDraft.city.trim(),
+      pincode: borrowerDraft.pincode.trim(),
+    };
+
     const fullName = [details.firstName, details.middleName, details.lastName]
       .filter(Boolean)
       .join(" ");
 
     updateNode("borrowerInformation", (current) => ({
       status: "Saved",
-      savedAt: getTimestamp(),
+      savedAt: current.savedAt || getTimestamp(),
       details,
-      documents: current.documents,
     }));
 
     updateNode("customerIdentity", {
@@ -1180,9 +1229,10 @@ function CustomerIdentity({
       },
     });
 
-    setIsBorrowerEditing(false);
+    setBorrowerDraft(details);
     setBorrowerErrors({});
-    setNotice("Borrower information saved successfully.");
+    setIsAddressIdentityEditing(false);
+    setNotice("Address & Identity saved successfully.");
   };
 
   const completeNtbOnboarding = () => {
@@ -1606,8 +1656,8 @@ function CustomerIdentity({
             title="Borrower information"
             description={
               customerType === "ETB"
-                ? "Review the CBS borrower profile, upload required KYC evidence, and update details where required."
-                : "Enter basic borrower details, upload KYC documents to unlock PAN & address fields, then save."
+                ? "Review the CBS borrower profile, update details where required and manage the KYC documents."
+                : "Enter the borrower's details, save the profile and upload the mandatory KYC documents."
             }
             status={
               !profileReady
@@ -1687,15 +1737,10 @@ function CustomerIdentity({
 
             {isBorrowerEditing ? (
               <div className="glci-borrower-form">
-                {/* 1. TOP SECTION: BASE DEMOGRAPHICS */}
                 <BorrowerField
                   label="Name"
                   name="name"
-                  value={[
-                    borrowerDraft.firstName,
-                    borrowerDraft.middleName,
-                    borrowerDraft.lastName,
-                  ]
+                  value={[borrowerDraft.firstName, borrowerDraft.middleName, borrowerDraft.lastName]
                     .filter(Boolean)
                     .join(" ")}
                   onChange={handleBorrowerChange}
@@ -1743,81 +1788,33 @@ function CustomerIdentity({
                   onChange={handleBorrowerChange}
                   error={borrowerErrors.email}
                 />
-
-                {/* 2. MIDDLE SECTION: KYC DOCUMENTS UPLOAD */}
-                <div className="glci-document-section wide">
-                  <div className="glci-document-section-head">
-                    <div>
-                      <strong>KYC documents</strong>
-                      <span>
-                        Upload PAN card and address proof to unlock editable PAN and address fields below.
-                      </span>
-                    </div>
-                    <StatusBadge
-                      variant={borrowerDocumentsComplete ? "success" : "pending"}
-                    >
-                      {borrowerDocumentsComplete ? (
-                        <CheckIcon size={11} />
-                      ) : (
-                        <AlertIcon />
-                      )}{" "}
-                      {borrowerDocumentsComplete
-                        ? "Documents complete"
-                        : "Upload required"}
-                    </StatusBadge>
-                  </div>
-                  <div className="glci-borrower-document-grid">
-                    <BorrowerDocument
-                      label="PAN Card"
-                      description="Upload PAN card"
-                      document={borrowerDocuments.pan}
-                      onUpload={(file) => handleDocumentUpload("pan", file)}
-                      disabled={ntbOnboardingStatus === "Running"}
-                    />
-                    <BorrowerDocument
-                      label="Address proof"
-                      description="Upload an accepted OVD / address proof"
-                      document={borrowerDocuments.addressProof}
-                      onUpload={(file) =>
-                        handleDocumentUpload("addressProof", file)
-                      }
-                      disabled={ntbOnboardingStatus === "Running"}
-                    />
-                  </div>
-                </div>
-
-                {/* 3. BOTTOM SECTION: UNLOCKED EDITABLE PAN & SALESFORCE ADDRESS BREAKDOWN */}
-                {borrowerDocuments.pan.preview && (
-                  <BorrowerField
-                    label="PAN"
-                    name="pan"
-                    value={borrowerDraft.pan}
-                    onChange={handleBorrowerChange}
-                    error={borrowerErrors.pan}
-                    maxLength={10}
-                    required
-                  />
-                )}
-
-                {borrowerDocuments.addressProof.preview && (
+                {borrowerInformationSaved && (
                   <>
                     <BorrowerField
-                      label="Address Line 1"
+                      label="PAN"
+                      name="pan"
+                      value={borrowerDraft.pan}
+                      onChange={handleBorrowerChange}
+                      error={borrowerErrors.pan}
+                      maxLength={10}
+                      required
+                    />
+                    <BorrowerField
+                      label="Address line 1"
                       name="addressLine1"
                       value={borrowerDraft.addressLine1}
                       onChange={handleBorrowerChange}
                       error={borrowerErrors.addressLine1}
-                      maxLength={100}
+                      maxLength={250}
                       required
-                      wide
                     />
                     <BorrowerField
-                      label="Address Line 2"
+                      label="Address line 2"
                       name="addressLine2"
                       value={borrowerDraft.addressLine2}
                       onChange={handleBorrowerChange}
-                      maxLength={100}
-                      wide
+                      error={borrowerErrors.addressLine2}
+                      maxLength={250}
                     />
                     <BorrowerField
                       label="City"
@@ -1825,18 +1822,11 @@ function CustomerIdentity({
                       value={borrowerDraft.city}
                       onChange={handleBorrowerChange}
                       error={borrowerErrors.city}
+                      maxLength={50}
                       required
                     />
                     <BorrowerField
-                      label="State"
-                      name="state"
-                      value={borrowerDraft.state}
-                      onChange={handleBorrowerChange}
-                      error={borrowerErrors.state}
-                      required
-                    />
-                    <BorrowerField
-                      label="PIN Code"
+                      label="ZIP / Postcode"
                       name="pincode"
                       value={borrowerDraft.pincode}
                       onChange={handleBorrowerChange}
@@ -1847,7 +1837,6 @@ function CustomerIdentity({
                     />
                   </>
                 )}
-
                 <div className="glci-borrower-form-actions">
                   <span>
                     Fields marked * are mandatory. Borrower age must be between
@@ -1864,7 +1853,6 @@ function CustomerIdentity({
               </div>
             ) : (
               <>
-                {/* READ-ONLY SUMMARY GRID */}
                 <div className="glci-detail-grid">
                   <Detail
                     label="Name"
@@ -1893,45 +1881,6 @@ function CustomerIdentity({
                     value={borrowerNode.details.email}
                     verified={customerType === "ETB"}
                   />
-
-                  {/* Show PAN in summary if uploaded */}
-                  {borrowerDocuments.pan.preview && (
-                    <Detail
-                      label="PAN"
-                      value={borrowerNode.details.pan}
-                    />
-                  )}
-
-                  {/* Show Salesforce Address breakdown in summary if uploaded */}
-                  {borrowerDocuments.addressProof.preview && (
-                    <>
-                      <Detail
-                        label="Address Line 1"
-                        value={borrowerNode.details.addressLine1}
-                        wide
-                      />
-                      {borrowerNode.details.addressLine2 && (
-                        <Detail
-                          label="Address Line 2"
-                          value={borrowerNode.details.addressLine2}
-                          wide
-                        />
-                      )}
-                      <Detail
-                        label="City"
-                        value={borrowerNode.details.city}
-                      />
-                      <Detail
-                        label="State"
-                        value={borrowerNode.details.state}
-                      />
-                      <Detail
-                        label="PIN Code"
-                        value={borrowerNode.details.pincode}
-                      />
-                    </>
-                  )}
-
                   {customerType === "ETB" && (
                     <>
                       <Detail
@@ -1950,6 +1899,181 @@ function CustomerIdentity({
                 </div>
               </>
             )}
+
+            <div className="glci-document-section">
+              <div className="glci-document-section-head">
+                <div>
+                  <strong>KYC documents</strong>
+                  <span>
+                    View the available evidence or re-upload a fresher copy.
+                  </span>
+                </div>
+                <StatusBadge
+                  variant={borrowerDocumentsComplete ? "success" : "pending"}
+                >
+                  {borrowerDocumentsComplete ? (
+                    <CheckIcon size={11} />
+                  ) : (
+                    <AlertIcon />
+                  )}{" "}
+                  {borrowerDocumentsComplete
+                    ? "Documents complete"
+                    : "Action required"}
+                </StatusBadge>
+              </div>
+              <div className="glci-borrower-document-grid">
+                <BorrowerDocument
+                  label="PAN Card"
+                  description="Upload PAN card"
+                  document={borrowerDocuments.pan}
+                  onUpload={(file) => handleDocumentUpload("pan", file)}
+                  disabled={
+                    isBorrowerEditing || ntbOnboardingStatus === "Running"
+                  }
+                />
+                <BorrowerDocument
+                  label="Address proof"
+                  description="Upload an accepted OVD / address proof"
+                  document={borrowerDocuments.addressProof}
+                  onUpload={(file) =>
+                    handleDocumentUpload("addressProof", file)
+                  }
+                  disabled={
+                    isBorrowerEditing || ntbOnboardingStatus === "Running"
+                  }
+                />
+              </div>
+
+              {borrowerDocumentsComplete && (
+                <div className="glci-address-section">
+                  <div className="glci-address-section-head">
+                    <div>
+                      <strong>Address & Identity</strong>
+                    </div>
+                    <div className="glci-profile-actions">
+                      {!isAddressIdentityEditing ? (
+                        <button
+                          type="button"
+                          className="glci-secondary-button"
+                          onClick={() => {
+                            setBorrowerDraft(borrowerNode.details);
+                            setBorrowerErrors({});
+                            setIsAddressIdentityEditing(true);
+                          }}
+                          disabled={ntbOnboardingStatus === "Running"}
+                        >
+                          <PencilIcon /> Edit information
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="glci-link-button"
+                          onClick={() => {
+                            setBorrowerDraft(borrowerNode.details);
+                            setBorrowerErrors({});
+                            setIsAddressIdentityEditing(false);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                    <StatusBadge variant="success">
+                      <CheckIcon size={11} /> Documents uploaded
+                    </StatusBadge>
+                  </div>
+
+                  {isAddressIdentityEditing ? (
+                    <div className="glci-borrower-form">
+                      <BorrowerField
+                        label="PAN"
+                        name="pan"
+                        value={borrowerDraft.pan}
+                        onChange={handleBorrowerChange}
+                        error={borrowerErrors.pan}
+                        maxLength={10}
+                        required
+                      />
+                      <BorrowerField
+                        label="Address line 1"
+                        name="addressLine1"
+                        value={borrowerDraft.addressLine1}
+                        onChange={handleBorrowerChange}
+                        error={borrowerErrors.addressLine1}
+                        maxLength={250}
+                        required
+                      />
+                      <BorrowerField
+                        label="Address line 2"
+                        name="addressLine2"
+                        value={borrowerDraft.addressLine2}
+                        onChange={handleBorrowerChange}
+                        error={borrowerErrors.addressLine2}
+                        maxLength={250}
+                      />
+                      <BorrowerField
+                        label="City"
+                        name="city"
+                        value={borrowerDraft.city}
+                        onChange={handleBorrowerChange}
+                        error={borrowerErrors.city}
+                        maxLength={50}
+                        required
+                      />
+                      <BorrowerField
+                        label="ZIP / Postcode"
+                        name="pincode"
+                        value={borrowerDraft.pincode}
+                        onChange={handleBorrowerChange}
+                        error={borrowerErrors.pincode}
+                        inputMode="numeric"
+                        maxLength={6}
+                        required
+                      />
+
+                      <div className="glci-borrower-form-actions">
+                        <span>Fields marked * are mandatory.</span>
+                        <button
+                          type="button"
+                          className="glci-primary-button"
+                          onClick={saveAddressIdentity}
+                          disabled={ntbOnboardingStatus === "Running"}
+                        >
+                          Save Address & Identity
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="glci-detail-grid">
+                      <Detail
+                        label="PAN"
+                        value={borrowerNode.details.pan}
+                        required
+                      />
+                      <Detail
+                        label="Address line 1"
+                        value={borrowerNode.details.addressLine1}
+                        required
+                      />
+                      <Detail
+                        label="Address line 2"
+                        value={borrowerNode.details.addressLine2}
+                      />
+                      <Detail
+                        label="City"
+                        value={borrowerNode.details.city}
+                        required
+                      />
+                      <Detail
+                        label="ZIP / Postcode"
+                        value={borrowerNode.details.pincode}
+                        required
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {customerType === "NTB" && (
               <div className="glci-ntb-action">

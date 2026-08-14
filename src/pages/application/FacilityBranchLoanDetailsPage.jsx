@@ -10,16 +10,35 @@ const CheckIcon = () => (
   </svg>
 );
 
-const BankIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <path d="m3 9 9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 21h18" />
-  </svg>
-);
-
 const LoanIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <rect x="3" y="5" width="18" height="14" rx="2" />
     <path d="M3 10h18M7 15h3" />
+  </svg>
+);
+
+const JewelleryIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+    <path d="m4 8 4-5h8l4 5-8 13Z" />
+    <path d="M4 8h16M8 3l4 5 4-5M8 8l4 13 4-13" />
+  </svg>
+);
+
+const UploadIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5" />
   </svg>
 );
 
@@ -73,42 +92,47 @@ const FACILITY_OPTIONS = {
     label: "Retail Gold Loan",
     purposes: ["Marriage", "Medical", "Personal Needs", "Others"],
     schemes: [
-      {
-        name: "YES Gold Loan - Regular",
-        tenureOptions: ["12 Months"],
-        repaymentOptions: ["Term Loan"],
-      },
-      {
-        name: "YES Gold Loan - Bullet",
-        tenureOptions: ["6 Months", "12 Months"],
-        repaymentOptions: ["Bullet Repayment"],
-      },
+      { name: "YES Gold Loan - Regular", tenureOptions: ["12 Months"] },
+      { name: "YES Gold Loan - Bullet", tenureOptions: ["6 Months", "12 Months"] },
     ],
   },
   Agri: {
     label: "Agri Gold Loan",
     purposes: ["Land Development", "Cultivation Requirement"],
     schemes: [
-      {
-        name: "YES Agri Gold - Crop",
-        tenureOptions: ["6 Months", "12 Months"],
-        repaymentOptions: ["Bullet Repayment", "Monthly Interest"],
-      },
-      {
-        name: "YES Agri Gold - Development",
-        tenureOptions: ["18 Months"],
-        repaymentOptions: ["Term Loan"],
-      },
+      { name: "YES Agri Gold - Crop", tenureOptions: ["6 Months", "12 Months"] },
+      { name: "YES Agri Gold - Development", tenureOptions: ["18 Months"] },
     ],
   },
 };
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
+const ORNAMENTS = [
+  "Gold Necklace",
+  "Gold Chain",
+  "Gold Bangles",
+  "Gold Earrings",
+  "Gold Ring",
+  "Gold Coin",
+  "Other Gold Ornament",
+];
+
+const createJewelleryItem = (sequence = 1) => ({
+  id: `JWL-${Date.now()}-${sequence}`,
+  serialNumber: sequence,
+  description: "Gold Necklace",
+  numberOfItems: 1,
+  customerDeclaredOwnership: "Yes",
+  ownershipProof: null,
+  remarks: "",
+});
+
+const isItemComplete = (item) =>
+  Boolean(
+    item.description &&
+      Number(item.numberOfItems) > 0 &&
+      item.customerDeclaredOwnership === "Yes" &&
+      item.ownershipProof?.fileName
+  );
 
 const parseLeadDetails = (leadDetails) => {
   if (!leadDetails) return {};
@@ -139,7 +163,6 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
   const storedBranch = stored.branchSelection || {};
   const storedLoan = stored.productFacilityAndScheme || {};
 
-  // These fallbacks also migrate the former flat Step 2 structure.
   const productType = storedLoan.productType || stored.facilityType || "Retail";
   const facility = FACILITY_OPTIONS[productType] || FACILITY_OPTIONS.Retail;
   const schemeName =
@@ -151,6 +174,10 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
   const branchType = storedBranch.type || stored.branchType || "Home";
   const storedSelectedBranch =
     storedBranch.selectedBranch || stored.selectedBranch || null;
+
+  const storedItems = Array.isArray(stored.jewelleryItems) && stored.jewelleryItems.length > 0
+    ? stored.jewelleryItems
+    : [createJewelleryItem(1)];
 
   return {
     branchType,
@@ -167,16 +194,12 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
           "",
     productType,
     schemeName: scheme.name,
-    purpose: storedLoan.purpose || stored.purpose || "",
+    purpose: storedLoan.purpose || stored.purpose || facility.purposes[0],
     requestedLoanAmount: Number(
       storedLoan.requestedLoanAmount ?? stored.requestedLoanAmount ?? 0
     ),
     tenure: storedLoan.tenure || stored.tenure || scheme.tenureOptions[0] || "",
-    repaymentType:
-      storedLoan.repaymentType ||
-      stored.repaymentType ||
-      scheme.repaymentOptions[0] ||
-      "",
+    jewelleryItems: storedItems,
   };
 };
 
@@ -224,7 +247,6 @@ function FacilityBranchLoanDetailsPage({
     latestLeadRef.current = lead;
   }, [lead]);
 
-  // Rehydrate when the parent finishes loading a different lead.
   useEffect(() => {
     if (hydratedLeadRef.current === leadIdentity) return;
 
@@ -270,7 +292,9 @@ function FacilityBranchLoanDetailsPage({
   const existingOutstanding = 0;
   const requestedLoanAmount = Number(form.requestedLoanAmount || 0);
   const aggregateLoanAmount = existingOutstanding + requestedLoanAmount;
-  const cibilRequired = requestedLoanAmount > 250000;
+  const relationshipType = lead?.relationship?.type || lead?.customerIdentity?.type || "";
+  const isNTB = relationshipType === "NTB" || leadIdentity.startsWith("LD-");
+  const cibilRequired = isNTB ? true : requestedLoanAmount > 100000;
   const landDetailsRequired =
     form.productType === "Agri" && aggregateLoanAmount >= 100000;
 
@@ -278,6 +302,11 @@ function FacilityBranchLoanDetailsPage({
     selectedBranch?.code &&
       (form.branchType === "Home" || form.pinCode.length === 6)
   );
+
+  const jewelleryComplete =
+    form.jewelleryItems.length > 0 &&
+    form.jewelleryItems.every(isItemComplete);
+
   const stepComplete = Boolean(
     branchComplete &&
       form.productType &&
@@ -285,7 +314,7 @@ function FacilityBranchLoanDetailsPage({
       form.purpose &&
       requestedLoanAmount > 0 &&
       form.tenure &&
-      form.repaymentType
+      jewelleryComplete
   );
 
   const stepNode = useMemo(
@@ -313,8 +342,8 @@ function FacilityBranchLoanDetailsPage({
         purpose: form.purpose,
         requestedLoanAmount,
         tenure: form.tenure,
-        repaymentType: form.repaymentType,
       },
+      jewelleryItems: form.jewelleryItems,
       existingGoldLoans: [],
       exposure: {
         existingOutstandingAmount: existingOutstanding,
@@ -342,10 +371,9 @@ function FacilityBranchLoanDetailsPage({
       stepComplete,
     ]
   );
+
   const serializedStepNode = JSON.stringify(stepNode);
 
-  // Every form action changes stepNode. Merge it into the parent's lead state,
-  // update the application state, and persist the same section through PATCH.
   useEffect(() => {
     if (leadIdentity === "unresolved-lead") return;
     if (lastPersistedNodeRef.current === serializedStepNode) return;
@@ -366,7 +394,6 @@ function FacilityBranchLoanDetailsPage({
         leadDetails: mergedLeadDetails,
       };
 
-      // Keep the snake_case alias synchronized when the fetched lead uses it.
       if (Object.prototype.hasOwnProperty.call(sourceLead, "lead_details")) {
         nextLead.lead_details = mergedLeadDetails;
       }
@@ -382,7 +409,6 @@ function FacilityBranchLoanDetailsPage({
       [sectionKey]: stepNode,
     };
 
-    // Serialize requests so rapid input changes cannot reach the API out of order.
     persistQueueRef.current = persistQueueRef.current
       .catch(() => undefined)
       .then(async () => {
@@ -423,209 +449,72 @@ function FacilityBranchLoanDetailsPage({
     updateStepStatus,
   ]);
 
-  const handleBranchTypeChange = (branchType) => {
-    setForm((current) => ({
-      ...current,
-      branchType,
-      pinCode: branchType === "Home" ? homeBranch.pinCode : "",
-      selectedBranchCode: branchType === "Home" ? homeBranch.code : "",
-    }));
-  };
+  const handleCombinedConfigChange = (event) => {
+    const value = event.target.value;
+    if (!value || value === "||") return;
 
-  const handlePinCodeChange = (event) => {
-    const pinCode = event.target.value.replace(/\D/g, "").slice(0, 6);
-    setForm((current) => ({
-      ...current,
-      pinCode,
-      selectedBranchCode: "",
-    }));
-  };
-
-  const handleProductTypeChange = (event) => {
-    const productType = event.target.value;
-    const nextFacility = FACILITY_OPTIONS[productType];
-    const nextScheme = nextFacility.schemes[0];
+    const [productType, schemeName, purpose] = value.split("|");
+    const targetFacility = FACILITY_OPTIONS[productType] || FACILITY_OPTIONS.Retail;
+    const targetScheme =
+      targetFacility.schemes.find((scheme) => scheme.name === schemeName) ||
+      targetFacility.schemes[0];
 
     setForm((current) => ({
       ...current,
       productType,
-      schemeName: nextScheme.name,
-      purpose: "",
-      tenure: nextScheme.tenureOptions[0],
-      repaymentType: nextScheme.repaymentOptions[0],
+      schemeName: targetScheme.name,
+      purpose,
+      tenure: targetScheme.tenureOptions[0] || "",
     }));
   };
 
-  const handleSchemeChange = (event) => {
-    const schemeName = event.target.value;
-    const nextScheme = facility.schemes.find(
-      (scheme) => scheme.name === schemeName
-    );
-
+  /* Jewellery Items Handlers */
+  const addJewelleryItem = () => {
     setForm((current) => ({
       ...current,
-      schemeName,
-      tenure: nextScheme?.tenureOptions[0] || "",
-      repaymentType: nextScheme?.repaymentOptions[0] || "",
+      jewelleryItems: [
+        ...current.jewelleryItems,
+        createJewelleryItem(current.jewelleryItems.length + 1),
+      ],
     }));
+  };
+
+  const removeJewelleryItem = (id) => {
+    if (form.jewelleryItems.length === 1) return;
+    setForm((current) => ({
+      ...current,
+      jewelleryItems: current.jewelleryItems
+        .filter((item) => item.id !== id)
+        .map((item, index) => ({ ...item, serialNumber: index + 1 })),
+    }));
+  };
+
+  const updateJewelleryItem = (id, field, value) => {
+    setForm((current) => ({
+      ...current,
+      jewelleryItems: current.jewelleryItems.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const uploadJewelleryProof = (id, file) => {
+    if (!file) return;
+    updateJewelleryItem(id, "ownershipProof", {
+      fileName: file.name,
+      fileType: file.type || "application/octet-stream",
+      fileSize: file.size,
+      uploadedAt: new Date().toISOString(),
+      documentStatus: "Captured",
+    });
   };
 
   return (
     <div className="fbl-page">
-      <div className="fbl-overview" aria-label="Gold loan exposure summary">
-        <div className="fbl-overview-item">
-          <span className="fbl-overview-icon loan"><LoanIcon /></span>
-          <div>
-            <small>Existing gold-loan exposure</small>
-            <strong>{formatCurrency(existingOutstanding)}</strong>
-            <p>No active Gold Loans found in CBS</p>
-          </div>
-        </div>
-        <div className="fbl-overview-item">
-          <span className="fbl-overview-icon requested">₹</span>
-          <div>
-            <small>Requested loan amount</small>
-            <strong>{formatCurrency(requestedLoanAmount)}</strong>
-            <p>Entered in the facility details below</p>
-          </div>
-        </div>
-        <div className="fbl-overview-item highlighted">
-          <span className="fbl-overview-icon aggregate"><CheckIcon /></span>
-          <div>
-            <small>Proposed aggregate exposure</small>
-            <strong>{formatCurrency(aggregateLoanAmount)}</strong>
-            <p>{cibilRequired ? "CIBIL pull required in Step 3" : "Below CIBIL threshold"}</p>
-          </div>
-        </div>
-      </div>
-
-      <section className="fbl-section fbl-card">
-        <SectionHeading
-          icon={<BankIcon />}
-          eyebrow="01 · BRANCH SELECTION"
-          title="Choose the processing branch"
-          description="Home Branch is selected by default. For another branch, enter its mapped PIN code first."
-          badge={
-            selectedBranch ? (
-              <span className="fbl-badge success">
-                <CheckIcon /> Selected
-              </span>
-            ) : (
-              <span className="fbl-badge neutral">Selection required</span>
-            )
-          }
-        />
-
-        <div className="fbl-choice-grid" role="radiogroup" aria-label="Branch type">
-          {[
-            {
-              value: "Home",
-              title: "Home Branch",
-              text: "Use the customer’s CBS-mapped branch",
-            },
-            {
-              value: "Other",
-              title: "Other Branch",
-              text: "Find a convenient branch using PIN code",
-            },
-          ].map((option) => (
-            <label
-              className={form.branchType === option.value ? "selected" : ""}
-              key={option.value}
-            >
-              <input
-                type="radio"
-                name="branchType"
-                value={option.value}
-                checked={form.branchType === option.value}
-                onChange={() => handleBranchTypeChange(option.value)}
-              />
-              <span className="fbl-choice-icon">
-                <BankIcon />
-              </span>
-              <span>
-                <strong>{option.title}</strong>
-                <small>{option.text}</small>
-              </span>
-            </label>
-          ))}
-        </div>
-
-        {form.branchType === "Other" && (
-          <div className="fbl-form-grid fbl-branch-search">
-            <label>
-              <span>PIN code *</span>
-              <input
-                value={form.pinCode}
-                inputMode="numeric"
-                maxLength="6"
-                placeholder="Enter 6-digit PIN code"
-                aria-describedby="branch-pin-help"
-                onChange={handlePinCodeChange}
-              />
-              <small id="branch-pin-help">
-                Branches are shown only after a complete PIN code is entered.
-              </small>
-            </label>
-            <label>
-              <span>Branch code – branch name *</span>
-              <select
-                value={form.selectedBranchCode}
-                disabled={availableBranches.length === 0}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    selectedBranchCode: event.target.value,
-                  }))
-                }
-              >
-                <option value="">
-                  {form.pinCode.length !== 6
-                    ? "Enter PIN code first"
-                    : availableBranches.length === 0
-                      ? "No mapped branches found"
-                      : "Select a branch"}
-                </option>
-                {availableBranches.map((branch) => (
-                  <option value={branch.code} key={branch.code}>
-                    {branch.code} — {branch.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        )}
-
-        {selectedBranch ? (
-          <div className="fbl-selected-branch">
-            <span>
-              <BankIcon />
-            </span>
-            <div>
-              <small>SELECTED SERVICING BRANCH</small>
-              <strong>{selectedBranch.name}</strong>
-              <p>{selectedBranch.address}</p>
-            </div>
-            <div className="fbl-branch-meta">
-              <small>Branch code</small>
-              <strong>{selectedBranch.code}</strong>
-              <small>PIN / DP code</small>
-              <strong>
-                {selectedBranch.pinCode} · {selectedBranch.dpCode}
-              </strong>
-            </div>
-          </div>
-        ) : (
-          <div className="fbl-empty-state" role="status">
-            Enter a valid PIN code and select a mapped branch to continue.
-          </div>
-        )}
-      </section>
-
       <section className="fbl-section fbl-card">
         <SectionHeading
           icon={<LoanIcon />}
-          eyebrow="02 · PRODUCT, FACILITY & SCHEME"
+          eyebrow="01 · PRODUCT, FACILITY & SCHEME"
           title="Configure the requested Gold Loan"
           description="The selected product controls the available schemes and permitted loan purpose."
           badge={<span className="fbl-badge gold">Gold Loan</span>}
@@ -633,38 +522,30 @@ function FacilityBranchLoanDetailsPage({
 
         <div className="fbl-form-grid">
           <label>
-            <span>Product type *</span>
-            <select value={form.productType} onChange={handleProductTypeChange}>
-              <option value="Retail">Retail Gold Loan</option>
-              <option value="Agri">Agri Gold Loan</option>
-            </select>
-          </label>
-          <label>
-            <span>Scheme *</span>
-            <select value={form.schemeName} onChange={handleSchemeChange}>
-              {facility.schemes.map((scheme) => (
-                <option value={scheme.name} key={scheme.name}>
-                  {scheme.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Purpose of loan *</span>
+            <span>Product, Scheme & Purpose *</span>
             <select
-              value={form.purpose}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  purpose: event.target.value,
-                }))
+              value={
+                form.productType && form.schemeName && form.purpose
+                  ? `${form.productType}|${form.schemeName}|${form.purpose}`
+                  : "||"
               }
+              onChange={handleCombinedConfigChange}
             >
-              <option value="">Select purpose</option>
-              {facility.purposes.map((purpose) => (
-                <option value={purpose} key={purpose}>
-                  {purpose}
-                </option>
+              <option value="||">Select Configuration</option>
+
+              {Object.entries(FACILITY_OPTIONS).map(([productKey, facilityConfig]) => (
+                <optgroup label={facilityConfig.label} key={productKey}>
+                  {facilityConfig.schemes.flatMap((scheme) =>
+                    facilityConfig.purposes.map((purpose) => (
+                      <option
+                        value={`${productKey}|${scheme.name}|${purpose}`}
+                        key={`${productKey}-${scheme.name}-${purpose}`}
+                      >
+                        {facilityConfig.label} - {scheme.name} ({purpose})
+                      </option>
+                    ))
+                  )}
+                </optgroup>
               ))}
             </select>
           </label>
@@ -709,39 +590,104 @@ function FacilityBranchLoanDetailsPage({
               </select>
             )}
           </label>
-          <label>
-            <span>Repayment type *</span>
-            {selectedScheme.repaymentOptions.length === 1 ? (
-              <>
-                <input value={form.repaymentType} readOnly />
-                <small>Auto-populated for the selected scheme</small>
-              </>
-            ) : (
-              <select
-                value={form.repaymentType}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    repaymentType: event.target.value,
-                  }))
-                }
-              >
-                {selectedScheme.repaymentOptions.map((type) => (
-                  <option value={type} key={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            )}
-          </label>
         </div>
 
         <div className="fbl-selection-note">
           <span><CheckIcon /></span>
           <div>
             <strong>{selectedScheme.name}</strong>
-            <p>{facility.label} · {form.tenure} · {form.repaymentType}</p>
+            <p>{facility.label} · {form.tenure} </p>
           </div>
+        </div>
+      </section>
+
+      {/* NEW JEWELLERY OFFERED SECTION */}
+      <section className="fbl-section fbl-card">
+        <SectionHeading
+          icon={<JewelleryIcon />}
+          eyebrow="02 · JEWELLERY OFFERED"
+          title="Record the jewellery items presented"
+          description="Upload ownership proof and ornament details. Appraisal and valuation will happen later."
+          badge={
+            <button className="jds-add-button" type="button" onClick={addJewelleryItem}>
+              <PlusIcon /> Add ornament
+            </button>
+          }
+        />
+
+        <div className="jds-items">
+          {form.jewelleryItems.map((item, index) => (
+            <div className={`jds-item ${isItemComplete(item) ? "complete" : ""}`} key={item.id}>
+              <div className="jds-item-number">
+                <span>ITEM</span>
+                <strong>{String(index + 1).padStart(2, "0")}</strong>
+              </div>
+              <div className="jds-item-fields">
+                <label>
+                  <span>Ornament description *</span>
+                  <select
+                    value={item.description}
+                    onChange={(event) => updateJewelleryItem(item.id, "description", event.target.value)}
+                  >
+                    {ORNAMENTS.map((ornament) => (
+                      <option key={ornament}>{ornament}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Number of items *</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.numberOfItems}
+                    onChange={(event) => updateJewelleryItem(item.id, "numberOfItems", Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  <span>Customer-declared ownership *</span>
+                  <select
+                    value={item.customerDeclaredOwnership}
+                    onChange={(event) => updateJewelleryItem(item.id, "customerDeclaredOwnership", event.target.value)}
+                  >
+                    <option value="Yes">Yes - Owned by customer</option>
+                    <option value="No">No</option>
+                  </select>
+                </label>
+                <label className="jds-proof-upload">
+                  <span>Proof of ownership *</span>
+                  <span className={`jds-upload-box ${item.ownershipProof?.fileName ? "complete" : ""}`}>
+                    {item.ownershipProof?.fileName ? <CheckIcon /> : <UploadIcon />}
+                    <strong>{item.ownershipProof?.fileName || "Upload proof"}</strong>
+                    <small>{item.ownershipProof?.fileName ? "Click to replace" : "PDF, JPG or PNG"}</small>
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    hidden
+                    onChange={(event) => uploadJewelleryProof(item.id, event.target.files?.[0])}
+                  />
+                </label>
+                <label className="jds-remarks-field">
+                  <span>Maker remarks</span>
+                  <input
+                    value={item.remarks}
+                    placeholder="Optional remarks about the item"
+                    onChange={(event) => updateJewelleryItem(item.id, "remarks", event.target.value)}
+                  />
+                </label>
+              </div>
+              <button
+                className="jds-remove-button"
+                type="button"
+                onClick={() => removeJewelleryItem(item.id)}
+                disabled={form.jewelleryItems.length === 1}
+                aria-label={`Remove jewellery item ${index + 1}`}
+              >
+                <TrashIcon />
+              </button>
+              {isItemComplete(item) && <span className="jds-item-complete"><CheckIcon /> Complete</span>}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -750,7 +696,7 @@ function FacilityBranchLoanDetailsPage({
         <div>
           <strong>
             {stepComplete
-              ? "Facility, branch and loan details are complete"
+              ? "Facility, branch, loan and jewellery details are complete"
               : "Complete the mandatory Step 2 details"}
           </strong>
           <p>
@@ -760,7 +706,7 @@ function FacilityBranchLoanDetailsPage({
                     ? "Agri land details are required"
                     : "land details are not required"
                 } in Step 3.`
-              : "Select a branch, scheme, purpose, requested amount, tenure and repayment type."}
+              : "Select scheme, purpose, requested amount, tenure, and upload jewellery details."}
           </p>
         </div>
       </div>

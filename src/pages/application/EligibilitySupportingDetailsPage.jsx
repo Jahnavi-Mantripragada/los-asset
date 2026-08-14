@@ -246,7 +246,8 @@ function EligibilitySupportingDetailsPage({
   const exposure = facilityData.exposure || {};
 
   // These two stored flags are the only source of truth for conditional sections.
-  const cibilRequired = exposure.cibilRequired === true;
+  // BEFORE:
+  // const cibilRequired = exposure.cibilRequired === true;
   const landDetailsRequired = exposure.landDetailsRequired === true;
   const requestedLoanAmount = Number(
     exposure.requestedLoanAmount ?? facilityData.requestedLoanAmount ?? 0
@@ -257,6 +258,17 @@ function EligibilitySupportingDetailsPage({
   const facilityType =
     facilityData.facilityType || facilityData.productType || "Gold Loan";
   const leadIdentity = lead?.id || lead?.leadId || lead?.leadNumber || "";
+
+  const customerIdentity = leadDetails.customerIdentity || {};
+  const relationship = customerIdentity.relationship || leadDetails.relationship || "";
+
+  const relationshipType = relationship.type || customerIdentity.type || leadDetails.customerType || "";
+
+  const isNTB = relationshipType === "NTB";
+
+  // AFTER: 
+  // NTB = Always required, ETB = Required if exposure.cibilRequired is true (> ₹1L / ₹2.5L)
+  const cibilRequired = isNTB ? true : exposure.cibilRequired === true;
 
   const initialStep = normalizeStep({
     existing: leadDetails[SECTION_KEY],
@@ -631,6 +643,7 @@ function EligibilitySupportingDetailsPage({
             </div>
 
             {stepData.cibil.status === "Completed" && (
+              <>
               <div className="esd-result-grid">
                 <div><span>CIBIL score</span><strong>{stepData.cibil.score}</strong><small>Good credit profile</small></div>
                 <div>
@@ -640,6 +653,21 @@ function EligibilitySupportingDetailsPage({
                 </div>
                 <div><span>Assessment outcome</span><strong className="success-text">{stepData.cibil.assessmentOutcome}</strong><small>No blocking bureau rule</small></div>
               </div>
+              {/* PRE-FILLED ELIGIBILITY BANNER */}
+              <div className="esd-eligibility-banner" role="status">
+                <span className="esd-eligibility-banner-icon">
+                  <CheckIcon />
+                </span>
+                <div className="esd-eligibility-banner-text">
+                  <strong>
+                    You are eligible for loan amount of {formatCurrency(3500000)} (₹35 Lakhs)
+                  </strong>
+                  <p>
+                    Based on CIBIL score ({stepData.cibil.score}) and CBS credit evaluation.
+                  </p>
+                </div>
+              </div>
+              </>
             )}
           </div>
         ) : (

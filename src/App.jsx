@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import LeadDetailPage from "./pages/LeadDetailPage";
 import ApplicationOnboardingPage from "./pages/application/ApplicationOnboardingPage";
+import ApplicationDetailPage from "./pages/application/ApplicationDetailPage";
 
 import "./styles/theme.css";
 import "./index.css";
@@ -227,6 +228,11 @@ function App() {
               <Navigate to="/login" replace />
             )
           }
+        />
+
+        <Route
+          path="/applications/:applicationNumber"
+          element={<ApplicationDetailPage />}
         />
       </Routes>
     </BrowserRouter>

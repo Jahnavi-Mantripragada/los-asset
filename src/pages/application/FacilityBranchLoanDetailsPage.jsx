@@ -1,0 +1,771 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import "./FacilityBranchLoanDetailsPage.css";
+
+const LEAD_DETAILS_API_BASE =
+  "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
+
+const CheckIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+const BankIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="m3 9 9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 21h18" />
+  </svg>
+);
+
+const LoanIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M3 10h18M7 15h3" />
+  </svg>
+);
+
+const BRANCHES = [
+  {
+    code: "YESB0000123",
+    name: "Pune - Deccan Gymkhana",
+    address: "Bhandarkar Road, Deccan Gymkhana, Pune, Maharashtra 411004",
+    pinCode: "411004",
+    dpCode: "DP-0123",
+  },
+  {
+    code: "YESB0000226",
+    name: "Pune - Camp",
+    address: "Moledina Road, Camp, Pune, Maharashtra 411001",
+    pinCode: "411001",
+    dpCode: "DP-0226",
+  },
+  {
+    code: "YESB0000187",
+    name: "Pune - Baner",
+    address: "Baner Road, Pune, Maharashtra 411045",
+    pinCode: "411045",
+    dpCode: "DP-0187",
+  },
+  {
+    code: "YESB0000418",
+    name: "Pune - Hadapsar",
+    address: "Solapur Road, Hadapsar, Pune, Maharashtra 411028",
+    pinCode: "411028",
+    dpCode: "DP-0418",
+  },
+  {
+    code: "YESB0000472",
+    name: "Pune - Magarpatta",
+    address: "Magarpatta Road, Hadapsar, Pune, Maharashtra 411028",
+    pinCode: "411028",
+    dpCode: "DP-0472",
+  },
+  {
+    code: "YESB0000314",
+    name: "Mumbai - Andheri East",
+    address: "Mahakali Caves Road, Mumbai, Maharashtra 400093",
+    pinCode: "400093",
+    dpCode: "DP-0314",
+  },
+];
+
+const FACILITY_OPTIONS = {
+  Retail: {
+    label: "Retail Gold Loan",
+    purposes: ["Marriage", "Medical", "Personal Needs", "Others"],
+    schemes: [
+      {
+        name: "YES Gold Loan - Regular",
+        tenureOptions: ["12 Months"],
+        repaymentOptions: ["Term Loan"],
+      },
+      {
+        name: "YES Gold Loan - Bullet",
+        tenureOptions: ["6 Months", "12 Months"],
+        repaymentOptions: ["Bullet Repayment"],
+      },
+    ],
+  },
+  Agri: {
+    label: "Agri Gold Loan",
+    purposes: ["Land Development", "Cultivation Requirement"],
+    schemes: [
+      {
+        name: "YES Agri Gold - Crop",
+        tenureOptions: ["6 Months", "12 Months"],
+        repaymentOptions: ["Bullet Repayment", "Monthly Interest"],
+      },
+      {
+        name: "YES Agri Gold - Development",
+        tenureOptions: ["18 Months"],
+        repaymentOptions: ["Term Loan"],
+      },
+    ],
+  },
+};
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+
+const parseLeadDetails = (leadDetails) => {
+  if (!leadDetails) return {};
+  if (typeof leadDetails === "object") return leadDetails;
+
+  try {
+    return JSON.parse(leadDetails);
+  } catch {
+    return {};
+  }
+};
+
+const normalizeBranch = (branch, fallback) => ({
+  code: branch?.code || fallback.code,
+  name: branch?.name || fallback.name,
+  address: branch?.address || fallback.address,
+  pinCode: branch?.pinCode || fallback.pinCode,
+  dpCode: branch?.dpCode || fallback.dpCode,
+});
+
+const getStoredStepNode = (lead, stepData, sectionKey) => {
+  const leadDetails = parseLeadDetails(lead?.leadDetails ?? lead?.lead_details);
+  return leadDetails?.[sectionKey] || stepData?.[sectionKey] || stepData || {};
+};
+
+const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
+  const stored = getStoredStepNode(lead, stepData, sectionKey);
+  const storedBranch = stored.branchSelection || {};
+  const storedLoan = stored.productFacilityAndScheme || {};
+
+  // These fallbacks also migrate the former flat Step 2 structure.
+  const productType = storedLoan.productType || stored.facilityType || "Retail";
+  const facility = FACILITY_OPTIONS[productType] || FACILITY_OPTIONS.Retail;
+  const schemeName =
+    storedLoan.schemeName || stored.schemeName || facility.schemes[0].name;
+  const scheme =
+    facility.schemes.find((item) => item.name === schemeName) ||
+    facility.schemes[0];
+
+  const branchType = storedBranch.type || stored.branchType || "Home";
+  const storedSelectedBranch =
+    storedBranch.selectedBranch || stored.selectedBranch || null;
+
+  return {
+    branchType,
+    pinCode:
+      branchType === "Other"
+        ? storedBranch.pinCode || stored.pinCode || ""
+        : homeBranch.pinCode,
+    selectedBranchCode:
+      branchType === "Home"
+        ? homeBranch.code
+        : storedBranch.selectedBranchCode ||
+          stored.selectedBranchCode ||
+          storedSelectedBranch?.code ||
+          "",
+    productType,
+    schemeName: scheme.name,
+    purpose: storedLoan.purpose || stored.purpose || "",
+    requestedLoanAmount: Number(
+      storedLoan.requestedLoanAmount ?? stored.requestedLoanAmount ?? 0
+    ),
+    tenure: storedLoan.tenure || stored.tenure || scheme.tenureOptions[0] || "",
+    repaymentType:
+      storedLoan.repaymentType ||
+      stored.repaymentType ||
+      scheme.repaymentOptions[0] ||
+      "",
+  };
+};
+
+function SectionHeading({ icon, eyebrow, title, description, badge }) {
+  return (
+    <div className="fbl-section-heading">
+      <span className="fbl-section-icon">{icon}</span>
+      <div>
+        <span className="fbl-eyebrow">{eyebrow}</span>
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </div>
+      {badge}
+    </div>
+  );
+}
+
+function FacilityBranchLoanDetailsPage({
+  lead = {},
+  setLead,
+  stepData = {},
+  sectionKey = "facilityBranchLoanDetails",
+  stepId = "facility-branch-loan",
+  updateApplicationData,
+  updateStepStatus,
+}) {
+  const leadIdentity =
+    lead.id || lead.leadNumber || lead.leadnumber || "unresolved-lead";
+  const fallbackHomeBranch = normalizeBranch(lead.homeBranch, BRANCHES[0]);
+
+  const [form, setForm] = useState(() =>
+    buildInitialForm({
+      lead,
+      stepData,
+      sectionKey,
+      homeBranch: fallbackHomeBranch,
+    })
+  );
+  const hydratedLeadRef = useRef(leadIdentity);
+  const latestLeadRef = useRef(lead);
+  const lastPersistedNodeRef = useRef("");
+  const persistQueueRef = useRef(Promise.resolve());
+
+  useEffect(() => {
+    latestLeadRef.current = lead;
+  }, [lead]);
+
+  // Rehydrate when the parent finishes loading a different lead.
+  useEffect(() => {
+    if (hydratedLeadRef.current === leadIdentity) return;
+
+    lastPersistedNodeRef.current = "";
+    setForm(
+      buildInitialForm({
+        lead,
+        stepData,
+        sectionKey,
+        homeBranch: normalizeBranch(lead.homeBranch, BRANCHES[0]),
+      })
+    );
+    hydratedLeadRef.current = leadIdentity;
+  }, [lead, leadIdentity, sectionKey, stepData]);
+
+  const homeBranch = useMemo(
+    () => normalizeBranch(lead.homeBranch, BRANCHES[0]),
+    [lead.homeBranch]
+  );
+
+  const availableBranches = useMemo(
+    () =>
+      form.pinCode.length === 6
+        ? BRANCHES.filter((branch) => branch.pinCode === form.pinCode)
+        : [],
+    [form.pinCode]
+  );
+
+  const selectedBranch = useMemo(() => {
+    if (form.branchType === "Home") return homeBranch;
+    return (
+      availableBranches.find(
+        (branch) => branch.code === form.selectedBranchCode
+      ) || null
+    );
+  }, [availableBranches, form.branchType, form.selectedBranchCode, homeBranch]);
+
+  const facility = FACILITY_OPTIONS[form.productType] || FACILITY_OPTIONS.Retail;
+  const selectedScheme =
+    facility.schemes.find((scheme) => scheme.name === form.schemeName) ||
+    facility.schemes[0];
+
+  const existingOutstanding = 0;
+  const requestedLoanAmount = Number(form.requestedLoanAmount || 0);
+  const aggregateLoanAmount = existingOutstanding + requestedLoanAmount;
+  const cibilRequired = requestedLoanAmount > 250000;
+  const landDetailsRequired =
+    form.productType === "Agri" && aggregateLoanAmount >= 100000;
+
+  const branchComplete = Boolean(
+    selectedBranch?.code &&
+      (form.branchType === "Home" || form.pinCode.length === 6)
+  );
+  const stepComplete = Boolean(
+    branchComplete &&
+      form.productType &&
+      selectedScheme?.name &&
+      form.purpose &&
+      requestedLoanAmount > 0 &&
+      form.tenure &&
+      form.repaymentType
+  );
+
+  const stepNode = useMemo(
+    () => ({
+      schemaVersion: 1,
+      branchSelection: {
+        type: form.branchType,
+        pinCode:
+          form.branchType === "Other" ? form.pinCode : homeBranch.pinCode,
+        selectedBranchCode: selectedBranch?.code || "",
+        selectedBranch: selectedBranch
+          ? {
+              code: selectedBranch.code,
+              name: selectedBranch.name,
+              address: selectedBranch.address,
+              pinCode: selectedBranch.pinCode,
+              dpCode: selectedBranch.dpCode,
+            }
+          : null,
+      },
+      productFacilityAndScheme: {
+        productType: form.productType,
+        productLabel: facility.label,
+        schemeName: selectedScheme?.name || "",
+        purpose: form.purpose,
+        requestedLoanAmount,
+        tenure: form.tenure,
+        repaymentType: form.repaymentType,
+      },
+      existingGoldLoans: [],
+      exposure: {
+        existingOutstandingAmount: existingOutstanding,
+        requestedLoanAmount,
+        aggregateLoanAmount,
+        cibilRequired,
+        landDetailsRequired,
+      },
+      stepMeta: {
+        status: stepComplete ? "Completed" : "In Progress",
+        isComplete: stepComplete,
+      },
+    }),
+    [
+      aggregateLoanAmount,
+      cibilRequired,
+      existingOutstanding,
+      facility.label,
+      form,
+      homeBranch.pinCode,
+      landDetailsRequired,
+      requestedLoanAmount,
+      selectedBranch,
+      selectedScheme,
+      stepComplete,
+    ]
+  );
+  const serializedStepNode = JSON.stringify(stepNode);
+
+  // Every form action changes stepNode. Merge it into the parent's lead state,
+  // update the application state, and persist the same section through PATCH.
+  useEffect(() => {
+    if (leadIdentity === "unresolved-lead") return;
+    if (lastPersistedNodeRef.current === serializedStepNode) return;
+
+    lastPersistedNodeRef.current = serializedStepNode;
+
+    setLead?.((currentLead) => {
+      const sourceLead = currentLead || latestLeadRef.current || {};
+      const currentLeadDetails = parseLeadDetails(
+        sourceLead.leadDetails ?? sourceLead.lead_details
+      );
+      const mergedLeadDetails = {
+        ...currentLeadDetails,
+        [sectionKey]: stepNode,
+      };
+      const nextLead = {
+        ...sourceLead,
+        leadDetails: mergedLeadDetails,
+      };
+
+      // Keep the snake_case alias synchronized when the fetched lead uses it.
+      if (Object.prototype.hasOwnProperty.call(sourceLead, "lead_details")) {
+        nextLead.lead_details = mergedLeadDetails;
+      }
+
+      latestLeadRef.current = nextLead;
+      return nextLead;
+    });
+
+    updateApplicationData?.(sectionKey, stepNode);
+    updateStepStatus?.(stepId, stepNode.stepMeta.status);
+
+    const leadDetailsPatch = {
+      [sectionKey]: stepNode,
+    };
+
+    // Serialize requests so rapid input changes cannot reach the API out of order.
+    persistQueueRef.current = persistQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const response = await fetch(
+          `${LEAD_DETAILS_API_BASE}/${encodeURIComponent(leadIdentity)}/details`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              leadId: leadIdentity,
+              leadDetailsPatch,
+            }),
+          }
+        );
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.success === false) {
+          throw new Error(
+            result?.message ||
+              `Unable to save lead details (${response.status}).`
+          );
+        }
+
+        return result;
+      })
+      .catch((error) => {
+        console.error("Failed to persist lead details:", error);
+      });
+  }, [
+    leadIdentity,
+    sectionKey,
+    serializedStepNode,
+    setLead,
+    stepId,
+    stepNode,
+    updateApplicationData,
+    updateStepStatus,
+  ]);
+
+  const handleBranchTypeChange = (branchType) => {
+    setForm((current) => ({
+      ...current,
+      branchType,
+      pinCode: branchType === "Home" ? homeBranch.pinCode : "",
+      selectedBranchCode: branchType === "Home" ? homeBranch.code : "",
+    }));
+  };
+
+  const handlePinCodeChange = (event) => {
+    const pinCode = event.target.value.replace(/\D/g, "").slice(0, 6);
+    setForm((current) => ({
+      ...current,
+      pinCode,
+      selectedBranchCode: "",
+    }));
+  };
+
+  const handleProductTypeChange = (event) => {
+    const productType = event.target.value;
+    const nextFacility = FACILITY_OPTIONS[productType];
+    const nextScheme = nextFacility.schemes[0];
+
+    setForm((current) => ({
+      ...current,
+      productType,
+      schemeName: nextScheme.name,
+      purpose: "",
+      tenure: nextScheme.tenureOptions[0],
+      repaymentType: nextScheme.repaymentOptions[0],
+    }));
+  };
+
+  const handleSchemeChange = (event) => {
+    const schemeName = event.target.value;
+    const nextScheme = facility.schemes.find(
+      (scheme) => scheme.name === schemeName
+    );
+
+    setForm((current) => ({
+      ...current,
+      schemeName,
+      tenure: nextScheme?.tenureOptions[0] || "",
+      repaymentType: nextScheme?.repaymentOptions[0] || "",
+    }));
+  };
+
+  return (
+    <div className="fbl-page">
+      <div className="fbl-overview" aria-label="Gold loan exposure summary">
+        <div className="fbl-overview-item">
+          <span className="fbl-overview-icon loan"><LoanIcon /></span>
+          <div>
+            <small>Existing gold-loan exposure</small>
+            <strong>{formatCurrency(existingOutstanding)}</strong>
+            <p>No active Gold Loans found in CBS</p>
+          </div>
+        </div>
+        <div className="fbl-overview-item">
+          <span className="fbl-overview-icon requested">₹</span>
+          <div>
+            <small>Requested loan amount</small>
+            <strong>{formatCurrency(requestedLoanAmount)}</strong>
+            <p>Entered in the facility details below</p>
+          </div>
+        </div>
+        <div className="fbl-overview-item highlighted">
+          <span className="fbl-overview-icon aggregate"><CheckIcon /></span>
+          <div>
+            <small>Proposed aggregate exposure</small>
+            <strong>{formatCurrency(aggregateLoanAmount)}</strong>
+            <p>{cibilRequired ? "CIBIL pull required in Step 3" : "Below CIBIL threshold"}</p>
+          </div>
+        </div>
+      </div>
+
+      <section className="fbl-section fbl-card">
+        <SectionHeading
+          icon={<BankIcon />}
+          eyebrow="01 · BRANCH SELECTION"
+          title="Choose the processing branch"
+          description="Home Branch is selected by default. For another branch, enter its mapped PIN code first."
+          badge={
+            selectedBranch ? (
+              <span className="fbl-badge success">
+                <CheckIcon /> Selected
+              </span>
+            ) : (
+              <span className="fbl-badge neutral">Selection required</span>
+            )
+          }
+        />
+
+        <div className="fbl-choice-grid" role="radiogroup" aria-label="Branch type">
+          {[
+            {
+              value: "Home",
+              title: "Home Branch",
+              text: "Use the customer’s CBS-mapped branch",
+            },
+            {
+              value: "Other",
+              title: "Other Branch",
+              text: "Find a convenient branch using PIN code",
+            },
+          ].map((option) => (
+            <label
+              className={form.branchType === option.value ? "selected" : ""}
+              key={option.value}
+            >
+              <input
+                type="radio"
+                name="branchType"
+                value={option.value}
+                checked={form.branchType === option.value}
+                onChange={() => handleBranchTypeChange(option.value)}
+              />
+              <span className="fbl-choice-icon">
+                <BankIcon />
+              </span>
+              <span>
+                <strong>{option.title}</strong>
+                <small>{option.text}</small>
+              </span>
+            </label>
+          ))}
+        </div>
+
+        {form.branchType === "Other" && (
+          <div className="fbl-form-grid fbl-branch-search">
+            <label>
+              <span>PIN code *</span>
+              <input
+                value={form.pinCode}
+                inputMode="numeric"
+                maxLength="6"
+                placeholder="Enter 6-digit PIN code"
+                aria-describedby="branch-pin-help"
+                onChange={handlePinCodeChange}
+              />
+              <small id="branch-pin-help">
+                Branches are shown only after a complete PIN code is entered.
+              </small>
+            </label>
+            <label>
+              <span>Branch code – branch name *</span>
+              <select
+                value={form.selectedBranchCode}
+                disabled={availableBranches.length === 0}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    selectedBranchCode: event.target.value,
+                  }))
+                }
+              >
+                <option value="">
+                  {form.pinCode.length !== 6
+                    ? "Enter PIN code first"
+                    : availableBranches.length === 0
+                      ? "No mapped branches found"
+                      : "Select a branch"}
+                </option>
+                {availableBranches.map((branch) => (
+                  <option value={branch.code} key={branch.code}>
+                    {branch.code} — {branch.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+
+        {selectedBranch ? (
+          <div className="fbl-selected-branch">
+            <span>
+              <BankIcon />
+            </span>
+            <div>
+              <small>SELECTED SERVICING BRANCH</small>
+              <strong>{selectedBranch.name}</strong>
+              <p>{selectedBranch.address}</p>
+            </div>
+            <div className="fbl-branch-meta">
+              <small>Branch code</small>
+              <strong>{selectedBranch.code}</strong>
+              <small>PIN / DP code</small>
+              <strong>
+                {selectedBranch.pinCode} · {selectedBranch.dpCode}
+              </strong>
+            </div>
+          </div>
+        ) : (
+          <div className="fbl-empty-state" role="status">
+            Enter a valid PIN code and select a mapped branch to continue.
+          </div>
+        )}
+      </section>
+
+      <section className="fbl-section fbl-card">
+        <SectionHeading
+          icon={<LoanIcon />}
+          eyebrow="02 · PRODUCT, FACILITY & SCHEME"
+          title="Configure the requested Gold Loan"
+          description="The selected product controls the available schemes and permitted loan purpose."
+          badge={<span className="fbl-badge gold">Gold Loan</span>}
+        />
+
+        <div className="fbl-form-grid">
+          <label>
+            <span>Product type *</span>
+            <select value={form.productType} onChange={handleProductTypeChange}>
+              <option value="Retail">Retail Gold Loan</option>
+              <option value="Agri">Agri Gold Loan</option>
+            </select>
+          </label>
+          <label>
+            <span>Scheme *</span>
+            <select value={form.schemeName} onChange={handleSchemeChange}>
+              {facility.schemes.map((scheme) => (
+                <option value={scheme.name} key={scheme.name}>
+                  {scheme.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Purpose of loan *</span>
+            <select
+              value={form.purpose}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  purpose: event.target.value,
+                }))
+              }
+            >
+              <option value="">Select purpose</option>
+              {facility.purposes.map((purpose) => (
+                <option value={purpose} key={purpose}>
+                  {purpose}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Requested loan amount *</span>
+            <input
+              type="number"
+              min="10000"
+              step="1000"
+              value={form.requestedLoanAmount || ""}
+              placeholder="Enter requested amount"
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  requestedLoanAmount: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+          <label>
+            <span>Tenure *</span>
+            {selectedScheme.tenureOptions.length === 1 ? (
+              <>
+                <input value={form.tenure} readOnly />
+                <small>Auto-populated for the selected scheme</small>
+              </>
+            ) : (
+              <select
+                value={form.tenure}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    tenure: event.target.value,
+                  }))
+                }
+              >
+                {selectedScheme.tenureOptions.map((tenure) => (
+                  <option value={tenure} key={tenure}>
+                    {tenure}
+                  </option>
+                ))}
+              </select>
+            )}
+          </label>
+          <label>
+            <span>Repayment type *</span>
+            {selectedScheme.repaymentOptions.length === 1 ? (
+              <>
+                <input value={form.repaymentType} readOnly />
+                <small>Auto-populated for the selected scheme</small>
+              </>
+            ) : (
+              <select
+                value={form.repaymentType}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    repaymentType: event.target.value,
+                  }))
+                }
+              >
+                {selectedScheme.repaymentOptions.map((type) => (
+                  <option value={type} key={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            )}
+          </label>
+        </div>
+
+        <div className="fbl-selection-note">
+          <span><CheckIcon /></span>
+          <div>
+            <strong>{selectedScheme.name}</strong>
+            <p>{facility.label} · {form.tenure} · {form.repaymentType}</p>
+          </div>
+        </div>
+      </section>
+
+      <div className={`fbl-readiness ${stepComplete ? "ready" : "pending"}`}>
+        <span>{stepComplete ? <CheckIcon /> : "!"}</span>
+        <div>
+          <strong>
+            {stepComplete
+              ? "Facility, branch and loan details are complete"
+              : "Complete the mandatory Step 2 details"}
+          </strong>
+          <p>
+            {stepComplete
+              ? `${cibilRequired ? "CIBIL is required" : "CIBIL is not required"}; ${
+                  landDetailsRequired
+                    ? "Agri land details are required"
+                    : "land details are not required"
+                } in Step 3.`
+              : "Select a branch, scheme, purpose, requested amount, tenure and repayment type."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default FacilityBranchLoanDetailsPage;

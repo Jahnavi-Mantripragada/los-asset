@@ -392,7 +392,7 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
       handleCloseCreatePanel();
 
       const newLeadId = onCreateLead ? onCreateLead(newLead) : newLead.id;
-      navigate(`/leads/${newLeadId}`);
+      navigate(`/applications/${newLeadId}/onboarding`);
     } catch (err) {
       alert(err)
       setCreateLeadError(
@@ -704,7 +704,7 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
                           <button
                             type="button"
                             className="lead-link-button"
-                            onClick={() => navigate(`/leads/${lead.id}`)}
+                            onClick={() => navigate(`/applications/${lead.id}/onboarding`)}
                           >
                             {lead.id}
                           </button>

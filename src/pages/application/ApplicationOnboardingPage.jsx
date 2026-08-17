@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./ApplicationOnboardingPage.css";
 import CustomerIdentityPage from "./CustomerIdentityPage";
@@ -250,89 +250,200 @@ const getRelationshipType = (lead) => {
     : "NTB";
 };
 
-function ApplicationActivityPanel({
+const formatCurrency = (value) =>
+  Number(value || 0) > 0
+    ? new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }).format(Number(value))
+    : "To be entered";
+
+const getActiveStepChecks = ({
+  activeStepId,
+  applicationData,
+  stepStatuses,
+}) => {
+  const stepComplete = stepStatuses[activeStepId] === "Completed";
+
+  if (activeStepId === "customer-identity") {
+    const identity = applicationData.customerIdentity || {};
+    const consentStatus =
+      identity.consentStatus || identity.consent?.status || "";
+    const identityConfirmed = Boolean(
+      identity.customerIdentityConfirmed ||
+        identity.identityConfirmed ||
+        identity.confirmCustomerIdentity?.completed ||
+        stepComplete
+    );
+    const consentCaptured =
+      /captured|accepted|verified|completed/i.test(consentStatus) ||
+      stepComplete;
+    const borrowerCaptured = Boolean(
+      identity.borrowerInformation ||
+        identity.borrowerDetails ||
+        identity.panDetails ||
+        stepComplete
+    );
+
+    return [
+      { label: "Confirm customer and CBS relationship", done: identityConfirmed },
+      { label: "Capture customer consent", done: consentCaptured },
+      { label: "Complete borrower and KYC details", done: borrowerCaptured },
+    ];
+  }
+
+  if (activeStepId === "facility-branch-loan") {
+    const facility = applicationData.facilityBranchLoanDetails || {};
+    const loan = facility.productFacilityAndScheme || facility;
+    const branch = facility.branchSelection || {};
+    const jewelleryItems = Array.isArray(facility.jewelleryItems)
+      ? facility.jewelleryItems
+      : [];
+
+    return [
+      {
+        label: "Select servicing branch",
+        done: Boolean(
+          branch.selectedBranchCode || branch.selectedBranch?.code || stepComplete
+        ),
+      },
+      {
+        label: "Set scheme, amount, tenure and repayment",
+        done: Boolean(
+          (loan.schemeName && loan.requestedLoanAmount && loan.tenure) ||
+            stepComplete
+        ),
+      },
+      {
+        label: "Record jewellery and ownership proof",
+        done: jewelleryItems.length > 0 || stepComplete,
+      },
+    ];
+  }
+
+  const eligibility = applicationData.eligibilitySupportingDetails || {};
+  const cibil = eligibility.cibil || {};
+  const land = eligibility.land || {};
+  const cibilRequired = cibil.required ?? eligibility.cibilRequired;
+  const landRequired = land.required ?? eligibility.landDetailsRequired;
+
+  return [
+    {
+      label: cibilRequired === false
+        ? "CIBIL assessment not required"
+        : "Complete CIBIL assessment",
+      done:
+        cibilRequired === false || cibil.status === "Completed" || stepComplete,
+    },
+    {
+      label: landRequired === true
+        ? "Complete Agri land evidence"
+        : "Agri land evidence not required",
+      done:
+        landRequired !== true || land.status === "Completed" || stepComplete,
+    },
+    {
+      label: "Save and create the application",
+      done: stepComplete,
+    },
+  ];
+};
+
+function ApplicationSnapshotPanel({
+  applicationData,
   relationshipType,
-  applicationCreated,
-  activeStepIndex,
+  activeStep,
+  stepStatuses,
 }) {
-  const items = [
+  const facility = applicationData.facilityBranchLoanDetails || {};
+  const loan = facility.productFacilityAndScheme || facility;
+  const exposure = facility.exposure || {};
+  const selectedBranch =
+    facility.branchSelection?.selectedBranch || facility.selectedBranch || {};
+  const jewelleryItems = Array.isArray(facility.jewelleryItems)
+    ? facility.jewelleryItems
+    : [];
+  const eligibility = applicationData.eligibilitySupportingDetails || {};
+  const cibil = eligibility.cibil || {};
+  const land = eligibility.land || {};
+
+  const requestedAmount =
+    exposure.requestedLoanAmount ??
+    loan.requestedLoanAmount ??
+    facility.requestedLoanAmount;
+  const scheme = loan.schemeName || facility.schemeName || "To be selected";
+  const branch =
+    selectedBranch.name ||
+    facility.branchSelection?.selectedBranchCode ||
+    "To be selected";
+  const terms = [loan.tenure || facility.tenure, loan.repaymentType]
+    .filter(Boolean)
+    .join(" · ") || "To be selected";
+  const totalOrnaments = jewelleryItems.reduce(
+    (total, item) => total + Number(item.numberOfItems || 1),
+    0
+  );
+  const isCibilRequired =
+    cibil.required ?? eligibility.cibilRequired;
+  const isLandRequired =
+    land.required ?? eligibility.landDetailsRequired;
+  const cibilStatus =
+    isCibilRequired === false
+      ? "Not required"
+      : cibil.status === "Completed"
+        ? `Completed · Score ${cibil.score || "—"}`
+        : cibil.status || eligibility.cibilStatus || "Pending decision";
+  const landStatus =
+    isLandRequired === true
+      ? land.status || "Pending"
+      : "Not required";
+  const completedSteps = Object.values(stepStatuses).filter(
+    (status) => status === "Completed"
+  ).length;
+
+  const summaryRows = [
+    { label: "Customer type", value: relationshipType },
+    { label: "Servicing branch", value: branch },
+    { label: "Scheme", value: scheme },
+    { label: "Requested amount", value: formatCurrency(requestedAmount) },
+    { label: "Tenure & repayment", value: terms },
     {
-      title:
-        relationshipType === "ETB"
-          ? "CBS relationship identified"
-          : "New-to-bank onboarding required",
-      text:
-        relationshipType === "ETB"
-          ? "Current CBS profile and KYC will be reused; documents are requested only for an exception or conditional facility requirement."
-          : "Identity verification and mandatory KYC documents must be completed before scheme selection.",
-      state: "complete",
+      label: "Jewellery offered",
+      value: jewelleryItems.length
+        ? `${totalOrnaments} item${totalOrnaments === 1 ? "" : "s"} across ${jewelleryItems.length} ornament record${jewelleryItems.length === 1 ? "" : "s"}`
+        : "Not captured",
     },
-    {
-      title: "Conditional controls",
-      text:
-        "CIBIL is required when the requested amount exceeds ₹1 lakh; Agri land details are evaluated at ₹1 lakh aggregate exposure.",
-      state: activeStepIndex >= 2 ? "active" : "upcoming",
-    },
-    {
-      title: applicationCreated
-        ? "Application routed"
-        : "Next operational stage",
-      text: applicationCreated
-        ? "Application created and placed in the Awaiting Gold Appraisal queue."
-        : "After Step 3, the application number is generated and the branch jeweller/appraiser can record ornament valuation.",
-      state: applicationCreated ? "complete" : "upcoming",
-    },
+    { label: "CIBIL assessment", value: cibilStatus },
+    { label: "Agri support", value: landStatus },
   ];
 
   return (
-    <aside className="journey-context-panel">
-      <div className="journey-context-head">
-        <span className="journey-context-eyebrow">
-          GOLD LOAN JOURNEY
-        </span>
-
-        <h3>Application readiness</h3>
-
-        <p>
-          What this application needs before jewellery appraisal.
-        </p>
+    <aside className="application-snapshot-panel">
+      <div className="snapshot-panel-head">
+        <span>APPLICATION SNAPSHOT</span>
+        <h3>Captured details</h3>
+        <p>Live summary of information recorded across the application steps.</p>
       </div>
 
-      <div className="journey-context-list">
-        {items.map((item, index) => (
-          <div
-            className={`journey-context-item ${item.state}`}
-            key={item.title}
-          >
-            <span className="journey-context-number">
-              {item.state === "complete" ? (
-                <CheckIcon />
-              ) : (
-                index + 1
-              )}
-            </span>
+      <div className="snapshot-current-step">
+        <span>Currently working on</span>
+        <strong>{activeStep.shortTitle}</strong>
+        <small>{completedSteps}/{STEPS.length} steps completed</small>
+      </div>
 
-            <div>
-              <strong>{item.title}</strong>
-              <p>{item.text}</p>
-            </div>
+      <dl className="snapshot-detail-list">
+        {summaryRows.map((item) => (
+          <div className="snapshot-detail-row" key={item.label}>
+            <dt>{item.label}</dt>
+            <dd>{item.value}</dd>
           </div>
         ))}
-      </div>
+      </dl>
 
-      <div className="jeweller-handoff-card">
-        <JewelleryIcon />
-
-        <div>
-          <span>JEWELLER HANDOFF</span>
-
-          <strong>Starts after application creation</strong>
-
-          <p>
-            Ornament, purity, weight and valuation are
-            intentionally outside these three steps.
-          </p>
-        </div>
+      <div className="snapshot-save-note">
+        <CheckIcon />
+        <span>Values refresh from the saved lead-details JSON.</span>
       </div>
     </aside>
   );
@@ -364,6 +475,37 @@ function ApplicationOnboardingPage({ onLogout }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const leadRef = useRef(null);
+  const applicationDataRef = useRef(INITIAL_APPLICATION_DATA);
+  const stepStatusesRef = useRef(buildInitialStatuses());
+
+  const setLeadAndRef = useCallback((valueOrUpdater) => {
+    setLead((previous) => {
+      const nextLead =
+        typeof valueOrUpdater === "function"
+          ? valueOrUpdater(previous)
+          : valueOrUpdater;
+      leadRef.current = nextLead;
+
+      if (nextLead) {
+        const nextLeadDetails = parseLeadDetails(
+          nextLead.leadDetails ?? nextLead.lead_details
+        );
+        const synchronizedApplicationData = {
+          ...applicationDataRef.current,
+        };
+        STEPS.forEach((step) => {
+          if (nextLeadDetails[step.dataKey]) {
+            synchronizedApplicationData[step.dataKey] =
+              nextLeadDetails[step.dataKey];
+          }
+        });
+        applicationDataRef.current = synchronizedApplicationData;
+      }
+
+      return nextLead;
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -443,7 +585,7 @@ function ApplicationOnboardingPage({ onLogout }) {
               data.data.relationship_type ||
               data.data.customer_type;
 
-          setLead({
+          setLeadAndRef({
             id: data.data.leadnumber,
             firstName: data.data.first_name,
             middleName: data.data.middle_name,
@@ -470,10 +612,12 @@ function ApplicationOnboardingPage({ onLogout }) {
             leadDetails: details,
           });
 
-          setApplicationData(
-            buildInitialApplicationData(details)
-          );
+          const restoredApplicationData =
+            buildInitialApplicationData(details);
+          applicationDataRef.current = restoredApplicationData;
+          setApplicationData(restoredApplicationData);
 
+          stepStatusesRef.current = savedStatuses;
           setStepStatuses(savedStatuses);
 
           setApplicationCreated(
@@ -516,7 +660,30 @@ function ApplicationOnboardingPage({ onLogout }) {
     return () => {
       cancelled = true;
     };
-  }, [leadId, navigate]);
+  }, [leadId, navigate, setLeadAndRef]);
+
+  useEffect(() => {
+    if (!lead) return;
+    const latestLeadDetails = parseLeadDetails(
+      lead.leadDetails ?? lead.lead_details
+    );
+
+    setApplicationData((previous) => {
+      const synchronizedApplicationData = { ...previous };
+      let changed = false;
+
+      STEPS.forEach((step) => {
+        if (!latestLeadDetails[step.dataKey]) return;
+        synchronizedApplicationData[step.dataKey] =
+          latestLeadDetails[step.dataKey];
+        changed = true;
+      });
+
+      if (!changed) return previous;
+      applicationDataRef.current = synchronizedApplicationData;
+      return synchronizedApplicationData;
+    });
+  }, [lead]);
 
   const activeStepIndex = STEPS.findIndex(
     (step) => step.id === activeStepId
@@ -545,6 +712,16 @@ function ApplicationOnboardingPage({ onLogout }) {
 
   const canContinue =
     stepStatuses[activeStep.id] === "Completed";
+
+  const activeStepChecks = useMemo(
+    () =>
+      getActiveStepChecks({
+        activeStepId,
+        applicationData,
+        stepStatuses,
+      }),
+    [activeStepId, applicationData, stepStatuses]
+  );
 
   const applicantName = [
     lead?.firstName,
@@ -599,71 +776,130 @@ function ApplicationOnboardingPage({ onLogout }) {
     section,
     values
   ) => {
-    setApplicationData((previous) => ({
-      ...previous,
-      [section]: {
-        ...(previous[section] || {}),
-        ...values,
-      },
-    }));
+    setApplicationData((previous) => {
+      const nextApplicationData = {
+        ...previous,
+        [section]: {
+          ...(previous[section] || {}),
+          ...values,
+        },
+      };
+      applicationDataRef.current = nextApplicationData;
+      return nextApplicationData;
+    });
   };
 
   const updateLeadDetails = (values) => {
-    setLead((previous) =>
-      previous
-        ? {
-            ...previous,
-            leadDetails: {
-              ...(previous.leadDetails || {}),
-              ...values,
-            },
-          }
-        : previous
-    );
+    setLeadAndRef((previous) => {
+      if (!previous) return previous;
+      const mergedLeadDetails = {
+        ...parseLeadDetails(
+          previous.leadDetails ?? previous.lead_details
+        ),
+        ...values,
+      };
+      const nextLead = {
+        ...previous,
+        leadDetails: mergedLeadDetails,
+      };
+      if (Object.prototype.hasOwnProperty.call(previous, "lead_details")) {
+        nextLead.lead_details = mergedLeadDetails;
+      }
+      return nextLead;
+    });
   };
 
   const updateStepStatus = (
     stepId,
     status
   ) => {
-    setStepStatuses((previous) => ({
-      ...previous,
-      [stepId]: status,
-    }));
+    setStepStatuses((previous) => {
+      const nextStepStatuses = {
+        ...previous,
+        [stepId]: status,
+      };
+      stepStatusesRef.current = nextStepStatuses;
+      return nextStepStatuses;
+    });
   };
 
-  const persistLeadDetails = async ({
-    nextApplicationData = applicationData,
-    nextStepStatuses = stepStatuses,
-    nextActiveStepId = activeStepId,
-    nextCurrentStep = Math.max(
-      activeStepIndex + 1,
-      1
-    ),
-    nextApplicationCreated = applicationCreated,
-    nextApplicationNumber = applicationNumber,
-  } = {}) => {
+  const persistLeadDetails = async (options = {}) => {
+    const latestLead = leadRef.current || lead;
+    const nextApplicationData =
+      options.nextApplicationData || applicationDataRef.current;
+    const nextStepStatuses =
+      options.nextStepStatuses || stepStatusesRef.current;
+    const nextActiveStepId =
+      options.nextActiveStepId || activeStepId;
+    const nextCurrentStep =
+      options.nextCurrentStep ?? Math.max(activeStepIndex + 1, 1);
+    const nextApplicationCreated =
+      options.nextApplicationCreated ?? applicationCreated;
+    const nextApplicationNumber =
+      options.nextApplicationNumber ?? applicationNumber;
+    const savedAt = new Date().toISOString();
+
     const currentLeadDetails =
-      parseLeadDetails(lead?.leadDetails);
+      parseLeadDetails(
+        latestLead?.leadDetails ?? latestLead?.lead_details
+      );
 
     const currentOnboarding =
       getSavedOnboarding(currentLeadDetails);
 
+    const persistedApplicationData = Object.fromEntries(
+      STEPS.map((step) => {
+        const stateSection =
+          nextApplicationData?.[step.dataKey] || {};
+        const leadSection =
+          currentLeadDetails?.[step.dataKey] || {};
+
+        return [
+          step.dataKey,
+          {
+            ...leadSection,
+            ...stateSection,
+          },
+        ];
+      })
+    );
+
     const nextLeadDetails = {
       ...currentLeadDetails,
+      ...persistedApplicationData,
 
       relationshipType:
-        getRelationshipType(lead),
+        getRelationshipType(latestLead),
 
       currentStep: nextCurrentStep,
       applicationCreated: nextApplicationCreated,
       applicationNumber: nextApplicationNumber,
+      stage: nextApplicationCreated
+        ? "Awaiting Gold Appraisal"
+        : "Application Creation",
+      lastSavedAt: savedAt,
+
+      ...(nextApplicationCreated
+        ? {
+            applicationCreatedAt:
+              currentLeadDetails.applicationCreatedAt || savedAt,
+            applicationSubmission: {
+              ...(currentLeadDetails.applicationSubmission || {}),
+              status: "Submitted",
+              submittedAt:
+                currentLeadDetails.applicationSubmission?.submittedAt ||
+                savedAt,
+              routedTo: "Gold Appraisal",
+            },
+          }
+        : {}),
 
       applicationOnboarding: {
         ...currentOnboarding,
-        applicationData: nextApplicationData,
+        applicationData: persistedApplicationData,
         stepStatuses: nextStepStatuses,
         activeStepId: nextActiveStepId,
+        currentStep: nextCurrentStep,
         applicationCreated:
           nextApplicationCreated,
         applicationNumber:
@@ -671,7 +907,7 @@ function ApplicationOnboardingPage({ onLogout }) {
         stage: nextApplicationCreated
           ? "Awaiting Gold Appraisal"
           : "Application Creation",
-        updatedAt: new Date().toISOString(),
+        updatedAt: savedAt,
       },
     };
 
@@ -680,7 +916,7 @@ function ApplicationOnboardingPage({ onLogout }) {
 
     try {
       const recordLeadId =
-        lead?.id || leadId;
+        latestLead?.id || leadId;
 
       const response = await fetch(
         `${LEAD_DETAILS_API}/${encodeURIComponent(
@@ -736,15 +972,36 @@ function ApplicationOnboardingPage({ onLogout }) {
           ? returnedLeadDetails
           : nextLeadDetails;
 
-      setLead((previous) =>
-        previous
-          ? {
-              ...previous,
-              leadDetails:
-                persistedLeadDetails,
-            }
-          : previous
-      );
+      applicationDataRef.current = persistedApplicationData;
+      setApplicationData(persistedApplicationData);
+
+      setLeadAndRef((previous) => {
+        if (!previous) return previous;
+
+        const latestLocalDetails = parseLeadDetails(
+          previous.leadDetails ?? previous.lead_details
+        );
+        const mergedLeadDetails = {
+          ...latestLocalDetails,
+          ...persistedLeadDetails,
+        };
+
+        STEPS.forEach((step) => {
+          mergedLeadDetails[step.dataKey] = {
+            ...(persistedLeadDetails[step.dataKey] || {}),
+            ...(latestLocalDetails[step.dataKey] || {}),
+          };
+        });
+
+        const nextLead = {
+          ...previous,
+          leadDetails: mergedLeadDetails,
+        };
+        if (Object.prototype.hasOwnProperty.call(previous, "lead_details")) {
+          nextLead.lead_details = mergedLeadDetails;
+        }
+        return nextLead;
+      });
 
       return persistedLeadDetails;
     } catch (error) {
@@ -787,11 +1044,11 @@ function ApplicationOnboardingPage({ onLogout }) {
           .padStart(6, "0")}`;
 
       const nextApplicationData = {
-        ...applicationData,
+        ...applicationDataRef.current,
       };
 
       const nextStepStatuses = {
-        ...stepStatuses,
+        ...stepStatusesRef.current,
         [activeStep.id]: "Completed",
       };
 
@@ -805,7 +1062,7 @@ function ApplicationOnboardingPage({ onLogout }) {
           nextApplicationNumber: generatedNumber,
         });
 
-        setApplicationData(nextApplicationData);
+        stepStatusesRef.current = nextStepStatuses;
         setStepStatuses(nextStepStatuses);
         setApplicationNumber(generatedNumber);
         setApplicationCreated(true);
@@ -823,7 +1080,7 @@ function ApplicationOnboardingPage({ onLogout }) {
           }
         );
       } catch {
-        // Stay on step if persistence fails.
+        // Persist error is already displayed; remain on Step 3.
       }
 
       return;
@@ -832,7 +1089,7 @@ function ApplicationOnboardingPage({ onLogout }) {
     const nextStep = STEPS[activeStepIndex + 1];
 
     const nextStepStatuses = {
-      ...stepStatuses,
+      ...stepStatusesRef.current,
       [activeStep.id]: "Completed",
       [nextStep.id]:
         stepStatuses[nextStep.id] === "Not Started"
@@ -844,9 +1101,10 @@ function ApplicationOnboardingPage({ onLogout }) {
       await persistLeadDetails({
         nextStepStatuses,
         nextActiveStepId: nextStep.id,
-        nextCurrentStep: activeStepIndex + 1,
+        nextCurrentStep: activeStepIndex + 2,
       });
 
+      stepStatusesRef.current = nextStepStatuses;
       setStepStatuses(nextStepStatuses);
       setActiveStepId(nextStep.id);
     } catch {
@@ -1099,7 +1357,7 @@ function ApplicationOnboardingPage({ onLogout }) {
               <div className="step-card-body">
                 <ActiveStepComponent
                   lead={lead}
-                  setLead={setLead}
+                  setLead={setLeadAndRef}
                   leadId={leadId}
                   leadDetails={lead.leadDetails}
                   relationshipType={relationshipType}
@@ -1116,11 +1374,13 @@ function ApplicationOnboardingPage({ onLogout }) {
             </div>
           </section>
 
-          <ApplicationActivityPanel
+          <ApplicationSnapshotPanel
+            applicationData={applicationData}
             relationshipType={relationshipType}
-            applicationCreated={applicationCreated}
-            activeStepIndex={activeStepIndex}
+            activeStep={activeStep}
+            stepStatuses={stepStatuses}
           />
+
         </section>
       </main>
 

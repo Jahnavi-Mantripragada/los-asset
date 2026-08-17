@@ -7,6 +7,7 @@ const SECTION_KEY = "eligibilitySupportingDetails";
 const CIBIL_SCORE = 725;
 const CIBIL_REPORT_PATH = "/docs/cibil-report.pdf";
 const CIBIL_REPORT_NAME = "cibil-report.pdf";
+const ELIGIBLE_LOAN_AMOUNT = 3500000;
 
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true">
@@ -52,14 +53,16 @@ const emptyDocument = () => ({
   type: "",
   size: 0,
   uploadedAt: "",
+  dataUrl: "",
 });
 
 const getLeadDetails = (lead) => {
-  if (!lead?.leadDetails) return {};
-  if (typeof lead.leadDetails === "object") return lead.leadDetails;
+  const value = lead?.leadDetails ?? lead?.lead_details;
+  if (!value) return {};
+  if (typeof value === "object") return value;
 
   try {
-    return JSON.parse(lead.leadDetails);
+    return JSON.parse(value);
   } catch {
     return {};
   }
@@ -155,6 +158,7 @@ const normalizeStep = ({ existing = {}, cibilRequired, landRequired, leadDetails
     chargeAmount: Number(existing.cibil?.chargeAmount ?? 35),
     chargeConfirmationStatus:
       existing.cibil?.chargeConfirmationStatus || "Not Confirmed",
+    chargeConfirmedAt: existing.cibil?.chargeConfirmedAt || "",
     status: cibilRequired
       ? existing.cibil?.status === "Not Required"
         ? isConsentCaptured(consentStatus)
@@ -168,6 +172,14 @@ const normalizeStep = ({ existing = {}, cibilRequired, landRequired, leadDetails
     reportPath: existing.cibil?.reportPath || "",
     fetchedAt: existing.cibil?.fetchedAt || "",
     assessmentOutcome: existing.cibil?.assessmentOutcome || "",
+    eligibleLoanAmount: Number(
+      existing.cibil?.eligibleLoanAmount || ELIGIBLE_LOAN_AMOUNT
+    ),
+    evaluationBasis:
+      existing.cibil?.evaluationBasis || "CIBIL score and CBS credit evaluation",
+    pullRequestReference: existing.cibil?.pullRequestReference || "",
+    pullRequestedAt: existing.cibil?.pullRequestedAt || "",
+    pullCompletedAt: existing.cibil?.pullCompletedAt || "",
     errorMessage: existing.cibil?.errorMessage || "",
   };
 
@@ -243,6 +255,7 @@ function EligibilitySupportingDetailsPage({
 }) {
   const leadDetails = useMemo(() => getLeadDetails(lead), [lead]);
   const facilityData = leadDetails.facilityBranchLoanDetails || {};
+  const productData = facilityData.productFacilityAndScheme || {};
   const exposure = facilityData.exposure || {};
 
   // These two stored flags are the only source of truth for conditional sections.
@@ -250,14 +263,25 @@ function EligibilitySupportingDetailsPage({
   // const cibilRequired = exposure.cibilRequired === true;
   const landDetailsRequired = exposure.landDetailsRequired === true;
   const requestedLoanAmount = Number(
-    exposure.requestedLoanAmount ?? facilityData.requestedLoanAmount ?? 0
+    exposure.requestedLoanAmount ??
+      productData.requestedLoanAmount ??
+      facilityData.requestedLoanAmount ??
+      0
   );
   const aggregateExposure = Number(
-    exposure.aggregateExposure ?? exposure.totalExposure ?? 0
+    exposure.aggregateLoanAmount ??
+      exposure.aggregateExposure ??
+      exposure.totalExposure ??
+      0
   );
   const facilityType =
-    facilityData.facilityType || facilityData.productType || "Gold Loan";
-  const leadIdentity = lead?.id || lead?.leadId || lead?.leadNumber || "";
+    productData.productLabel ||
+    productData.productType ||
+    facilityData.facilityType ||
+    facilityData.productType ||
+    "Gold Loan";
+  const leadIdentity =
+    lead?.id || lead?.leadId || lead?.leadNumber || lead?.leadnumber || "";
 
   const customerIdentity = leadDetails.customerIdentity || {};
   const relationship = customerIdentity.relationship || leadDetails.relationship || "";
@@ -282,46 +306,60 @@ function EligibilitySupportingDetailsPage({
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [saveState, setSaveState] = useState("Saved");
   const stepDataRef = useRef(initialStep);
-  const saveTimerRef = useRef(null);
-  const hydratedLeadRef = useRef("");
+  const persistQueueRef = useRef(Promise.resolve());
+  const saveRequestIdRef = useRef(0);
+  const hydratedStepKeyRef = useRef("");
+  const cibilPullTimerRef = useRef(null);
+  const persistedStepSnapshot = JSON.stringify(leadDetails[SECTION_KEY] || null);
 
   const persistStep = useCallback(
-    async (nextStep) => {
-      if (!leadIdentity) return;
+    (nextStep) => {
+      if (!leadIdentity) return Promise.resolve();
 
+      const requestId = ++saveRequestIdRef.current;
       setSaveState("Saving");
-      try {
-        const response = await fetch(
-          `${LEAD_DETAILS_API_BASE}/${encodeURIComponent(leadIdentity)}/details`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              leadId: leadIdentity,
-              leadDetailsPatch: { [SECTION_KEY]: nextStep },
-            }),
+
+      const queuedRequest = persistQueueRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          const response = await fetch(
+            `${LEAD_DETAILS_API_BASE}/${encodeURIComponent(leadIdentity)}/details`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                leadId: leadIdentity,
+                leadDetailsPatch: { [SECTION_KEY]: nextStep },
+              }),
+            }
+          );
+
+          const result = await response.json().catch(() => null);
+          if (!response.ok || result?.success === false) {
+            throw new Error(
+              result?.message || `Unable to save Step 3 (${response.status})`
+            );
           }
-        );
+          return result;
+        });
 
-        if (!response.ok) {
-          const message = await response.text();
-          throw new Error(message || `Unable to save Step 3 (${response.status})`);
-        }
+      persistQueueRef.current = queuedRequest;
+      void queuedRequest
+        .then(() => {
+          if (saveRequestIdRef.current === requestId) setSaveState("Saved");
+        })
+        .catch((error) => {
+          console.error("Failed to save eligibility and supporting details", error);
+          if (saveRequestIdRef.current === requestId) setSaveState("Save failed");
+        });
 
-        setSaveState("Saved");
-      } catch (error) {
-        console.error("Failed to save eligibility and supporting details", error);
-        setSaveState("Save failed");
-        window.alert(
-          "We could not save the eligibility and supporting details. Please check your connection and try again."
-        );
-      }
+      return queuedRequest;
     },
     [leadIdentity]
   );
 
   const commitStep = useCallback(
-    (updater, { immediate = false } = {}) => {
+    (updater) => {
       const draft =
         typeof updater === "function"
           ? updater(stepDataRef.current)
@@ -333,31 +371,34 @@ function EligibilitySupportingDetailsPage({
       };
 
       stepDataRef.current = next;
+      hydratedStepKeyRef.current = `${leadIdentity}:${JSON.stringify(next)}`;
       setStepData(next);
-      setLead?.((currentLead) => ({
-        ...currentLead,
-        leadDetails: {
-          ...getLeadDetails(currentLead),
+      setLead?.((currentLead) => {
+        const sourceLead = currentLead || lead || {};
+        const mergedLeadDetails = {
+          ...getLeadDetails(sourceLead),
           [SECTION_KEY]: next,
-        },
-      }));
+        };
+        const nextLead = {
+          ...sourceLead,
+          leadDetails: mergedLeadDetails,
+        };
+        if (Object.prototype.hasOwnProperty.call(sourceLead, "lead_details")) {
+          nextLead.lead_details = mergedLeadDetails;
+        }
+        return nextLead;
+      });
 
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-      if (immediate) {
-        void persistStep(next);
-      } else {
-        setSaveState("Saving");
-        saveTimerRef.current = window.setTimeout(() => {
-          void persistStep(stepDataRef.current);
-        }, 450);
-      }
+      // Every field/action change is persisted. The queue preserves request order.
+      void persistStep(next);
     },
-    [persistStep, setLead]
+    [lead, leadIdentity, persistStep, setLead]
   );
 
   useEffect(() => {
-    if (!leadIdentity || hydratedLeadRef.current === leadIdentity) return;
-    hydratedLeadRef.current = leadIdentity;
+    const hydrationKey = `${leadIdentity}:${persistedStepSnapshot}`;
+    if (!leadIdentity || hydratedStepKeyRef.current === hydrationKey) return;
+    hydratedStepKeyRef.current = hydrationKey;
 
     const existing = leadDetails[SECTION_KEY];
     const normalized = normalizeStep({
@@ -369,14 +410,23 @@ function EligibilitySupportingDetailsPage({
     stepDataRef.current = normalized;
     setStepData(normalized);
 
-    if (!existing) {
-      setLead?.((currentLead) => ({
-        ...currentLead,
-        leadDetails: {
-          ...getLeadDetails(currentLead),
+    if (!existing || JSON.stringify(normalized) !== persistedStepSnapshot) {
+      hydratedStepKeyRef.current = `${leadIdentity}:${JSON.stringify(normalized)}`;
+      setLead?.((currentLead) => {
+        const sourceLead = currentLead || lead || {};
+        const mergedLeadDetails = {
+          ...getLeadDetails(sourceLead),
           [SECTION_KEY]: normalized,
-        },
-      }));
+        };
+        const nextLead = {
+          ...sourceLead,
+          leadDetails: mergedLeadDetails,
+        };
+        if (Object.prototype.hasOwnProperty.call(sourceLead, "lead_details")) {
+          nextLead.lead_details = mergedLeadDetails;
+        }
+        return nextLead;
+      });
       void persistStep(normalized);
     }
   }, [
@@ -384,7 +434,9 @@ function EligibilitySupportingDetailsPage({
     landDetailsRequired,
     leadDetails,
     leadIdentity,
+    persistedStepSnapshot,
     persistStep,
+    lead,
     setLead,
   ]);
 
@@ -400,8 +452,7 @@ function EligibilitySupportingDetailsPage({
         cibilRequired,
         landRequired: landDetailsRequired,
         leadDetails,
-      }),
-      { immediate: true }
+      })
     );
   }, [
     cibilRequired,
@@ -443,8 +494,7 @@ function EligibilitySupportingDetailsPage({
                 ? "Consent Available"
                 : "Consent Required",
         },
-      }),
-      { immediate: true }
+      })
     );
   }, [commitStep, leadDetails.customerIdentity, leadIdentity]);
 
@@ -454,7 +504,9 @@ function EligibilitySupportingDetailsPage({
 
   useEffect(
     () => () => {
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      if (cibilPullTimerRef.current) {
+        window.clearTimeout(cibilPullTimerRef.current);
+      }
     },
     []
   );
@@ -479,15 +531,23 @@ function EligibilitySupportingDetailsPage({
 
   const updateLandDocument = (key, file) => {
     if (!file) return;
-    const document = {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      uploadedAt: formatDateTime(),
-    };
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    if (!allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      window.alert("Upload a PDF, JPG or PNG file of 5 MB or less.");
+      return;
+    }
 
-    commitStep(
-      (previous) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const document = {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        uploadedAt: formatDateTime(),
+        dataUrl: reader.result,
+      };
+
+      commitStep((previous) => {
         const documents = { ...previous.land.documents, [key]: document };
         const status =
           hasRequiredLandData(previous.land.details) &&
@@ -499,9 +559,10 @@ function EligibilitySupportingDetailsPage({
           ...previous,
           land: { ...previous.land, documents, status },
         };
-      },
-      { immediate: true }
-    );
+      });
+    };
+    reader.onerror = () => window.alert("The selected document could not be read.");
+    reader.readAsDataURL(file);
   };
 
   const openChargeConfirmation = () => {
@@ -514,8 +575,7 @@ function EligibilitySupportingDetailsPage({
           status: "Charge Confirmation Pending",
           chargeConfirmationStatus: "Pending",
         },
-      }),
-      { immediate: true }
+      })
     );
     setShowChargeModal(true);
   };
@@ -530,12 +590,13 @@ function EligibilitySupportingDetailsPage({
           status: "Consent Available",
           chargeConfirmationStatus: "Cancelled",
         },
-      }),
-      { immediate: true }
+      })
     );
   };
 
   const confirmAndPullCibil = () => {
+    const pullStartedAt = formatDateTime();
+    const pullRequestReference = `CIBIL-${Date.now()}`;
     setShowChargeModal(false);
     setPullingCibil(true);
     commitStep(
@@ -545,14 +606,15 @@ function EligibilitySupportingDetailsPage({
           ...previous.cibil,
           status: "In Progress",
           chargeConfirmationStatus: "Confirmed",
-          chargeConfirmedAt: formatDateTime(),
+          chargeConfirmedAt: pullStartedAt,
+          pullRequestReference,
+          pullRequestedAt: pullStartedAt,
           errorMessage: "",
         },
-      }),
-      { immediate: true }
+      })
     );
 
-    window.setTimeout(() => {
+    cibilPullTimerRef.current = window.setTimeout(() => {
       setPullingCibil(false);
       commitStep(
         (previous) => ({
@@ -564,10 +626,12 @@ function EligibilitySupportingDetailsPage({
             reportName: CIBIL_REPORT_NAME,
             reportPath: CIBIL_REPORT_PATH,
             fetchedAt: formatDateTime(),
+            pullCompletedAt: formatDateTime(),
             assessmentOutcome: "Passed",
+            eligibleLoanAmount: ELIGIBLE_LOAN_AMOUNT,
+            evaluationBasis: "CIBIL score and CBS credit evaluation",
           },
-        }),
-        { immediate: true }
+        })
       );
     }, 1400);
   };
@@ -660,7 +724,7 @@ function EligibilitySupportingDetailsPage({
                 </span>
                 <div className="esd-eligibility-banner-text">
                   <strong>
-                    You are eligible for loan amount of {formatCurrency(3500000)} (₹35 Lakhs)
+                    You are eligible for loan amount of {formatCurrency(stepData.cibil.eligibleLoanAmount)} (₹35 Lakhs)
                   </strong>
                   <p>
                     Based on CIBIL score ({stepData.cibil.score}) and CBS credit evaluation.
@@ -681,6 +745,7 @@ function EligibilitySupportingDetailsPage({
         )}
       </section>
 
+      {landDetailsRequired && (
       <section className="esd-section">
         <div className="esd-section-heading">
           <span className="esd-section-icon"><FileIcon /></span>
@@ -689,13 +754,10 @@ function EligibilitySupportingDetailsPage({
             <h3>Land and crop information</h3>
             <p>Requirement determined by the land-details decision saved with Step 2 exposure.</p>
           </div>
-          <span className={`esd-status ${landDetailsRequired ? "required" : "not-required"}`}>
-            {landDetailsRequired ? "Required" : "Not required"}
-          </span>
+          <span className="esd-status required">Required</span>
         </div>
 
-        {landDetailsRequired ? (
-          <div className="esd-land-workspace">
+        <div className="esd-land-workspace">
             <div className="esd-info-strip">
               <FileIcon />
               <div><strong>Agricultural evidence required</strong><p>Complete the land particulars and upload at least one qualifying land record.</p></div>
@@ -729,17 +791,9 @@ function EligibilitySupportingDetailsPage({
                 required={false}
               />
             </div>
-          </div>
-        ) : (
-          <div className="esd-not-required">
-            <CheckIcon />
-            <div>
-              <strong>Land details are not applicable</strong>
-              <p>Step 2 saved <code>exposure.landDetailsRequired</code> as false. No land fields or supporting records are needed.</p>
-            </div>
-          </div>
-        )}
+        </div>
       </section>
+      )}
 
       <div className={`esd-readiness ${stepComplete ? "ready" : "pending"}`}>
         <span>{stepComplete ? <CheckIcon /> : "!"}</span>

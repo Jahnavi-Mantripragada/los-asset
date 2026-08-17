@@ -12,7 +12,6 @@ import {
 } from "react-router-dom";
 import ApplicationSummaryTab from "./ApplicationSummaryTab";
 import ApplicationDetailsTab from "./ApplicationDetailsTab";
-import ApplicationDocumentsTab from "./ApplicationDocumentsTab";
 import DocumentationDisbursementTab from "./DocumentationDisbursementTab";
 import "./ApplicationDetailPage.css";
 
@@ -23,17 +22,16 @@ const LEAD_DETAILS_API =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
 
 const PERSONA_BY_EMAIL = {
-  "ychapa@deloitte.com": "Maker",
+  "ychapa@deloitte.com": "Checker",
   "mohikumawat@deloitte.com": "Appraiser",
   "mohikumawat@delitte.com": "Appraiser",
   "mohikumawat@delitte,com": "Appraiser",
-  "shivgaikwad@deloitte.com": "Checker",
+  "shivgaikwad@deloitte.com": "Maker",
 };
 
 const TABS = [
-  { id: "summary", label: "Summary" },
-  { id: "details", label: "Application Details" },
-  { id: "documents", label: "Documents" },
+  { id: "summary", label: "Application Details" },
+  { id: "details", label: "Appraiser and Sanction" },
   {
     id: "documentationDisbursement",
     label: "Documentation & Disbursement",
@@ -42,14 +40,14 @@ const TABS = [
 
 const STAGES = [
   {
-    id: "APPRAISAL_ELIGIBILITY",
+    id: "APPLICATION_CREATION",
     number: "01",
-    label: "Appraisal & Eligibility",
+    label: "Application Creation",
   },
   {
-    id: "CHECKER_SANCTION",
+    id: "APPRAISAL",
     number: "02",
-    label: "Checker Sanction",
+    label: "Appraisal",
   },
   {
     id: "DOCUMENTATION_DISBURSEMENT",
@@ -188,7 +186,7 @@ const derivePersona = (email, suppliedPersona) => {
 
 const createDefaultApplicationDetail = (applicationNumber, lead) => ({
   applicationNumber: applicationNumber || "",
-  stage: "APPRAISAL_ELIGIBILITY",
+  stage: "APPRAISAL",
   status: "Awaiting Appraisal",
   currentOwner: "Assigned Appraiser",
   assignedPersona: "Appraiser",
@@ -231,31 +229,14 @@ const mergeApplicationDetail = (current, defaults) => ({
 
 const getStageIndex = (applicationDetail) => {
   const rawStage = String(applicationDetail?.stage || "").toUpperCase();
-  const rawStatus = String(applicationDetail?.status || "").toLowerCase();
 
-  if (
-    rawStage.includes("DOCUMENT") ||
-    rawStage === "3" ||
-    rawStatus === "sanctioned" ||
-    rawStatus.includes("approved") ||
-    rawStatus.includes("documentation") ||
-    rawStatus.includes("disburs") ||
-    rawStatus.includes("loan active")
-  ) {
+  if (rawStage.includes("DOCUMENT") || rawStage === "3") {
     return 2;
   }
 
-  if (
-    rawStage.includes("CHECKER") ||
-    rawStage.includes("SANCTION") ||
-    rawStage === "2" ||
-    rawStatus.includes("checker") ||
-    rawStatus.includes("sanction")
-  ) {
-    return 1;
-  }
-
-  return 0;
+  // Once the application-detail page is reached, Application Creation is
+  // complete. Until documentation/disbursement begins, Appraisal stays current.
+  return 1;
 };
 
 const getActionForUser = (persona, applicationDetail) => {
@@ -551,6 +532,7 @@ function ApplicationDetailPage({
         const nextLead = {
           ...(currentLead || leadRef.current || {}),
           leadDetails: finalLeadDetails,
+          lead_details: JSON.stringify(finalLeadDetails),
         };
         leadRef.current = nextLead;
         return nextLead;
@@ -644,7 +626,6 @@ function ApplicationDetailPage({
         }
 
         const payload = await response.json();
-        alert(payload.success)
 
         if (!payload.success) {
           throw new Error(payload.message || "Lead was not found.");
@@ -653,9 +634,13 @@ function ApplicationDetailPage({
         if (cancelled) return;
 
         const record = payload.data || {};
-        const parsedDetails = parseLeadDetails(record.lead_details);
+        // The lead APIs are not consistent in their casing. Preserve the JSON
+        // returned by either shape before handing it to every tab.
+        const rawLeadDetails =
+          record.lead_details ?? record.leadDetails ?? record.leaddetails ?? {};
+        const parsedDetails = parseLeadDetails(rawLeadDetails);
         const baseLead = {
-          id: record.leadnumber || leadId,
+          id: record.id || record.lead_id || record.leadId || record.leadnumber || leadId,
           firstName: record.first_name || "",
           middleName: record.middle_name || "",
           lastName: record.last_name || "",
@@ -682,6 +667,7 @@ function ApplicationDetailPage({
           kycStatus:
             parsedDetails.kycStatus || record.kyc_status || "",
           leadDetails: parsedDetails,
+          lead_details: typeof rawLeadDetails === "string" ? rawLeadDetails : JSON.stringify(parsedDetails),
         };
 
         const defaults = createDefaultApplicationDetail(
@@ -699,6 +685,7 @@ function ApplicationDetailPage({
         const nextLead = {
           ...baseLead,
           leadDetails: normalizedDetails,
+          lead_details: JSON.stringify(normalizedDetails),
         };
 
         leadRef.current = nextLead;
@@ -770,14 +757,7 @@ function ApplicationDetailPage({
     ? activityEvents
     : activityEvents.slice(0, 8);
 
-  const documentationUnlocked =
-    currentStageIndex >= 2 ||
-    ["sanctioned", "documentation", "ready for disbursement", "disbursed", "loan active"].some(
-      (value) =>
-        String(applicationDetail.status || "")
-          .toLowerCase()
-          .includes(value),
-    );
+  const documentationUnlocked = currentStageIndex === 2;
 
   const checklist = DEFAULT_CHECKLIST.map((item) => {
     const saved = applicationDetail?.checklist?.[item.id];
@@ -1033,7 +1013,7 @@ function ApplicationDetailPage({
                     aria-current={activeTab === tab.id ? "page" : undefined}
                     title={
                       locked
-                        ? "Available after Checker sanction"
+                        ? "Available after appraisal is completed"
                         : undefined
                     }
                   >
@@ -1050,9 +1030,6 @@ function ApplicationDetailPage({
               )}
               {activeTab === "details" && (
                 <ApplicationDetailsTab {...tabProps} />
-              )}
-              {activeTab === "documents" && (
-                <ApplicationDocumentsTab {...tabProps} />
               )}
               {activeTab === "documentationDisbursement" &&
                 documentationUnlocked && (

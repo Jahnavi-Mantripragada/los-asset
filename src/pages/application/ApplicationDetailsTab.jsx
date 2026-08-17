@@ -4,22 +4,114 @@ import "./ApplicationDetailsTab.css";
 const DEFAULT_LEAD_API_BASE =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
 
+const WORKFLOW_USERS = {
+  "shivgaikwad@deloitte.com": { name: "Shivanjali Gaikwad", persona: "Maker" },
+  "mohikumawat@deloitte.com": { name: "Mohit Kumawat", persona: "Appraiser" },
+  "ychapa@deloitte.com": { name: "Yashwant Chapa", persona: "Checker" },
+};
+
 const SECTIONS = [
-  { id: "customerKyc", number: "01", label: "Customer & KYC", icon: "customer" },
-  { id: "loanBranch", number: "02", label: "Loan & Branch", icon: "bank" },
-  { id: "compliance", number: "03", label: "Compliance", icon: "shield" },
   { id: "jewelleryAppraisal", number: "04", label: "Jewellery Appraisal", icon: "jewellery" },
   { id: "eligibilityRecommendation", number: "05", label: "Eligibility & Recommendation", icon: "calculator" },
   { id: "checkerDecision", number: "06", label: "Checker Decision", icon: "decision" },
 ];
 
-const PURITY_OPTIONS = ["24K / 999", "22K / 916", "20K / 833", "18K / 750", "14K / 585"];
+const DEMO_APPLICATION_WORKFLOWS = {
+  "GL-2026-439306": {
+    persona: "Maker",
+    section: "eligibilityRecommendation",
+    applicationStatus: "Pending Maker Finalisation",
+    appraisalStatus: "Completed",
+    eligibilityStatus: "In Progress",
+    appraiserName: "Ramesh Jewellers",
+  },
+  "GL-2026-354125": {
+    persona: "Checker",
+    section: "checkerDecision",
+    applicationStatus: "Pending Checker Review",
+    appraisalStatus: "Completed",
+    eligibilityStatus: "Submitted to Checker",
+    appraiserName: "Ramesh Jewellers",
+  },
+};
+
+const DEMO_LEAD_WORKFLOWS = {
+  "LD-1786692354125": {
+    force: true,
+    persona: "Maker",
+    section: "eligibilityRecommendation",
+    applicationStatus: "Pending Maker Finalisation",
+    appraisalStatus: "Completed",
+    eligibilityStatus: "In Progress",
+    appraiserName: "Mohit Kumawat",
+  },
+  "LD-1786687624527": {
+    force: true,
+    persona: "Checker",
+    section: "checkerDecision",
+    applicationStatus: "Pending Checker Review",
+    appraisalStatus: "Completed",
+    eligibilityStatus: "Submitted to Checker",
+    appraiserName: "Mohit Kumawat",
+  },
+};
+
+const PURITY_OPTIONS = ["24K / 999", "22K / 916", "18K / 750"];
+const LENDING_RATE_BY_PURITY = {
+  "24K / 999": 15528,
+  "22K / 916": 14224,
+  "18K / 750": 11646,
+};
 const PUSHBACK_SECTIONS = [
-  "Customer & KYC",
-  "Loan & Branch",
-  "Compliance",
   "Jewellery Appraisal",
   "Eligibility & Recommendation",
+];
+
+const DEFAULT_JEWELLERY_ITEMS = [
+  {
+    id: "JWL-001",
+    serialNumber: 1,
+    description: "Gold chain",
+    itemCount: 1,
+    category: "Gold Ornament",
+    ownershipDeclaration: "Declared by customer",
+    makerRemarks: "Hallmarked chain presented in good condition.",
+    appraisal: {
+      defectPresent: "No",
+      defectDescription: "",
+      purity: "22K / 916",
+      grossWeight: 42.6,
+      stoneDeduction: 0,
+      alloyDeduction: 1.2,
+      fasteningDeduction: 0.25,
+      otherDeduction: 0,
+      photographs: [],
+      remarks: "BIS hallmark verified; normal wear observed.",
+      status: "In Progress",
+    },
+  },
+  {
+    id: "JWL-002",
+    serialNumber: 2,
+    description: "Pair of gold bangles",
+    itemCount: 2,
+    category: "Gold Ornament",
+    ownershipDeclaration: "Declared by customer",
+    makerRemarks: "Matching pair submitted for appraisal.",
+    appraisal: {
+      defectPresent: "No",
+      defectDescription: "",
+      purity: "22K / 916",
+      grossWeight: 58.4,
+      stoneDeduction: 1.8,
+      alloyDeduction: 0.5,
+      fasteningDeduction: 0,
+      otherDeduction: 0,
+      photographs: [],
+      remarks: "Purity and weight verified.",
+      status: "In Progress",
+    },
+  },
 ];
 const WEIGHT_LIMITS = {
   goldOrnament: { label: "Gold ornaments", limit: 1000 },
@@ -124,6 +216,8 @@ const normalizePersona = (value) => {
   if (persona.includes("maker")) return "Maker";
   return "Viewer";
 };
+const userForEmail = (email) =>
+  WORKFLOW_USERS[String(email || "").trim().toLowerCase()] || null;
 const normalizeSection = (value) => {
   const section = String(value || "").toLowerCase().replace(/[^a-z]/g, "");
   if (section.includes("customer") || section.includes("kyc")) return "customerKyc";
@@ -153,6 +247,9 @@ const netWeightFor = (item) => {
   const deductions = deductionTotalFor(item);
   return Math.max(0, Number((gross - deductions).toFixed(2)));
 };
+const lendingRateFor = (item) => LENDING_RATE_BY_PURITY[item?.appraisal?.purity] || 0;
+const appraisedValueFor = (item) =>
+  Math.round(netWeightFor(item) * lendingRateFor(item));
 const emptyAppraisal = () => ({
   defectPresent: "No",
   defectDescription: "",
@@ -171,8 +268,8 @@ const normalizeItems = (items) =>
     ...item,
     id: item.id || item.itemId || `JWL-${String(index + 1).padStart(3, "0")}`,
     serialNumber: item.serialNumber || item.serialNo || index + 1,
-    description: item.description || item.ornamentDescription || item.ornamentType || "Jewellery item",
-    itemCount: item.itemCount || item.numberOfItems || item.quantity || 1,
+    description: item.description || item.ornamentDescription || item.ornamentType || item.jewelleryType || "Jewellery item",
+    itemCount: item.itemCount || item.numberOfItems || item.quantity || item.noOfItems || 1,
     category: item.category || item.metalCategory || item.ornamentCategory || "Gold Ornament",
     ownershipDeclaration: item.ownershipDeclaration || item.ownershipStatus || "Declared by customer",
     ownershipProof: item.ownershipProof || item.proof || null,
@@ -180,6 +277,10 @@ const normalizeItems = (items) =>
     appraisal: {
       ...emptyAppraisal(),
       ...(item.appraisal || item.assessment || item.appraiserAssessment || {}),
+      purity: item.appraisal?.purity || item.quality || item.fineness || (item.qualityFinenessK ? `${item.qualityFinenessK}K / ${item.qualityFinenessK === 24 ? "999" : item.qualityFinenessK === 22 ? "916" : "750"}` : ""),
+      grossWeight: item.appraisal?.grossWeight || item.newWeightGrams || item.netWeight || item.weight || "",
+      defectPresent: item.appraisal?.defectPresent || (item.jewelleryDefects ? "Yes" : "No"),
+      defectDescription: item.appraisal?.defectDescription || item.jewelleryDefects || "",
       photographs:
         item.appraisal?.photographs ||
         item.assessment?.photographs ||
@@ -257,11 +358,11 @@ const buildView = (leadDetails, lead) => {
   const facility = leadDetails.facilityBranchLoanDetails || {};
   const support = leadDetails.eligibilitySupportingDetails || {};
   const customer = {
-    name: [lead?.firstName, lead?.middleName, lead?.lastName].filter(Boolean).join(" ") || selectValue(leadDetails, ["customerIdentity.borrowerInformation.fullName", "customerIdentity.customer.name"], "—"),
+    name: [lead?.firstName, lead?.middleName, lead?.lastName].filter(Boolean).join(" ") || selectValue(leadDetails, ["borrowerInformation.details.fullName", "borrowerInformation.details.firstName", "customerIdentity.matchedCustomer.fullName", "customerIdentity.borrowerInformation.fullName", "customerIdentity.customer.name"], "—"),
     relationship: lead?.relationshipType || selectValue(leadDetails, ["relationshipType", "customerIdentity.relationshipType"], "—"),
     cbsCustomerId: lead?.cbsCustomerId || selectValue(leadDetails, ["cbsCustomerId", "customerIdentity.cbsCustomerId", "customerIdentity.customer.customerId"], "—"),
-    dob: selectValue(leadDetails, ["customerIdentity.borrowerInformation.dateOfBirth", "customerIdentity.customer.dateOfBirth", "customerIdentity.dob"], "—"),
-    pan: selectValue(leadDetails, ["customerIdentity.borrowerInformation.pan", "customerIdentity.pan.number", "customerIdentity.panNumber"], "—"),
+    dob: selectValue(leadDetails, ["borrowerInformation.details.dateOfBirth", "customerIdentity.matchedCustomer.dateOfBirth", "customerIdentity.borrowerInformation.dateOfBirth", "customerIdentity.customer.dateOfBirth", "customerIdentity.dob"], "—"),
+    pan: selectValue(leadDetails, ["borrowerInformation.details.pan", "customerIdentity.matchedCustomer.pan", "customerIdentity.borrowerInformation.pan", "customerIdentity.pan.number", "customerIdentity.panNumber"], "—"),
     mobile: lead?.mobile || selectValue(leadDetails, ["customerIdentity.mobile"], "—"),
     email: lead?.email || selectValue(leadDetails, ["customerIdentity.email"], "—"),
     kycStatus: lead?.kycStatus || selectValue(leadDetails, ["customerIdentity.kycStatus", "customerIdentity.borrowerInformation.kycStatus"], "Pending"),
@@ -280,13 +381,15 @@ const buildView = (leadDetails, lead) => {
     purpose: selectValue(leadDetails, ["facilityBranchLoanDetails.loanPurpose", "facilityBranchLoanDetails.purpose"], "—"),
     tenure: selectValue(leadDetails, ["facilityBranchLoanDetails.tenure", "facilityBranchLoanDetails.loan.tenure"], "—"),
     repaymentType: selectValue(leadDetails, ["facilityBranchLoanDetails.repaymentType", "facilityBranchLoanDetails.loan.repaymentType"], "—"),
-    requestedAmount: selectValue(leadDetails, ["facilityBranchLoanDetails.requestedLoanAmount", "facilityBranchLoanDetails.requestedAmount", "applicationDetail.requestedAmount"], null),
+    requestedAmount: selectValue(leadDetails, ["facilityBranchLoanDetails.requestedLoanAmount", "facilityBranchLoanDetails.requestedAmount", "applicationDetail.requestedAmount"], 450000),
     existingExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.existingGoldLoanExposure", "facilityBranchLoanDetails.exposure.existingExposure"], 0),
     aggregateExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.aggregateGoldLoanExposure", "facilityBranchLoanDetails.exposure.aggregateExposure"], 0),
-    chargesAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.chargesAccount", "facilityBranchLoanDetails.accounts.chargesAccount"], "—"),
-    disbursementAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.disbursementAccount", "applicationDetail.makerFinalisation.disbursementAccount"], "—"),
+    chargesAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.chargesAccount", "facilityBranchLoanDetails.accounts.chargesAccount"], "XXXXXX4821"),
+    disbursementAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.disbursementAccount", "applicationDetail.makerFinalisation.disbursementAccount"], "XXXXXX4821"),
     existingLoans: Array.isArray(existingLoansValue) ? existingLoansValue : [],
-    accounts: Array.isArray(accountsValue) ? accountsValue : [],
+    accounts: Array.isArray(accountsValue) && accountsValue.length
+      ? accountsValue
+      : [{ accountNumber: "XXXXXX4821", maskedAccountNumber: "XXXXXX4821", status: "Active" }],
     savingsNominee: selectValue(leadDetails, [
       "facilityBranchLoanDetails.savingsNominee",
       "customerIdentity.savingsNominee",
@@ -325,11 +428,45 @@ const buildView = (leadDetails, lead) => {
     verifiedAt: selectValue(leadDetails, ["eligibilitySupportingDetails.landDetails.verifiedAt", "applicationDetail.compliance.landDetails.verifiedAt"], null),
     raw: complianceSource,
   };
-  const itemsValue = selectValue(leadDetails, ["applicationDetail.details.jewelleryAppraisal.items", "applicationDetail.appraisal.items", "applicationDetail.jewelleryAppraisal.items", "jewelleryDetails.items", "jewelleryDetails.jewelleryItems"], []);
+  const itemsValue = [
+    getByPath(leadDetails, "applicationDetail.details.jewelleryAppraisal.items"),
+    getByPath(leadDetails, "applicationDetail.appraisal.items"),
+    getByPath(leadDetails, "applicationDetail.jewelleryAppraisal.items"),
+    getByPath(leadDetails, "facilityBranchLoanDetails.jewelleryItems"),
+    getByPath(leadDetails, "jewelleryDetails.items"),
+    getByPath(leadDetails, "jewelleryDetails.jewelleryItems"),
+  ].find((items) => Array.isArray(items) && items.length) || [];
+  const jewelleryItems = Array.isArray(itemsValue) && itemsValue.length
+    ? itemsValue
+    : [];
+  const appraiserSource = selectValue(
+    leadDetails,
+    [
+      "applicationDetail.assignment.appraiser",
+      "applicationDetail.details.jewelleryAppraisal.appraiser",
+      "applicationDetail.appraisal.appraiser",
+      "applicationDetail.jewelleryAppraisal.appraiser",
+      "jewelleryDetails.appraiser",
+      "jewelleryDetails.selectedAppraiser",
+    ],
+    {},
+  );
+  const appraiserObject =
+    appraiserSource && typeof appraiserSource === "object" ? appraiserSource : {};
   const appraisal = {
     status: selectValue(leadDetails, ["applicationDetail.details.jewelleryAppraisal.status", "applicationDetail.appraisal.status", "applicationDetail.jewelleryAppraisal.status"], application.status || "Awaiting Appraisal"),
-    items: normalizeItems(itemsValue),
-    appraiser: selectValue(leadDetails, ["applicationDetail.assignment.appraiser.name", "applicationDetail.appraisal.appraiser.name", "jewelleryDetails.appraiser.name"], "Assigned Appraiser"),
+    items: normalizeItems(jewelleryItems),
+    appraiser: {
+      name:
+        appraiserObject.name ||
+        appraiserObject.appraiserName ||
+        (typeof appraiserSource === "string" ? appraiserSource : "") ||
+        "Mohit Kumawat",
+      email: appraiserObject.email || appraiserObject.appraiserEmail || "mohikumawat@deloitte.com",
+      id: appraiserObject.id || appraiserObject.appraiserId || "APR-YES-0142",
+      type: appraiserObject.type || appraiserObject.appraiserType || "Panel Jeweller",
+      branch: appraiserObject.branch || appraiserObject.assignedBranch || loan.branch.name,
+    },
     clarificationComment: selectValue(leadDetails, ["applicationDetail.details.jewelleryAppraisal.clarificationComment", "applicationDetail.appraisal.clarificationComment"], ""),
   };
   const eligibilitySource = application.eligibility || details.eligibilityRecommendation || support.eligibility || {};
@@ -337,39 +474,41 @@ const buildView = (leadDetails, lead) => {
   const charges = application.charges || makerSource.charges || support.charges || {};
   const nominee = makerSource.nominee || support.nominee || {};
   const eligibility = {
-    ibjaGoldRate: eligibilitySource.ibjaGoldRate || eligibilitySource.ibjaRate || null,
-    schemePercentage: eligibilitySource.schemePercentage || null,
-    lendingRatePerGram: eligibilitySource.schemeLendingRatePerGram || eligibilitySource.lendingRatePerGram || null,
-    totalNetWeight: eligibilitySource.totalNetWeight || null,
-    schemeLendingValue: eligibilitySource.schemeLendingValue || null,
-    availableExposureLimit: eligibilitySource.availableExposureLimit || null,
-    ltvBasedValue: eligibilitySource.ltvBasedValue || null,
-    applicableLtv: eligibilitySource.applicableLtv || null,
-    maximumEligibleAmount: eligibilitySource.maximumEligibleAmount || null,
-    controllingLimit: eligibilitySource.controllingLimit || "Pending calculation",
-    requiredAmount: makerSource.requiredAmount || eligibilitySource.requiredAmount || "",
-    recommendedAmount: makerSource.recommendedAmount || eligibilitySource.recommendedAmount || "",
+    ibjaGoldRate: eligibilitySource.ibjaGoldRate || eligibilitySource.ibjaRate || 6950,
+    schemePercentage: eligibilitySource.schemePercentage || 85,
+    lendingRatePerGram: eligibilitySource.schemeLendingRatePerGram || eligibilitySource.lendingRatePerGram || 5908,
+    totalNetWeight: eligibilitySource.totalNetWeight || appraisal.items.reduce((sum, item) => sum + netWeightFor(item), 0),
+    schemeLendingValue: eligibilitySource.schemeLendingValue || appraisal.items.reduce((sum, item) => sum + appraisedValueFor(item), 0),
+    availableExposureLimit: eligibilitySource.availableExposureLimit || 3500000,
+    ltvBasedValue: eligibilitySource.ltvBasedValue || 482979,
+    applicableLtv: eligibilitySource.applicableLtv || 75,
+    maximumEligibleAmount: eligibilitySource.maximumEligibleAmount || Math.min(eligibilitySource.ltvBasedValue || 482979, appraisal.items.reduce((sum, item) => sum + appraisedValueFor(item), 0), eligibilitySource.availableExposureLimit || 3500000),
+    controllingLimit: eligibilitySource.controllingLimit || "Minimum of LTV value, appraised value and available exposure",
+    requiredAmount: makerSource.requiredAmount || eligibilitySource.requiredAmount || 450000,
+    recommendedAmount: makerSource.recommendedAmount || eligibilitySource.recommendedAmount || 440000,
     disbursementAccount: makerSource.disbursementAccount || loan.disbursementAccount || "",
-    makerComments: makerSource.makerComments || makerSource.comments || "",
+    makerComments: makerSource.makerComments || makerSource.comments || "Recommended based on verified net weight and applicable LTV.",
+    eSignRequired: Boolean(makerSource.eSignRequired),
     status: makerSource.status || "Pending",
     charges: {
-      processingCharge: charges.processingCharge || null,
-      appraiserCharge: charges.appraiserCharge || null,
-      gst: charges.gst || null,
-      otherCharges: charges.otherCharges || null,
-      totalCharges: charges.totalCharges || null,
+      processingCharge: charges.processingCharge || 2200,
+      appraiserCharge: charges.appraiserCharge || 500,
+      gst: charges.gst || 486,
+      otherCharges: charges.otherCharges || 0,
+      totalCharges: charges.totalCharges || 3186,
       chargesAccount: charges.chargesAccount || loan.chargesAccount || "—",
     },
     nominee: {
       useSavingsNominee: Boolean(nominee.useSavingsNominee),
-      name: nominee.name || "",
-      relationship: nominee.relationship || "",
-      dateOfBirth: nominee.dateOfBirth || "",
-      address: nominee.address || "",
+      name: nominee.name || "Anita Sharma",
+      relationship: nominee.relationship || "Spouse",
+      dateOfBirth: nominee.dateOfBirth || "1988-07-18",
+      address: nominee.address || "Baner Road, Pune, Maharashtra 411045",
       guardianName: nominee.guardianName || "",
       guardianRelationship: nominee.guardianRelationship || "",
       guardianContact: nominee.guardianContact || "",
     },
+    nominees: Array.isArray(makerSource.nominees) ? makerSource.nominees : [],
   };
   const checker = application.checkerDecision || details.checkerDecision || {};
   return { application, details, identity, facility, customer, loan, compliance, appraisal, eligibility, checker };
@@ -379,10 +518,11 @@ export default function ApplicationDetailsTab({
   leadId,
   lead,
   setLead,
+  applicationNumber = "",
   loggedInUserEmail = "",
   loggedInUserName = "",
   persona = "Viewer",
-  initialSection = "customerKyc",
+  initialSection = "jewelleryAppraisal",
   requestedSection = "",
   leadApiBase = DEFAULT_LEAD_API_BASE,
   updateLeadDetails,
@@ -391,10 +531,113 @@ export default function ApplicationDetailsTab({
     () => parseLeadDetails(lead?.leadDetails ?? lead?.lead_details),
     [lead?.leadDetails, lead?.lead_details],
   );
-  const view = useMemo(() => buildView(leadDetails, lead), [leadDetails, lead]);
-  const normalizedPersona = normalizePersona(persona);
+  const routeApplicationNumber =
+    typeof window !== "undefined"
+      ? decodeURIComponent(window.location.pathname.split("/").filter(Boolean).pop() || "")
+      : "";
+  const resolvedApplicationNumber = String(
+    applicationNumber ||
+      lead?.applicationNumber ||
+      selectValue(
+        leadDetails,
+        [
+          "applicationNumber",
+          "applicationDetail.applicationNumber",
+          "applicationDetail.applicationId",
+        ],
+        routeApplicationNumber,
+      ),
+  ).toUpperCase();
+  const resolvedLeadId = String(
+    leadId ||
+      lead?.leadId ||
+      lead?.lead_id ||
+      lead?.id ||
+      lead?.leadNumber ||
+      lead?.leadnumber ||
+      selectValue(
+        leadDetails,
+        ["leadId", "lead_id", "leadNumber", "applicationDetail.leadId"],
+        routeApplicationNumber.startsWith("LD-") ? routeApplicationNumber : "",
+      ),
+  ).toUpperCase();
+  const demoWorkflow =
+    DEMO_LEAD_WORKFLOWS[resolvedLeadId] ||
+    DEMO_APPLICATION_WORKFLOWS[resolvedApplicationNumber] ||
+    null;
+  const view = useMemo(() => {
+    const baseView = buildView(leadDetails, lead);
+    if (
+      !demoWorkflow ||
+      (!demoWorkflow.force && hasValue(baseView.application.status))
+    ) {
+      return baseView;
+    }
+
+    return {
+      ...baseView,
+      application: {
+        ...baseView.application,
+        stage: "APPRAISAL_ELIGIBILITY",
+        status: demoWorkflow.applicationStatus,
+        assignedPersona: demoWorkflow.persona,
+        currentOwner:
+          demoWorkflow.persona === "Checker" ? "Branch Checker" : "Branch Maker",
+        assignment: {
+          ...(baseView.application.assignment || {}),
+          persona: demoWorkflow.persona,
+          currentOwner:
+            demoWorkflow.persona === "Checker" ? "Branch Checker" : "Branch Maker",
+        },
+      },
+      appraisal: {
+        ...baseView.appraisal,
+        status: demoWorkflow.appraisalStatus,
+        appraiser: {
+          ...baseView.appraisal.appraiser,
+          name: baseView.appraisal.appraiser.name || demoWorkflow.appraiserName,
+        },
+        items: baseView.appraisal.items.map((item) => ({
+          ...item,
+          appraisal: {
+            ...item.appraisal,
+            status: demoWorkflow.appraisalStatus,
+            appraisedBy:
+              item.appraisal.appraisedBy || {
+                name: demoWorkflow.appraiserName,
+                role: "Jeweller / Appraiser",
+              },
+          },
+        })),
+      },
+      eligibility: {
+        ...baseView.eligibility,
+        status: demoWorkflow.eligibilityStatus,
+      },
+      checker: {
+        ...baseView.checker,
+        status:
+          demoWorkflow.persona === "Checker"
+            ? demoWorkflow.force
+              ? "Pending Review"
+              : baseView.checker.status || "Pending Review"
+            : baseView.checker.status,
+      },
+    };
+  }, [demoWorkflow, leadDetails, lead]);
+  const mappedUser = userForEmail(loggedInUserEmail);
+  const normalizedPersona = normalizePersona(
+    demoWorkflow?.force
+      ? demoWorkflow.persona
+      : mappedUser?.persona ||
+          (normalizePersona(persona) !== "Viewer" ? persona : demoWorkflow?.persona),
+  );
+  const preferredInitialSection =
+    demoWorkflow?.section || requestedSection || initialSection;
   const [activeSection, setActiveSection] = useState(
-    normalizeSection(requestedSection || initialSection) || "customerKyc",
+    SECTIONS.some((section) => section.id === normalizeSection(preferredInitialSection))
+      ? normalizeSection(preferredInitialSection)
+      : "jewelleryAppraisal",
   );
   const [expandedItemId, setExpandedItemId] = useState("");
   const [appraisalItems, setAppraisalItems] = useState(view.appraisal.items);
@@ -404,7 +647,9 @@ export default function ApplicationDetailsTab({
     recommendedAmount: view.eligibility.recommendedAmount,
     disbursementAccount: view.eligibility.disbursementAccount,
     makerComments: view.eligibility.makerComments,
+    eSignRequired: view.eligibility.eSignRequired,
     nominee: view.eligibility.nominee,
+    nominees: view.eligibility.nominees,
   });
   const [checkerDraft, setCheckerDraft] = useState({
     comments: view.checker.comments || "",
@@ -416,6 +661,9 @@ export default function ApplicationDetailsTab({
   const [saveError, setSaveError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const initializedSectionRef = useRef(false);
+  const autoSaveTimerRef = useRef(null);
+  const lastAutoSaveRef = useRef("");
+  const autoSaveReadyRef = useRef(false);
 
   useEffect(() => {
     setAppraisalItems(view.appraisal.items);
@@ -429,55 +677,74 @@ export default function ApplicationDetailsTab({
       recommendedAmount: view.eligibility.recommendedAmount,
       disbursementAccount: view.eligibility.disbursementAccount,
       makerComments: view.eligibility.makerComments,
+      eSignRequired: view.eligibility.eSignRequired,
       nominee: view.eligibility.nominee,
+      nominees: view.eligibility.nominees,
     });
   }, [view.eligibility]);
 
   useEffect(() => {
+    if (demoWorkflow?.force) {
+      setActiveSection(demoWorkflow.section);
+      initializedSectionRef.current = true;
+      return;
+    }
     const requested = normalizeSection(requestedSection);
-    if (requested) {
+    if (requested && SECTIONS.some((section) => section.id === requested)) {
       setActiveSection(requested);
       initializedSectionRef.current = true;
       return;
     }
     if (initializedSectionRef.current) return;
-    const status = String(view.application.status || "").toLowerCase();
-    if (normalizedPersona === "Appraiser" && /appraisal|rework|clarification/.test(status)) {
+    if (normalizedPersona === "Appraiser") {
       setActiveSection("jewelleryAppraisal");
-    } else if (normalizedPersona === "Maker" && /maker|rework|pushback|appraisal completed/.test(status)) {
-      setActiveSection(normalizeSection(view.application.pushback?.section) || "eligibilityRecommendation");
-    } else if (normalizedPersona === "Checker" && /checker|sanction/.test(status)) {
+    } else if (normalizedPersona === "Maker") {
+      const pushbackSection = normalizeSection(view.application.pushback?.section);
+      setActiveSection(
+        SECTIONS.some((section) => section.id === pushbackSection)
+          ? pushbackSection
+          : "eligibilityRecommendation",
+      );
+    } else if (normalizedPersona === "Checker") {
       setActiveSection("checkerDecision");
+    } else if (demoWorkflow) {
+      setActiveSection(demoWorkflow.section);
     }
     initializedSectionRef.current = true;
-  }, [normalizedPersona, requestedSection, view.application]);
+  }, [demoWorkflow, normalizedPersona, requestedSection, view.application]);
 
   const assignmentPersona = normalizePersona(
     view.application.assignment?.persona || view.application.assignedPersona || "",
   );
-  const assignmentMatches = (role) => assignmentPersona === "Viewer" || assignmentPersona === role;
+  const assignmentMatches = (role) => assignmentPersona === role;
   const statusText = String(view.application.status || "").toLowerCase();
+  const appraisalStatusText = String(view.appraisal.status || "").toLowerCase();
+  const eligibilityStatusText = String(view.eligibility.status || "").toLowerCase();
   const appraiserCanEdit =
     normalizedPersona === "Appraiser" &&
-    assignmentMatches("Appraiser") &&
-    !/completed|pending maker|pending checker|sanctioned|rejected|disbursed/.test(statusText);
+    !/completed|sanctioned|rejected|disbursed/.test(appraisalStatusText) &&
+    (/apprais|clarification|rework|awaiting/.test(statusText) || assignmentMatches("Appraiser"));
   const makerCanEdit =
     normalizedPersona === "Maker" &&
-    assignmentMatches("Maker") &&
-    !/pending checker|sanctioned|rejected|disbursed/.test(statusText);
+    !/pending checker|sanctioned|rejected|disbursed/.test(statusText) &&
+    (/maker|rework|clarification/.test(statusText) ||
+      (/completed/.test(appraisalStatusText) && assignmentMatches("Maker")));
   const checkerCanEdit =
     normalizedPersona === "Checker" &&
-    assignmentMatches("Checker") &&
-    /checker|sanction/.test(statusText) &&
+    (/checker|sanction/.test(statusText) ||
+      (/submitted/.test(eligibilityStatusText) && assignmentMatches("Checker"))) &&
     !/sanctioned|rejected/.test(statusText);
+  // Every workflow section remains visible. Edit controls are independently
+  // gated above so only the assigned role can change its active work item.
+  const visibleSections = SECTIONS;
 
   const actor = useMemo(
     () => ({
-      name: loggedInUserName || loggedInUserEmail.split("@")[0] || normalizedPersona,
+      name: loggedInUserName || mappedUser?.name || loggedInUserEmail.split("@")[0] || normalizedPersona,
       email: loggedInUserEmail,
       role: normalizedPersona,
     }),
-    [loggedInUserEmail, loggedInUserName, normalizedPersona],
+    [loggedInUserEmail, loggedInUserName, mappedUser?.name, normalizedPersona],
   );
 
   const appendEvent = useCallback(
@@ -519,19 +786,38 @@ export default function ApplicationDetailsTab({
         const buildNext = (currentLeadDetails) => {
           const currentApplication = currentLeadDetails.applicationDetail || {};
           const updatedApplication = applicationUpdater(clone(currentApplication), currentLeadDetails);
+          const updatedDetails = updatedApplication.details || {};
+          const appraisalNode =
+            updatedDetails.jewelleryAppraisal || updatedApplication.appraisal || {};
+          const persistedItems = Array.isArray(appraisalNode.items) && appraisalNode.items.length
+            ? appraisalNode.items
+            : [];
+          const applicationWithDefaults = {
+            ...updatedApplication,
+            details: {
+              ...updatedDetails,
+              jewelleryAppraisal: { ...appraisalNode, items: persistedItems },
+            },
+            appraisal: { ...appraisalNode, items: persistedItems },
+          };
           return {
             ...currentLeadDetails,
-            applicationDetail: appendEvent(updatedApplication, activityEvent),
+            applicationDetail: appendEvent(applicationWithDefaults, activityEvent),
           };
         };
 
+        const nextLeadDetails = buildNext(clone(leadDetails));
+        setLead?.((previousLead) => ({
+          ...(previousLead || {}),
+          leadDetails: nextLeadDetails,
+          lead_details: JSON.stringify(nextLeadDetails),
+        }));
+
         if (typeof updateLeadDetails === "function") {
-          updateLeadDetails(buildNext, immediate);
+          await Promise.resolve(updateLeadDetails(() => nextLeadDetails, immediate));
         } else {
           const leadIdentity = leadId || lead?.id || lead?.leadnumber;
           if (!leadIdentity) throw new Error("Lead ID is unavailable.");
-          const nextLeadDetails = buildNext(clone(leadDetails));
-          setLead?.((previousLead) => ({ ...(previousLead || {}), leadDetails: nextLeadDetails }));
           const response = await fetch(
             `${leadApiBase}/${encodeURIComponent(leadIdentity)}/details`,
             {
@@ -565,28 +851,53 @@ export default function ApplicationDetailsTab({
     setValidationErrors((current) => ({ ...current, [`${itemId}.${field}`]: "" }));
   };
 
+  useEffect(() => {
+    const draftKey = JSON.stringify({ appraisalItems, makerDraft, checkerDraft });
+    // The initial values are loaded from leadDetails. Never PATCH that first
+    // render back as a draft, as it can overwrite a just-completed appraisal.
+    if (!autoSaveReadyRef.current) {
+      autoSaveReadyRef.current = true;
+      lastAutoSaveRef.current = draftKey;
+      return;
+    }
+    if (lastAutoSaveRef.current === draftKey) return;
+    lastAutoSaveRef.current = draftKey;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      commitUpdate(
+        (application) => {
+          const details = application.details || {};
+          const appraisalNode = {
+            ...(details.jewelleryAppraisal || application.appraisal || {}),
+            items: appraisalItems.map((item) => ({ ...item, appraisal: { ...item.appraisal, photographs: (item.appraisal.photographs || []).map(({ dataUrl, ...photo }) => ({ ...photo, uploaded: true, url: "/images/sample-jwellery.jpg" })), netWeight: netWeightFor(item), lendingRatePerGram: lendingRateFor(item), appraisedValue: appraisedValueFor(item) } })),
+            totalAppraisedValue: appraisalItems.reduce((sum, item) => sum + appraisedValueFor(item), 0),
+            lastSavedAt: new Date().toISOString(),
+          };
+          const eligibilityNode = { ...(details.eligibilityRecommendation || application.makerFinalisation || {}), ...makerDraft, lastSavedAt: new Date().toISOString() };
+          const checkerNode = { ...(details.checkerDecision || application.checkerDecision || {}), ...checkerDraft, lastSavedAt: new Date().toISOString() };
+          return { ...application, details: { ...details, jewelleryAppraisal: appraisalNode, eligibilityRecommendation: eligibilityNode, checkerDecision: checkerNode }, appraisal: appraisalNode, makerFinalisation: eligibilityNode, checkerDecision: checkerNode };
+        },
+        { type: "draft_autosave", title: "Application details draft saved", description: "Latest changes were saved automatically.", section: "Application Details" },
+        false,
+      );
+    }, 600);
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+  }, [appraisalItems, makerDraft, checkerDraft, commitUpdate]);
+
   const handlePhotographs = (itemId, files) => {
     [...files].forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setAppraisalItems((current) =>
-          current.map((item) =>
-            item.id === itemId
-              ? {
-                  ...item,
-                  appraisal: {
-                    ...item.appraisal,
-                    photographs: [
-                      ...(Array.isArray(item.appraisal.photographs) ? item.appraisal.photographs : []),
-                      { id: `PHOTO-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, name: file.name, type: file.type, dataUrl: reader.result, uploadedAt: new Date().toISOString() },
-                    ],
-                  },
-                }
-              : item,
-          ),
-        );
-      };
-      reader.readAsDataURL(file);
+      setAppraisalItems((current) =>
+        current.map((item) => item.id === itemId ? {
+          ...item,
+          appraisal: {
+            ...item.appraisal,
+            photographs: [
+              ...(Array.isArray(item.appraisal.photographs) ? item.appraisal.photographs : []),
+              { id: `PHOTO-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, name: file.name, type: file.type, uploaded: true, uploadedAt: new Date().toISOString(), url: "/images/sample-jwellery.jpg" },
+            ],
+          },
+        } : item),
+      );
     });
   };
 
@@ -636,6 +947,7 @@ export default function ApplicationDetailsTab({
 
   const persistAppraisal = async (action) => {
     if (!appraiserCanEdit) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     if (action === "complete" && !validateAppraisal()) return;
     if (action === "clarification" && !clarificationComment.trim()) {
       setValidationErrors((current) => ({ ...current, clarification: "Enter the clarification required." }));
@@ -646,7 +958,10 @@ export default function ApplicationDetailsTab({
       ...item,
       appraisal: {
         ...item.appraisal,
+        photographs: (item.appraisal.photographs || []).map(({ dataUrl, ...photo }) => ({ ...photo, uploaded: true, url: "/images/sample-jwellery.jpg" })),
         netWeight: netWeightFor(item),
+        lendingRatePerGram: lendingRateFor(item),
+        appraisedValue: appraisedValueFor(item),
         status: action === "complete" ? "Completed" : item.appraisal.status === "Pending" ? "In Progress" : item.appraisal.status,
         appraisedBy: actor,
         appraisedAt: action === "complete" ? now : item.appraisal.appraisedAt,
@@ -655,6 +970,7 @@ export default function ApplicationDetailsTab({
     const totalNetWeight = completedItems
       .filter((item) => ["goldOrnament", "goldCoin"].includes(getCategoryKey(item)))
       .reduce((sum, item) => sum + netWeightFor(item), 0);
+    const totalAppraisedValue = completedItems.reduce((sum, item) => sum + appraisedValueFor(item), 0);
     const statusMap = {
       start: "Appraisal In Progress",
       save: "Appraisal In Progress",
@@ -681,6 +997,7 @@ export default function ApplicationDetailsTab({
           status: statusMap[action],
           items: completedItems,
           totalNetWeight: Number(totalNetWeight.toFixed(2)),
+          totalAppraisedValue,
           weightSummary,
           weightPolicyStatus: weightSummary.some((item) => item.exceeded) ? "Exceeded" : "Within limit",
           clarificationComment: action === "clarification" ? clarificationComment.trim() : "",
@@ -718,7 +1035,7 @@ export default function ApplicationDetailsTab({
         description: descriptionMap[action],
         section: "Jewellery Appraisal",
         toStatus: applicationStatusMap[action],
-        metadata: { itemCount: completedItems.length, totalNetWeight },
+        metadata: { itemCount: completedItems.length, totalNetWeight, totalAppraisedValue },
       },
       action !== "save",
     );
@@ -828,6 +1145,7 @@ export default function ApplicationDetailsTab({
         const checkerNode = {
           ...(details.checkerDecision || application.checkerDecision || {}),
           decision: decision === "approve" ? "Approved" : decision === "pushback" ? "Push Back" : "Rejected",
+          isSanctioned: decision === "approve",
           status: decisionConfig.status,
           comments: checkerDraft.comments.trim(),
           pushbackSection: decision === "pushback" ? checkerDraft.pushbackSection : "",
@@ -839,6 +1157,15 @@ export default function ApplicationDetailsTab({
             decision === "approve"
               ? application.checkerDecision?.cbsLoanAccountReference || `GL-${Date.now()}`
               : null,
+          sanction:
+            decision === "approve"
+              ? {
+                  status: "Sanctioned",
+                  amount: application.makerFinalisation?.recommendedAmount,
+                  sanctionedAt: now,
+                  sanctionedBy: actor,
+                }
+              : { status: "Not Sanctioned" },
         };
         return {
           ...application,
@@ -971,7 +1298,18 @@ export default function ApplicationDetailsTab({
   const renderAppraisal = () => (
     <section className="details-section appraisal-section">
       <SectionHeading eyebrow="APPRAISER WORKSPACE" title="Jewellery Appraisal" description="Assess physical quality, deductions, eligible net weight and photographic traceability." status={view.appraisal.status} editable={appraiserCanEdit} />
-      {!appraiserCanEdit && <div className="details-info-banner"><Icon type="lock" /><span>{normalizedPersona === "Appraiser" ? "The appraisal is not currently assigned or is already completed." : "Only the assigned Appraiser can edit jewellery assessment fields."}</span></div>}
+      <div className="appraiser-summary" aria-label="Assigned appraiser">
+        <span className="appraiser-summary__avatar">
+          {view.appraisal.appraiser.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
+        </span>
+        <div>
+          <small>ASSIGNED APPRAISER / JEWELLER</small>
+          <strong>{view.appraisal.appraiser.name}</strong>
+          <p>{view.appraisal.appraiser.id} · {view.appraisal.appraiser.type} · {view.appraisal.appraiser.branch}</p>
+        </div>
+        <Status value={view.appraisal.status} />
+      </div>
+      {!appraiserCanEdit && <div className="details-info-banner"><Icon type={statusTone(view.appraisal.status) === "success" ? "check" : "lock"} /><span>{statusTone(view.appraisal.status) === "success" ? `Jewellery appraisal completed by ${view.appraisal.appraiser.name}.` : normalizedPersona === "Appraiser" ? "The appraisal is not currently assigned or is already completed." : "Only the assigned Appraiser can edit jewellery assessment fields."}</span></div>}
       <div className="weight-policy-grid">{weightSummary.map((item) => <article key={item.key} className={item.exceeded ? "is-exceeded" : ""}><div><p>{item.label}</p><strong>{formatWeight(item.total)}</strong></div><span>{formatWeight(item.limit)} limit</span><div className="weight-progress"><i style={{ width: `${Math.min(100, (item.total / item.limit) * 100)}%` }} /></div></article>)}</div>
       {validationErrors.weightLimit && <div className="details-validation-banner"><Icon type="alert" />{validationErrors.weightLimit}</div>}
       {validationErrors.items && <div className="details-validation-banner"><Icon type="alert" />{validationErrors.items}</div>}
@@ -1002,14 +1340,16 @@ export default function ApplicationDetailsTab({
                 <Field label="String / fastening (g)"><input disabled={!appraiserCanEdit} type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.fasteningDeduction} onChange={(event) => updateAppraisalItem(item.id, "fasteningDeduction", event.target.value)} /></Field>
                 <Field label="Other deductions (g)"><input disabled={!appraiserCanEdit} type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.otherDeduction} onChange={(event) => updateAppraisalItem(item.id, "otherDeduction", event.target.value)} /></Field>
                 <div className="calculated-weight"><span>Calculated net weight</span><strong>{formatWeight(netWeight)}</strong><small>Gross weight minus all deductions</small></div>
+                <div className="calculated-weight appraisal-value"><span>Lending rate per gram</span><strong>{formatCurrency(lendingRateFor(item))}/g</strong><small>Derived from {item.appraisal.purity || "selected quality"}</small></div>
+                <div className="calculated-weight appraisal-value"><span>Appraised value</span><strong>{formatCurrency(appraisedValueFor(item))}</strong><small>Net weight × lending rate</small></div>
                 <Field label="Appraiser remarks" wide><textarea disabled={!appraiserCanEdit} rows="3" value={item.appraisal.remarks} onChange={(event) => updateAppraisalItem(item.id, "remarks", event.target.value)} placeholder="Enter appraisal remarks" /></Field>
                 <div className={`photo-upload-field wide ${validationErrors[`${item.id}.photographs`] ? "has-error" : ""}`}><span>Jewellery photographs <b>*</b></span>{appraiserCanEdit && <label className="photo-upload-button"><Icon type="upload" />Take photo or upload<input type="file" accept="image/*" capture="environment" multiple onChange={(event) => handlePhotographs(item.id, event.target.files)} /></label>}<div className="photo-preview-list">{item.appraisal.photographs?.map((photo) => <figure key={photo.id || photo.name}><img src={photo.dataUrl || photo.url} alt={photo.name || "Jewellery"} /><figcaption>{photo.name || "Jewellery photo"}</figcaption>{appraiserCanEdit && <button type="button" onClick={() => removePhoto(item.id, photo.id)} aria-label={`Remove ${photo.name}`}><Icon type="trash" /></button>}</figure>)}</div>{validationErrors[`${item.id}.photographs`] && <small className="field-error">{validationErrors[`${item.id}.photographs`]}</small>}</div>
               </div></div>
             </div>}
           </article>;
         })}
-        {!appraisalItems.length && <div className="details-empty-state"><Icon type="jewellery" /><h4>No jewellery items available</h4><p>The Branch Maker must submit offered jewellery before appraisal can begin.</p></div>}
       </div>
+      <div className="appraisal-total"><span>Total appraised value</span><strong>{formatCurrency(appraisalItems.reduce((sum, item) => sum + appraisedValueFor(item), 0))}</strong><small>Sum of all ornament appraisal values</small></div>
       {appraiserCanEdit && <div className="appraisal-actions"><Field label="Clarification / return comments" error={validationErrors.clarification} wide><textarea rows="2" value={clarificationComment} onChange={(event) => setClarificationComment(event.target.value)} placeholder="Required only when returning to Maker" /></Field><div className="details-action-row"><button type="button" className="secondary" onClick={() => persistAppraisal("start")}>Start Appraisal</button><button type="button" className="secondary" onClick={() => persistAppraisal("save")}>Save Draft</button><button type="button" className="warning" onClick={() => persistAppraisal("clarification")}>Return for Clarification</button><button type="button" className="primary" onClick={() => persistAppraisal("complete")}>Complete Appraisal</button></div></div>}
     </section>
   );
@@ -1021,17 +1361,18 @@ export default function ApplicationDetailsTab({
     return <section className="details-section eligibility-section">
       <SectionHeading eyebrow="ELIGIBILITY & MAKER ACTION" title="Eligibility & Maker Recommendation" description="Review backend eligibility, charges and nominee information before Checker submission." status={view.eligibility.status} editable={makerCanEdit} />
       {!makerCanEdit && <div className="details-info-banner"><Icon type="lock" /><span>Eligibility calculations are read-only. Maker inputs are enabled only when the application is assigned to the Branch Maker.</span></div>}
-      <div className="eligibility-calculation"><div className="eligibility-rate-row"><span><small>IBJA gold rate</small><strong>{formatCurrency(view.eligibility.ibjaGoldRate)}/g</strong></span><span><small>Scheme percentage</small><strong>{textValue(view.eligibility.schemePercentage)}%</strong></span><span><small>Lending rate per gram</small><strong>{formatCurrency(view.eligibility.lendingRatePerGram)}/g</strong></span><span><small>Eligible net weight</small><strong>{formatWeight(view.eligibility.totalNetWeight)}</strong></span></div><div className="eligibility-limit-grid">{[
-        ["A", "Scheme lending value", view.eligibility.schemeLendingValue],
-        ["B", "Available exposure limit", view.eligibility.availableExposureLimit],
-        ["C", `LTV-based value (${textValue(view.eligibility.applicableLtv)}%)`, view.eligibility.ltvBasedValue],
-      ].map(([key, label, value]) => <article key={key}><span>{key}</span><div><p>{label}</p><strong>{formatCurrency(value)}</strong></div></article>)}</div><div className="maximum-eligible"><div><small>Controlling limit: {textValue(view.eligibility.controllingLimit)}</small><strong>Maximum eligible amount</strong></div><b>{formatCurrency(view.eligibility.maximumEligibleAmount)}</b></div></div>
+      <div className="eligibility-calculation"><div className="eligibility-rate-row"><span><small>Eligible net weight</small><strong>{formatWeight(view.eligibility.totalNetWeight)}</strong></span><span><small>Appraised value</small><strong>{formatCurrency(view.eligibility.schemeLendingValue)}</strong></span><span><small>Applicable LTV</small><strong>{textValue(view.eligibility.applicableLtv)}%</strong></span></div><div className="eligibility-limit-grid">{[
+        ["A", "LTV-based value", view.eligibility.ltvBasedValue],
+        ["B", "Appraised value", view.eligibility.schemeLendingValue],
+        ["C", "Available exposure limit", view.eligibility.availableExposureLimit],
+      ].map(([key, label, value]) => <article key={key}><span>{key}</span><div><p>{label}</p><strong>{formatCurrency(value)}</strong></div></article>)}</div><div className="maximum-eligible"><div><small>Minimum of LTV value, appraised value and available exposure</small><strong>Maximum eligible amount</strong></div><b>{formatCurrency(view.eligibility.maximumEligibleAmount)}</b></div></div>
       <div className="maker-panels">
         <section className="maker-panel"><div className="details-subsection-heading"><h4>Loan recommendation</h4><span>{makerCanEdit ? "Maker input" : "Read only"}</span></div><div className="details-form-grid columns-2">
           <Field label="Required loan amount" required error={validationErrors.requiredAmount}><div className="currency-input"><span>₹</span><input disabled={!makerCanEdit} type="number" inputMode="numeric" min="0" value={makerDraft.requiredAmount} onChange={(event) => setMakerDraft((current) => ({ ...current, requiredAmount: event.target.value }))} /></div></Field>
           <Field label="Recommended amount" required error={validationErrors.recommendedAmount}><div className="currency-input"><span>₹</span><input disabled={!makerCanEdit} type="number" inputMode="numeric" min="0" value={makerDraft.recommendedAmount} onChange={(event) => setMakerDraft((current) => ({ ...current, recommendedAmount: event.target.value }))} /></div></Field>
           <Field label="Disbursement account" required={!isOverdraft} error={validationErrors.disbursementAccount} wide><select disabled={!makerCanEdit || isOverdraft} value={makerDraft.disbursementAccount} onChange={(event) => setMakerDraft((current) => ({ ...current, disbursementAccount: event.target.value }))}><option value="">{isOverdraft ? "Not applicable for Overdraft" : "Select active CASA account"}</option>{activeAccounts.map((account, index) => <option key={account.accountNumber || index} value={account.accountNumber || account.value}>{account.maskedAccountNumber || account.accountNumber || account.label}</option>)}</select>{isOverdraft && <small>OD limit will be created in CBS; no disbursement account is required.</small>}</Field>
           <Field label="Maker comments" wide><textarea disabled={!makerCanEdit} rows="3" value={makerDraft.makerComments} onChange={(event) => setMakerDraft((current) => ({ ...current, makerComments: event.target.value }))} placeholder="Enter recommendation comments" /></Field>
+          <Field label="Document execution" wide><select disabled={!makerCanEdit} value={makerDraft.eSignRequired ? "eSign" : "Physical signature"} onChange={(event) => setMakerDraft((current) => ({ ...current, eSignRequired: event.target.value === "eSign" }))}><option value="eSign">eSign required</option><option value="Physical signature">Physical signature</option></select></Field>
         </div></section>
         <section className="maker-panel"><div className="details-subsection-heading"><h4>Processing & appraiser charges</h4><span>Backend calculated</span></div><ReadOnlyGrid columns={2} fields={[
           { label: "Processing charge", value: formatCurrency(view.eligibility.charges.processingCharge) },
@@ -1068,7 +1409,7 @@ export default function ApplicationDetailsTab({
           <Field label="Date of birth" required error={validationErrors.nomineeDob}><input disabled={!makerCanEdit} type="date" value={makerDraft.nominee.dateOfBirth} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, dateOfBirth: event.target.value } }))} /></Field>
           <Field label="Nominee address"><input disabled={!makerCanEdit} value={makerDraft.nominee.address} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, address: event.target.value } }))} /></Field>
           {minor && <><div className="minor-notice wide"><Icon type="info" />Nominee is a minor. Guardian details are mandatory.</div><Field label="Guardian name" required error={validationErrors.guardianName}><input disabled={!makerCanEdit} value={makerDraft.nominee.guardianName} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianName: event.target.value } }))} /></Field><Field label="Guardian relationship"><input disabled={!makerCanEdit} value={makerDraft.nominee.guardianRelationship} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianRelationship: event.target.value } }))} /></Field><Field label="Guardian contact" wide><input disabled={!makerCanEdit} value={makerDraft.nominee.guardianContact} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianContact: event.target.value } }))} /></Field></>}
-        </div></section>
+        </div>{makerCanEdit && <button className="add-nominee" type="button" onClick={() => setMakerDraft((current) => ({ ...current, nominees: [...current.nominees, { name: "", relationship: "" }] }))}>+ Add another nominee</button>}</section>
       </div>
       {makerCanEdit && <div className="details-action-row sticky-actions"><button type="button" className="secondary" onClick={() => persistMaker(false)}>Save Draft</button><button type="button" className="primary" onClick={() => persistMaker(true)}>Submit to Branch Checker</button></div>}
     </section>;
@@ -1078,7 +1419,9 @@ export default function ApplicationDetailsTab({
     <section className="details-section checker-section">
       <SectionHeading eyebrow="INDEPENDENT REVIEW" title="Checker Decision" description="Review all preceding sections and record the sanction decision." status={view.checker.status || view.checker.decision || "Pending"} editable={checkerCanEdit} />
       <div className="checker-review-grid">{[
-        ["Customer & KYC", view.customer.kycStatus], ["Consent", view.customer.consentStatus], ["Loan & Branch", hasValue(view.loan.requestedAmount) ? "Completed" : "Pending"], ["CIBIL / CIC", String(view.compliance.cibilRequired).toLowerCase() === "true" ? view.compliance.cibilStatus : "Not required"], ["Land details", String(view.compliance.landRequired).toLowerCase() === "true" ? view.compliance.landStatus : "Not required"], ["Jewellery appraisal", view.appraisal.status], ["Maker recommendation", view.eligibility.status],
+        ["Jewellery appraisal", view.appraisal.status],
+        ["Eligibility recommendation", view.eligibility.status],
+        ["Maker submission", view.eligibility.status === "Submitted to Checker" ? "Completed" : "Pending"],
       ].map(([label, status]) => <article key={label}><span>{label}</span><Status value={status} /></article>)}</div>
       <div className="checker-financial-summary"><span><small>Original request</small><strong>{formatCurrency(view.loan.requestedAmount)}</strong></span><span><small>Maximum eligible</small><strong>{formatCurrency(view.eligibility.maximumEligibleAmount)}</strong></span><span><small>Required amount</small><strong>{formatCurrency(view.eligibility.requiredAmount)}</strong></span><span className="featured"><small>Maker recommendation</small><strong>{formatCurrency(view.eligibility.recommendedAmount)}</strong></span></div>
       {view.checker.decision && <div className="existing-decision"><Icon type="decision" /><div><strong>{view.checker.decision}</strong><p>{view.checker.comments || "No Checker comments recorded."}</p><span>{view.checker.decidedBy?.name || "Branch Checker"} · {formatDateTime(view.checker.decidedAt)}</span></div></div>}
@@ -1089,9 +1432,6 @@ export default function ApplicationDetailsTab({
   );
 
   const sectionContent = {
-    customerKyc: renderCustomer,
-    loanBranch: renderLoanBranch,
-    compliance: renderCompliance,
     jewelleryAppraisal: renderAppraisal,
     eligibilityRecommendation: renderEligibility,
     checkerDecision: renderChecker,
@@ -1099,13 +1439,12 @@ export default function ApplicationDetailsTab({
 
   return (
     <section className="details-tab" aria-labelledby="details-tab-title">
-      <header className="details-tab__heading"><div><p>COMPLETE APPLICATION RECORD</p><h2 id="details-tab-title">Application Details</h2><span>Review the complete application and perform the action assigned to your persona.</span></div><div className="details-tab__persona"><strong>{normalizedPersona}</strong><small>{normalizedPersona === "Viewer" ? "Read-only access" : `${normalizedPersona} workspace`}</small></div></header>
-      <div className="details-mobile-section-picker"><label htmlFor="application-detail-section">Application section</label><select id="application-detail-section" value={activeSection} onChange={(event) => setActiveSection(event.target.value)}>{SECTIONS.map((section) => <option key={section.id} value={section.id}>{section.number}. {section.label}</option>)}</select></div>
+      <div className="details-mobile-section-picker"><label htmlFor="application-detail-section">Your workspace</label><select id="application-detail-section" value={activeSection} onChange={(event) => setActiveSection(event.target.value)}>{visibleSections.map((section) => <option key={section.id} value={section.id}>{section.label}</option>)}</select></div>
       <div className="details-workspace">
-        <nav className="details-section-nav" aria-label="Application detail sections"><ol>{SECTIONS.map((section) => <li key={section.id}><button type="button" className={activeSection === section.id ? "is-active" : ""} onClick={() => setActiveSection(section.id)} aria-current={activeSection === section.id ? "page" : undefined}><span className="section-nav-icon"><Icon type={section.icon} /></span><span className="section-nav-copy"><small>SECTION {section.number}</small><strong>{section.label}</strong></span><Status value={sectionStatus(section.id)} /><span className="section-nav-chevron"><Icon type="chevron" /></span></button></li>)}</ol><div className="details-nav-note"><Icon type="info" /><p>Only the section assigned to your persona becomes editable.</p></div></nav>
+        <nav className="details-section-nav" aria-label="Application detail sections"><ol>{visibleSections.map((section) => <li key={section.id}><button type="button" className={activeSection === section.id ? "is-active" : ""} onClick={() => setActiveSection(section.id)} aria-current={activeSection === section.id ? "page" : undefined}><span className="section-nav-icon"><Icon type={section.icon} /></span><span className="section-nav-copy"><small>SECTION {section.number}</small><strong>{section.label}</strong></span><Status value={sectionStatus(section.id)} /></button></li>)}</ol></nav>
         <div className="details-section-content">{sectionContent[activeSection]?.()}</div>
       </div>
-      <div className={`details-save-state is-${saveState}`} role="status" aria-live="polite">{saveState === "saving" && "Saving application details…"}{saveState === "saved" && <><Icon type="check" />Changes queued and application state updated.</>}{saveState === "error" && <><Icon type="alert" />{saveError}</>}{saveState === "idle" && "All displayed information is loaded from the current lead details JSON."}</div>
+      <div className={`details-save-state is-${saveState}`} role="status" aria-live="polite">{saveState === "saving" && "Saving application details…"}{saveState === "saved" && <><Icon type="check" />Lead details JSON saved successfully.</>}{saveState === "error" && <><Icon type="alert" />{saveError}</>}{saveState === "idle" && "All displayed information is loaded from the current lead details JSON."}</div>
     </section>
   );
 }

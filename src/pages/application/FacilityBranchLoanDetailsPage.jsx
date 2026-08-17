@@ -24,12 +24,6 @@ const JewelleryIcon = () => (
   </svg>
 );
 
-const UploadIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-  </svg>
-);
-
 const PlusIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
     <path d="M12 5v14M5 12h14" />
@@ -39,6 +33,13 @@ const PlusIcon = () => (
 const TrashIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5" />
+  </svg>
+);
+
+const UploadIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M12 16V4m0 0L7 9m5-5 5 5" />
+    <path d="M5 14v5h14v-5" />
   </svg>
 );
 
@@ -92,21 +93,39 @@ const FACILITY_OPTIONS = {
     label: "Retail Gold Loan",
     purposes: ["Marriage", "Medical", "Personal Needs", "Others"],
     schemes: [
-      { name: "YES Gold Loan - Regular", tenureOptions: ["12 Months"] },
-      { name: "YES Gold Loan - Bullet", tenureOptions: ["6 Months", "12 Months"] },
+      {
+        name: "YES Gold Loan - Regular",
+        loanType: "TL",
+        tenureOptions: ["6 Months", "12 Months", "18 Months"],
+        repaymentTypes: ["EMI", "Monthly interest, principal at maturity"],
+      },
+      {
+        name: "YES Gold Loan - Bullet",
+        loanType: "Bullet",
+        tenureOptions: ["6 Months", "9 Months", "12 Months"],
+      },
     ],
   },
   Agri: {
     label: "Agri Gold Loan",
     purposes: ["Land Development", "Cultivation Requirement"],
     schemes: [
-      { name: "YES Agri Gold - Crop", tenureOptions: ["6 Months", "12 Months"] },
-      { name: "YES Agri Gold - Development", tenureOptions: ["18 Months"] },
+      {
+        name: "YES Agri Gold - Crop",
+        loanType: "Bullet",
+        tenureOptions: ["6 Months", "9 Months", "12 Months"],
+      },
+      {
+        name: "YES Agri Gold - Development",
+        loanType: "TL",
+        tenureOptions: ["12 Months", "18 Months", "24 Months"],
+        repaymentTypes: ["EMI", "Monthly interest, principal at maturity"],
+      },
     ],
   },
 };
 
-const ORNAMENTS = [
+const JEWELLERY_TYPES = [
   "Gold Necklace",
   "Gold Chain",
   "Gold Bangles",
@@ -116,22 +135,54 @@ const ORNAMENTS = [
   "Other Gold Ornament",
 ];
 
+const LENDING_RATES_PER_GRAM = Object.freeze({
+  24: 15528,
+  22: 14224,
+  18: 11646,
+});
+
+const getLendingRateForQuality = (qualityFinenessK) =>
+  LENDING_RATES_PER_GRAM[Number(qualityFinenessK)] || "";
+
+const formatLendingRate = (rate) =>
+  rate ? `₹${Number(rate).toLocaleString("en-IN")}/g` : "Select quality";
+
 const createJewelleryItem = (sequence = 1) => ({
   id: `JWL-${Date.now()}-${sequence}`,
   serialNumber: sequence,
-  description: "Gold Necklace",
+  jewelleryType: "Gold Necklace",
   numberOfItems: 1,
-  customerDeclaredOwnership: "Yes",
+  qualityFinenessK: 22,
+  newWeightGrams: "",
+  lendingRatePerGram: getLendingRateForQuality(22),
+  jewelleryDefects: "",
   ownershipProof: null,
-  remarks: "",
 });
+
+const normalizeJewelleryItem = (item, index) => {
+  const qualityFinenessK = item?.qualityFinenessK
+    ? Number(item.qualityFinenessK)
+    : "";
+
+  return {
+    id: item?.id || `JWL-${Date.now()}-${index + 1}`,
+    serialNumber: index + 1,
+    jewelleryType: item?.jewelleryType || item?.description || "Gold Necklace",
+    numberOfItems: Number(item?.numberOfItems || 1),
+    qualityFinenessK,
+    newWeightGrams: item?.newWeightGrams ?? "",
+    lendingRatePerGram: getLendingRateForQuality(qualityFinenessK),
+    jewelleryDefects: item?.jewelleryDefects || item?.remarks || "",
+    ownershipProof: item?.ownershipProof || null,
+  };
+};
 
 const isItemComplete = (item) =>
   Boolean(
-    item.description &&
+    item.jewelleryType &&
       Number(item.numberOfItems) > 0 &&
-      item.customerDeclaredOwnership === "Yes" &&
-      item.ownershipProof?.fileName
+      item.ownershipProof?.name &&
+      item.ownershipProof?.dataUrl
   );
 
 const parseLeadDetails = (leadDetails) => {
@@ -176,7 +227,7 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
     storedBranch.selectedBranch || stored.selectedBranch || null;
 
   const storedItems = Array.isArray(stored.jewelleryItems) && stored.jewelleryItems.length > 0
-    ? stored.jewelleryItems
+    ? stored.jewelleryItems.map(normalizeJewelleryItem)
     : [createJewelleryItem(1)];
 
   return {
@@ -199,6 +250,13 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
       storedLoan.requestedLoanAmount ?? stored.requestedLoanAmount ?? 0
     ),
     tenure: storedLoan.tenure || stored.tenure || scheme.tenureOptions[0] || "",
+    repaymentType:
+      scheme.loanType === "TL"
+        ? storedLoan.repaymentType ||
+          stored.repaymentType ||
+          scheme.repaymentTypes?.[0] ||
+          ""
+        : "",
     jewelleryItems: storedItems,
   };
 };
@@ -238,6 +296,7 @@ function FacilityBranchLoanDetailsPage({
       homeBranch: fallbackHomeBranch,
     })
   );
+  const [uploadErrors, setUploadErrors] = useState({});
   const hydratedLeadRef = useRef(leadIdentity);
   const latestLeadRef = useRef(lead);
   const lastPersistedNodeRef = useRef("");
@@ -288,6 +347,7 @@ function FacilityBranchLoanDetailsPage({
   const selectedScheme =
     facility.schemes.find((scheme) => scheme.name === form.schemeName) ||
     facility.schemes[0];
+  const isTermLoan = selectedScheme?.loanType === "TL";
 
   const existingOutstanding = 0;
   const requestedLoanAmount = Number(form.requestedLoanAmount || 0);
@@ -314,12 +374,13 @@ function FacilityBranchLoanDetailsPage({
       form.purpose &&
       requestedLoanAmount > 0 &&
       form.tenure &&
+      (!isTermLoan || form.repaymentType) &&
       jewelleryComplete
   );
 
   const stepNode = useMemo(
     () => ({
-      schemaVersion: 1,
+      schemaVersion: 2,
       branchSelection: {
         type: form.branchType,
         pinCode:
@@ -342,6 +403,8 @@ function FacilityBranchLoanDetailsPage({
         purpose: form.purpose,
         requestedLoanAmount,
         tenure: form.tenure,
+        loanType: selectedScheme?.loanType || "",
+        repaymentType: isTermLoan ? form.repaymentType : "",
       },
       jewelleryItems: form.jewelleryItems,
       existingGoldLoans: [],
@@ -368,6 +431,7 @@ function FacilityBranchLoanDetailsPage({
       requestedLoanAmount,
       selectedBranch,
       selectedScheme,
+      isTermLoan,
       stepComplete,
     ]
   );
@@ -465,6 +529,10 @@ function FacilityBranchLoanDetailsPage({
       schemeName: targetScheme.name,
       purpose,
       tenure: targetScheme.tenureOptions[0] || "",
+      repaymentType:
+        targetScheme.loanType === "TL"
+          ? targetScheme.repaymentTypes?.[0] || ""
+          : "",
     }));
   };
 
@@ -498,15 +566,60 @@ function FacilityBranchLoanDetailsPage({
     }));
   };
 
-  const uploadJewelleryProof = (id, file) => {
+  const updateJewelleryQuality = (id, value) => {
+    const qualityFinenessK = value ? Number(value) : "";
+    setForm((current) => ({
+      ...current,
+      jewelleryItems: current.jewelleryItems.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              qualityFinenessK,
+              lendingRatePerGram: getLendingRateForQuality(qualityFinenessK),
+            }
+          : item
+      ),
+    }));
+  };
+
+  const handleOwnershipProofUpload = (id, file) => {
     if (!file) return;
-    updateJewelleryItem(id, "ownershipProof", {
-      fileName: file.name,
-      fileType: file.type || "application/octet-stream",
-      fileSize: file.size,
-      uploadedAt: new Date().toISOString(),
-      documentStatus: "Captured",
-    });
+
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadErrors((current) => ({
+        ...current,
+        [id]: "Upload a PDF, JPG or PNG file.",
+      }));
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadErrors((current) => ({
+        ...current,
+        [id]: "File size must be 2 MB or less.",
+      }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateJewelleryItem(id, "ownershipProof", {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        dataUrl: reader.result,
+        uploadedAt: new Date().toISOString(),
+      });
+      setUploadErrors((current) => ({ ...current, [id]: "" }));
+    };
+    reader.onerror = () => {
+      setUploadErrors((current) => ({
+        ...current,
+        [id]: "The file could not be read. Please try again.",
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -590,13 +703,38 @@ function FacilityBranchLoanDetailsPage({
               </select>
             )}
           </label>
+          {isTermLoan && (
+            <label>
+              <span>Repayment type *</span>
+              <select
+                value={form.repaymentType}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    repaymentType: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Select repayment type</option>
+                {selectedScheme.repaymentTypes.map((repaymentType) => (
+                  <option value={repaymentType} key={repaymentType}>
+                    {repaymentType}
+                  </option>
+                ))}
+              </select>
+              <small>Required only for TL loans</small>
+            </label>
+          )}
         </div>
 
         <div className="fbl-selection-note">
           <span><CheckIcon /></span>
           <div>
             <strong>{selectedScheme.name}</strong>
-            <p>{facility.label} · {form.tenure} </p>
+            <p>
+              {facility.label} · {form.tenure}
+              {isTermLoan && form.repaymentType ? ` · ${form.repaymentType}` : ""}
+            </p>
           </div>
         </div>
       </section>
@@ -607,7 +745,7 @@ function FacilityBranchLoanDetailsPage({
           icon={<JewelleryIcon />}
           eyebrow="02 · JEWELLERY OFFERED"
           title="Record the jewellery items presented"
-          description="Upload ownership proof and ornament details. Appraisal and valuation will happen later."
+          description="Capture the jewellery type, quantity, fineness, weight, lending rate and any observed defects."
           badge={
             <button className="jds-add-button" type="button" onClick={addJewelleryItem}>
               <PlusIcon /> Add ornament
@@ -624,18 +762,18 @@ function FacilityBranchLoanDetailsPage({
               </div>
               <div className="jds-item-fields">
                 <label>
-                  <span>Ornament description *</span>
+                  <span>Jewellery Type *</span>
                   <select
-                    value={item.description}
-                    onChange={(event) => updateJewelleryItem(item.id, "description", event.target.value)}
+                    value={item.jewelleryType}
+                    onChange={(event) => updateJewelleryItem(item.id, "jewelleryType", event.target.value)}
                   >
-                    {ORNAMENTS.map((ornament) => (
-                      <option key={ornament}>{ornament}</option>
+                    {JEWELLERY_TYPES.map((jewelleryType) => (
+                      <option value={jewelleryType} key={jewelleryType}>{jewelleryType}</option>
                     ))}
                   </select>
                 </label>
                 <label>
-                  <span>Number of items *</span>
+                  <span>No. of Items *</span>
                   <input
                     type="number"
                     min="1"
@@ -644,37 +782,69 @@ function FacilityBranchLoanDetailsPage({
                   />
                 </label>
                 <label>
-                  <span>Customer-declared ownership *</span>
+                  <span>Quality/Fineness (K)</span>
                   <select
-                    value={item.customerDeclaredOwnership}
-                    onChange={(event) => updateJewelleryItem(item.id, "customerDeclaredOwnership", event.target.value)}
+                    value={item.qualityFinenessK}
+                    onChange={(event) => updateJewelleryQuality(item.id, event.target.value)}
                   >
-                    <option value="Yes">Yes - Owned by customer</option>
-                    <option value="No">No</option>
+                    <option value="">Select quality (optional)</option>
+                    <option value={24}>24K (999)</option>
+                    <option value={22}>22K (916)</option>
+                    <option value={18}>18K (750)</option>
                   </select>
                 </label>
-                <label className="jds-proof-upload">
+                <label>
+                  <span>New Weight (grams)</span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={item.newWeightGrams}
+                    placeholder="e.g. 42.50"
+                    onChange={(event) => updateJewelleryItem(item.id, "newWeightGrams", event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>Lending Rate per Gram</span>
+                  <input
+                    type="text"
+                    value={formatLendingRate(item.lendingRatePerGram)}
+                    readOnly
+                    aria-readonly="true"
+                  />
+                  <small>Auto-populated from quality/fineness</small>
+                </label>
+                <label className="jds-defects-field">
+                  <span>Jewellery Defects, if any</span>
+                  <input
+                    value={item.jewelleryDefects}
+                    placeholder="Enter defects or leave blank"
+                    onChange={(event) => updateJewelleryItem(item.id, "jewelleryDefects", event.target.value)}
+                  />
+                </label>
+                <div className="jds-proof-field">
                   <span>Proof of ownership *</span>
-                  <span className={`jds-upload-box ${item.ownershipProof?.fileName ? "complete" : ""}`}>
-                    {item.ownershipProof?.fileName ? <CheckIcon /> : <UploadIcon />}
-                    <strong>{item.ownershipProof?.fileName || "Upload proof"}</strong>
-                    <small>{item.ownershipProof?.fileName ? "Click to replace" : "PDF, JPG or PNG"}</small>
-                  </span>
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    hidden
-                    onChange={(event) => uploadJewelleryProof(item.id, event.target.files?.[0])}
-                  />
-                </label>
-                <label className="jds-remarks-field">
-                  <span>Maker remarks</span>
-                  <input
-                    value={item.remarks}
-                    placeholder="Optional remarks about the item"
-                    onChange={(event) => updateJewelleryItem(item.id, "remarks", event.target.value)}
-                  />
-                </label>
+                  <label className={`jds-upload ${item.ownershipProof ? "uploaded" : ""}`}>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                      onChange={(event) =>
+                        handleOwnershipProofUpload(item.id, event.target.files?.[0])
+                      }
+                    />
+                    <UploadIcon />
+                    <span>
+                      {item.ownershipProof?.name || "Upload invoice or ownership proof"}
+                    </span>
+                    <strong>{item.ownershipProof ? "Replace" : "Choose file"}</strong>
+                  </label>
+                  <small>PDF, JPG or PNG · Maximum 2 MB</small>
+                  {uploadErrors[item.id] && (
+                    <small className="jds-upload-error" role="alert">
+                      {uploadErrors[item.id]}
+                    </small>
+                  )}
+                </div>
               </div>
               <button
                 className="jds-remove-button"
@@ -706,7 +876,9 @@ function FacilityBranchLoanDetailsPage({
                     ? "Agri land details are required"
                     : "land details are not required"
                 } in Step 3.`
-              : "Select scheme, purpose, requested amount, tenure, and upload jewellery details."}
+              : `Select scheme, purpose, amount and tenure${
+                  isTermLoan ? ", choose a repayment type" : ""
+                }, then add each ornament and upload its ownership proof.`}
           </p>
         </div>
       </div>

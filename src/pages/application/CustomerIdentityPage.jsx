@@ -2,8 +2,35 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./CustomerIdentityPage.css";
 
 const CONSENT_WAIT_SECONDS = 6;
+const DEFAULT_LEAD_API_BASE =
+  "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
 const PAN_CARD_PATH = "/docs/PanCard.jpg";
 const ADDRESS_PROOF_PATH = "/docs/Voter Id_1550.pdf";
+
+const PINCODE_DIRECTORY = {
+  "411028": { city: "Pune", state: "Maharashtra" },
+  "411045": { city: "Pune", state: "Maharashtra" },
+  "400001": { city: "Mumbai", state: "Maharashtra" },
+};
+
+const OCR_MOCKS = {
+  pan: {
+    documentType: "PAN Card",
+    pan: "CIJPG1212N",
+    name: "Shivanjali Gaikwad",
+    dateOfBirth: "01/11/1996",
+    fatherName: "Sanjay Gaikwad",
+    confidence: "98.7%",
+  },
+  addressProof: {
+    documentType: "Voter ID",
+    name: "Shivanjali Gaikwad",
+    address:
+      "D-303, Fortune Estate, Hadapsar, Pune, Maharashtra - 411028",
+    pincode: "411028",
+    confidence: "97.9%",
+  },
+};
 
 const MOCK_CUSTOMERS = [
   {
@@ -21,7 +48,11 @@ const MOCK_CUSTOMERS = [
     gender: "Female",
     maritalStatus: "Married",
     occupation: "Salaried",
-    pan: "CIJPG1001N",
+    pan: "CIJPG1212N",
+    addressLine1: "D-303, Fortune Estate, Hadapsar",
+    addressLine2: "Near Magarpatta Road",
+    city: "Pune",
+    state: "Maharashtra",
     address: "D-303, Fortune Estate, Hadapsar, Pune, Maharashtra - 411028",
     pincode: "411028",
     homeBranch: "Pune - Hadapsar",
@@ -46,6 +77,10 @@ const MOCK_CUSTOMERS = [
     maritalStatus: "Married",
     occupation: "Self-employed",
     pan: "AJPPM4821K",
+    addressLine1: "B-804, Lake View Residency, Baner",
+    addressLine2: "Near Baner High Street",
+    city: "Pune",
+    state: "Maharashtra",
     address: "B-804, Lake View Residency, Baner, Pune, Maharashtra - 411045",
     pincode: "411045",
     homeBranch: "Pune - Baner",
@@ -216,9 +251,11 @@ const toPersistableCustomer = (customer) =>
         dateOfBirth: customer.dateOfBirth,
         gender: customer.gender || "",
         pan: customer.pan,
+        aadhaarLast4: digitsOnly(customer.aadhaarNumber).slice(-4),
         addressLine1: customer.addressLine1 || "",
         addressLine2: customer.addressLine2 || "",
         city: customer.city || "",
+        state: customer.state || "",
         pincode: customer.pincode || "",
         homeBranch: customer.homeBranch,
         kycStatus: customer.kycStatus,
@@ -238,6 +275,9 @@ const parseLeadDetails = (value) => {
     return {};
   }
 };
+
+const getLeadDetailsSource = (lead) =>
+  lead?.leadDetails ?? lead?.lead_details ?? lead?.details ?? {};
 
 const buildLeadCustomer = (lead, leadDetails) => ({
   firstName: lead.firstName || "",
@@ -261,6 +301,7 @@ const buildLeadCustomer = (lead, leadDetails) => ({
     "",
   addressLine2: leadDetails.addressLine2 || "",
   city: leadDetails.city || lead.city || "",
+  state: leadDetails.state || lead.state || "",
   pincode:
     leadDetails.pincode ||
     lead.pincode ||
@@ -329,10 +370,12 @@ const buildBorrowerDetails = (customer, lead) => ({
   mobile: normaliseMobile(customer.mobile || lead.mobile),
   email: customer.email === "—" ? "" : customer.email || lead.email || "",
   pan: customer.pan === "—" ? "" : customer.pan || lead.panNumber || "",
+  aadhaarLast4: digitsOnly(customer.aadhaarNumber || lead.aadhaarNumber).slice(-4),
   addressLine1:
     customer.addressLine1 === "—" ? "" : customer.addressLine1 || lead.address || "",
   addressLine2: customer.addressLine2 || "",
   city: customer.city || lead.city || "",
+  state: customer.state || lead.state || "",
   pincode: customer.pincode || lead.pincode || "",
 });
 
@@ -342,24 +385,30 @@ const buildBorrowerDocuments = (customerType) =>
         pan: {
           name: "PanCard.jpg",
           preview: PAN_CARD_PATH,
-          status: "Verified",
+          status: "Uploaded",
           source: "CBS KYC",
-          verifiedAt: "CBS record",
+          verifiedAt: "",
+          scanning: false,
+          ocr: OCR_MOCKS.pan,
         },
         addressProof: {
           name: "Voter Id_1550.pdf",
           preview: ADDRESS_PROOF_PATH,
-          status: "Verified",
+          status: "Uploaded",
           source: "CBS KYC",
+          scanning: false,
+          ocr: OCR_MOCKS.addressProof,
         },
       }
     : {
-        pan: { name: "", preview: "", status: "Pending", source: "" },
+        pan: { name: "", preview: "", status: "Pending", source: "", scanning: false, ocr: null },
         addressProof: {
           name: "",
           preview: "",
           status: "Pending",
           source: "",
+          scanning: false,
+          ocr: null,
         },
       };
 
@@ -368,12 +417,38 @@ const buildBorrowerInformation = (customerType, customer, lead) => ({
   savedAt: customerType === "ETB" ? "CBS record" : "",
   details: buildBorrowerDetails(customer, lead),
   documents: buildBorrowerDocuments(customerType),
+  aadhaar: {
+    status: customerType === "ETB" ? "Reference generated" : "Pending",
+    last4: customer.aadhaarLast4 || digitsOnly(customer.aadhaarNumber).slice(-4),
+    referenceNumber:
+      customerType === "ETB" ? "AAD-REF-YB-4812" : "",
+    processing: false,
+  },
 });
+
+const normalisePanDocument = (document) => {
+  const panDocument = document || {};
+  const wasExplicitlyVerified =
+    panDocument.verification?.result === "MATCHED" &&
+    panDocument.verification?.matches?.name &&
+    panDocument.verification?.matches?.dateOfBirth &&
+    panDocument.verification?.matches?.fatherName;
+
+  return {
+    ...panDocument,
+    status:
+      panDocument.status === "Verified" && !wasExplicitlyVerified
+        ? panDocument.preview
+          ? "Uploaded"
+          : "Pending"
+        : panDocument.status,
+  };
+};
 
 const validateBorrower = (details) => {
   const errors = {};
   const namePattern = /^[A-Za-z][A-Za-z .'-]*$/;
-  if (!details.firstName.trim()) errors.firstName = "Name is required.";
+  if (!details.firstName.trim()) errors.firstName = "First name is required.";
   else if (!namePattern.test(details.firstName.trim()))
     errors.firstName = "Enter a valid name.";
   if (!details.lastName.trim()) errors.lastName = "Last name is required.";
@@ -403,19 +478,21 @@ const validateBorrower = (details) => {
     errors.email = "Enter a valid email address.";
   if (details.pan && details.pan.trim() && !/^[A-Z]{5}\d{4}[A-Z]$/.test(details.pan.toUpperCase()))
     errors.pan = "Enter a valid PAN, for example ABCDE1234F.";
-  if (details.addressLine1 && details.addressLine1.trim().length > 0 && details.addressLine1.trim().length < 5)
-    errors.addressLine1 = "Enter the address line 1.";
-  if (details.city && details.city.trim().length > 0 && details.city.trim().length < 2)
-    errors.city = "Enter the city.";
-  if (details.pincode && details.pincode.trim() && !/^\d{6}$/.test(details.pincode))
+  if (!details.addressLine1?.trim() || details.addressLine1.trim().length < 5)
+    errors.addressLine1 = "Enter a complete address line 1.";
+  if (!details.city?.trim()) errors.city = "City is populated from the PIN code.";
+  if (!details.state?.trim()) errors.state = "State is populated from the PIN code.";
+  if (!/^\d{6}$/.test(details.pincode || "") || !PINCODE_DIRECTORY[details.pincode])
     errors.pincode = "Enter a valid 6-digit PIN code.";
   return errors;
 };
 
 const ensureLeadDetailsNodes = (rawLeadDetails, lead) => {
   const leadDetails = parseLeadDetails(rawLeadDetails);
+  const existingStep = leadDetails.customerIdentityStep || {};
   const mobileMatch = findCustomerByMobile(lead.mobile);
-  const existingIdentity = leadDetails.customerIdentity || {};
+  const existingIdentity =
+    leadDetails.customerIdentity || existingStep.identity || {};
   const matchedCustomer =
     existingIdentity.matchedCustomer || toPersistableCustomer(mobileMatch);
   const customerType =
@@ -425,52 +502,83 @@ const ensureLeadDetailsNodes = (rawLeadDetails, lead) => {
     matchedCustomer || buildLeadCustomer(lead, leadDetails),
     lead,
   );
-  const existingBorrower = leadDetails.borrowerInformation || {};
+  const existingBorrower =
+    leadDetails.borrowerInformation || existingStep.borrowerInformation || {};
+  const existingConsent =
+    leadDetails.customerConsent || existingStep.consent || {};
+  const existingNtb = leadDetails.ntbOnboarding || existingStep.ntbOnboarding || {};
+
+  const customerIdentity = {
+    matchSource: "VERIFIED_MOBILE",
+    customerIdentityConfirmed: false,
+    authenticationParameter: "",
+    authenticationReference: "",
+    confirmedAt: "",
+    ...existingIdentity,
+    customerType,
+    matchStatus: matchedCustomer ? "MATCH_FOUND" : "NO_MATCH",
+    matchedCustomer,
+  };
+  const customerConsent = {
+    status: "Pending",
+    requestReference: "",
+    channel: "Secure SMS link with OTP",
+    sentAt: "",
+    capturedAt: "",
+    expiresAt: "",
+    resendCount: 0,
+    ...existingConsent,
+  };
+  const ntbOnboarding = {
+    status: "Pending",
+    ...existingNtb,
+    documents: {
+      pan: { name: "", preview: "", status: "Pending" },
+      ovd: { name: "", preview: "", status: "Pending" },
+      ...existingNtb.documents,
+    },
+  };
+  const borrowerInformation = {
+    ...borrowerDefaults,
+    ...existingBorrower,
+    details: {
+      ...borrowerDefaults.details,
+      ...existingBorrower.details,
+    },
+    documents: {
+      pan: {
+        ...normalisePanDocument({
+          ...borrowerDefaults.documents.pan,
+          ...existingBorrower.documents?.pan,
+        }),
+      },
+      addressProof: {
+        ...borrowerDefaults.documents.addressProof,
+        ...existingBorrower.documents?.addressProof,
+      },
+    },
+    aadhaar: {
+      ...borrowerDefaults.aadhaar,
+      ...existingBorrower.aadhaar,
+    },
+  };
 
   return {
     ...leadDetails,
-    customerIdentity: {
-      matchSource: "VERIFIED_MOBILE",
-      customerIdentityConfirmed: false,
-      authenticationParameter: "",
-      authenticationReference: "",
-      confirmedAt: "",
-      ...existingIdentity,
-      customerType,
-      matchStatus: matchedCustomer ? "MATCH_FOUND" : "NO_MATCH",
-      matchedCustomer,
+    customerIdentityStep: {
+      version: 1,
+      status: "In Progress",
+      lastUpdatedAt: "",
+      ...existingStep,
+      identity: customerIdentity,
+      consent: customerConsent,
+      borrowerInformation,
+      ntbOnboarding,
     },
-    customerConsent: {
-      status: "Pending",
-      requestReference: "",
-      channel: "Secure SMS link with OTP",
-      sentAt: "",
-      capturedAt: "",
-      expiresAt: "",
-      resendCount: 0,
-      ...leadDetails.customerConsent,
-    },
-    ntbOnboarding: {
-      status: "Pending",
-      ...leadDetails.ntbOnboarding,
-      documents: {
-        pan: { name: "", preview: "", status: "Pending" },
-        ovd: { name: "", preview: "", status: "Pending" },
-        ...leadDetails.ntbOnboarding?.documents,
-      },
-    },
-    borrowerInformation: {
-      ...borrowerDefaults,
-      ...existingBorrower,
-      details: {
-        ...borrowerDefaults.details,
-        ...existingBorrower.details,
-      },
-      documents: {
-        ...borrowerDefaults.documents,
-        ...existingBorrower.documents,
-      },
-    },
+    customerIdentity,
+    customerConsent,
+    ntbOnboarding,
+    borrowerInformation,
   };
 };
 
@@ -481,6 +589,41 @@ const getTimestamp = (value = new Date()) =>
     hour: "2-digit",
     minute: "2-digit",
   });
+
+const getLeadIdentifier = (lead, explicitLeadId) =>
+  explicitLeadId ||
+  lead?.id ||
+  lead?.leadnumber ||
+  lead?.leadNumber ||
+  lead?.leadId ||
+  "";
+
+const patchLeadDetails = async (leadApiBase, leadIdentifier, leadDetails) => {
+  if (!leadIdentifier) {
+    throw new Error("Lead ID is unavailable. Details could not be saved.");
+  }
+
+  const response = await fetch(
+    `${String(leadApiBase || DEFAULT_LEAD_API_BASE).replace(/\/$/, "")}/${encodeURIComponent(leadIdentifier)}/details`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        leadId: leadIdentifier,
+        leadDetailsPatch: leadDetails,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => "");
+    throw new Error(
+      message || `Unable to save lead details (${response.status}).`,
+    );
+  }
+
+  return response.status === 204 ? null : response.json().catch(() => null);
+};
 
 const readFile = (file) =>
   new Promise((resolve, reject) => {
@@ -543,6 +686,7 @@ function BorrowerField({
   inputMode,
   maxLength,
   wide = false,
+  readOnly = false,
 }) {
   const controlProps = {
     id: `borrower-${name}`,
@@ -552,6 +696,7 @@ function BorrowerField({
     "aria-invalid": Boolean(error),
     "aria-describedby": error ? `borrower-${name}-error` : undefined,
     required,
+    readOnly,
   };
 
   return (
@@ -588,73 +733,187 @@ function BorrowerField({
   );
 }
 
+function AadhaarCapture({ aadhaar, onChange, onSave, disabled }) {
+  const digits = digitsOnly(aadhaar?.draftValue).slice(0, 12);
+  const visibleEntry = [digits.slice(0, 4), digits.slice(4, 8), digits.slice(8, 12)]
+    .filter(Boolean)
+    .join(" ");
+
+  if (aadhaar?.processing) {
+    return (
+      <div className="glci-aadhaar-state processing" role="status">
+        <Spinner size={18} />
+        <div><strong>Securing Aadhaar</strong><span>Generating a tokenised reference…</span></div>
+      </div>
+    );
+  }
+
+  if (aadhaar?.referenceNumber) {
+    return (
+      <div className="glci-aadhaar-state complete">
+        <span className="glci-aadhaar-check"><CheckIcon size={14} /></span>
+        <div>
+          <strong>Aadhaar ending •••• {aadhaar.last4}</strong>
+          <span>Reference: {aadhaar.referenceNumber}</span>
+        </div>
+        <button type="button" className="glci-link-button" onClick={() => onChange("")} disabled={disabled}>
+          Change
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <label className="glci-borrower-field glci-aadhaar-field">
+      <span>Aadhaar number <em>*</em></span>
+      <div className="glci-aadhaar-input-wrap">
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={visibleEntry}
+          onChange={(event) => onChange(digitsOnly(event.target.value).slice(0, 12))}
+          disabled={disabled}
+          aria-label="Aadhaar number"
+          placeholder="____ ____ ____"
+          maxLength={14}
+        />
+        {digits.length === 12 && (
+          <button
+            type="button"
+            className="glci-aadhaar-save"
+            onClick={onSave}
+            disabled={disabled}
+          >
+            Save
+          </button>
+        )}
+      </div>
+      <small>Enter all 12 digits, then select Save to secure Aadhaar.</small>
+    </label>
+  );
+}
+
 function BorrowerDocument({
   label,
   description,
   document,
   onUpload,
+  onVerify,
+  verificationRequired = false,
   disabled,
 }) {
   const inputRef = useRef(null);
-  const verified = document.status === "Verified";
+  const verified = verificationRequired && document.status === "Verified";
+  const scanning = document.scanning || document.status === "Verifying";
+  const uploaded = Boolean(document.preview) && !verified && !scanning;
   const isImage =
     String(document.preview || "").startsWith("data:image") ||
     /\.(jpg|jpeg|png)$/i.test(document.preview || "");
   const canView = Boolean(document.preview);
+  const isPdf = String(document.preview || "").startsWith("data:application/pdf") || /\.pdf(?:$|\?)/i.test(document.preview || "");
+  const ocrEntries = Object.entries(document.ocr || {}).filter(([key]) => key !== "confidence");
 
   return (
-    <div className={`glci-borrower-document ${verified ? "verified" : ""}`}>
-      <div className="glci-borrower-document-preview">
-        {document.preview && isImage ? (
-          <img src={document.preview} alt="Uploaded document preview" />
-        ) : (
-          <span className="glci-document-placeholder">
-            <FileIcon />
-          </span>
-        )}
-
-        {verified && (
-          <span className="glci-document-check">
-            <CheckIcon size={13} />
-          </span>
-        )}
-      </div>
-
-      <div className="glci-document-copy">
-        <strong>
-          {label}
-          <em>*</em>
-        </strong>
-        <span>{document.name || description}</span>
-        <small className={verified ? "verified" : ""}>
+    <article className={`glci-kyc-card ${verified ? "verified" : ""} ${scanning ? "scanning" : ""} ${canView ? "has-file" : "empty"}`}>
+      <div className="glci-kyc-card-head">
+        <div>
+          <span className="glci-kyc-card-icon"><FileIcon /></span>
+          <strong>{label}<em>*</em></strong>
+        </div>
+        <span className={`glci-kyc-state ${verified ? "verified" : scanning ? "scanning" : uploaded ? "uploaded" : "required"}`}>
+          {verified ? <CheckIcon size={11} /> : scanning ? <Spinner size={12} /> : null}
           {verified
-            ? `${document.source || "Document"} · Verified`
-            : document.status === "Uploaded"
-              ? "Uploaded"
-              : "PDF, JPG or PNG · Max 5 MB"}
-        </small>
+            ? "Verified"
+            : document.status === "Verifying"
+              ? "Verifying"
+              : document.scanning
+                ? "Scanning"
+                : uploaded
+                  ? verificationRequired ? "Ready to verify" : "Uploaded"
+                  : "Required"}
+        </span>
       </div>
 
-      <div className="glci-document-actions">
-        {canView && (
-          <a
-            className="glci-link-button"
-            href={document.preview}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <EyeIcon /> View
-          </a>
-        )}
+      {!canView ? (
         <button
           type="button"
-          className="glci-link-button"
+          className="glci-kyc-dropzone"
           onClick={() => inputRef.current?.click()}
           disabled={disabled}
         >
-          <UploadIcon /> {document.name ? "Re-upload" : "Upload"}
+          <span className="glci-kyc-upload-icon"><UploadIcon /></span>
+          <span><strong>{description}</strong><small>PDF, JPG or PNG · Maximum 5 MB</small></span>
+          <span className="glci-kyc-select">Choose file</span>
         </button>
-      </div>
+      ) : (
+        <div className="glci-kyc-card-body">
+          <div className="glci-kyc-preview">
+            {isImage ? (
+              <img src={document.preview} alt={`${label} preview`} />
+            ) : isPdf ? (
+              <object data={document.preview} type="application/pdf" aria-label={`${label} PDF preview`}>
+                <span className="glci-document-placeholder"><FileIcon /> PDF</span>
+              </object>
+            ) : (
+              <span className="glci-document-placeholder"><FileIcon /></span>
+            )}
+            {document.scanning && (
+              <div className="glci-scan-overlay" role="status">
+                <span className="glci-scan-line" />
+                <strong>Reading document</strong>
+              </div>
+            )}
+          </div>
+
+          <div className="glci-kyc-file-content">
+            <div className="glci-kyc-file-row">
+              <div><strong>{document.name}</strong><span>{document.source || "Uploaded document"}</span></div>
+              <div className="glci-kyc-actions">
+                <a href={document.preview} target="_blank" rel="noreferrer"><EyeIcon /> Preview</a>
+                <button type="button" onClick={() => inputRef.current?.click()} disabled={disabled}><RefreshIcon /> Replace</button>
+                {verificationRequired && document.ocr && !verified && (
+                  <button
+                    type="button"
+                    className="glci-verify-button"
+                    onClick={onVerify}
+                    disabled={disabled || document.status === "Verifying"}
+                  >
+                    {document.status === "Verifying" ? <><Spinner size={11} /> Verifying…</> : "Verify PAN"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {document.scanning ? (
+              <div className="glci-kyc-progress"><span /><small>Extracting document details…</small></div>
+            ) : document.ocr ? (
+              <div className="glci-kyc-ocr">
+                <div className="glci-kyc-ocr-head">
+                  <span><CheckIcon size={12} /> Details extracted</span>
+                  <small>{document.ocr.confidence} confidence</small>
+                </div>
+                <dl>
+                  {ocrEntries.slice(0, 4).map(([key, value]) => (
+                    <div key={key}><dt>{key.replace(/([A-Z])/g, " $1")}</dt><dd>{value}</dd></div>
+                  ))}
+                </dl>
+              </div>
+            ) : null}
+
+            {verificationRequired && verified && document.verification?.matches && (
+              <div className="glci-pan-verification" role="status">
+                <strong><CheckIcon size={12} /> PAN verification successful</strong>
+                <div>
+                  <span>Name <b>Match: Yes</b></span>
+                  <span>Date of birth <b>Match: Yes</b></span>
+                  <span>Father's name <b>Match: Yes</b></span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <input
         ref={inputRef}
@@ -667,13 +926,15 @@ function BorrowerDocument({
           event.target.value = "";
         }}
       />
-    </div>
+    </article>
   );
 }
 
 function CustomerIdentity({
   lead = {},
+  leadId = "",
   sectionKey = "customerIdentity",
+  leadApiBase = DEFAULT_LEAD_API_BASE,
   updateApplicationData,
   updateStepStatus,
   updateLeadDetails,
@@ -681,7 +942,7 @@ function CustomerIdentity({
   setLead,
 }) {
   const [leadDetailsJson, setLeadDetailsJson] = useState(() =>
-    ensureLeadDetailsNodes(lead.leadDetails, lead),
+    ensureLeadDetailsNodes(getLeadDetailsSource(lead), lead),
   );
   const [showCustomerSearch, setShowCustomerSearch] = useState(
     () => !findCustomerByMobile(lead.mobile),
@@ -695,17 +956,23 @@ function CustomerIdentity({
   const [notice, setNotice] = useState("");
   const [borrowerDraft, setBorrowerDraft] = useState(
     () =>
-      ensureLeadDetailsNodes(lead.leadDetails, lead).borrowerInformation
+      ensureLeadDetailsNodes(getLeadDetailsSource(lead), lead).borrowerInformation
         .details,
   );
   const [borrowerErrors, setBorrowerErrors] = useState({});
   const [isBorrowerEditing, setIsBorrowerEditing] = useState(
     () =>
-      ensureLeadDetailsNodes(lead.leadDetails, lead).borrowerInformation
+      ensureLeadDetailsNodes(getLeadDetailsSource(lead), lead).borrowerInformation
         .status !== "Saved",
   );
   const [isAddressIdentityEditing, setIsAddressIdentityEditing] = useState(false);
   const uploadTimers = useRef([]);
+  const aadhaarTimer = useRef(null);
+  const patchQueueRef = useRef(Promise.resolve());
+  const initialDetailsRef = useRef(
+    JSON.stringify(ensureLeadDetailsNodes(getLeadDetailsSource(lead), lead)),
+  );
+  const lastQueuedDetailsRef = useRef(initialDetailsRef.current);
 
   const identityNode = leadDetailsJson.customerIdentity;
   const consentNode = leadDetailsJson.customerConsent;
@@ -718,6 +985,7 @@ function CustomerIdentity({
   const consentCapturedAt = consentNode.capturedAt;
   const ntbOnboardingStatus = ntbNode.status;
   const borrowerDocuments = borrowerNode.documents;
+  const borrowerAadhaar = borrowerNode.aadhaar || {};
   const customer = useMemo(
     () =>
       identityNode.matchedCustomer || buildLeadCustomer(lead, leadDetailsJson),
@@ -732,15 +1000,41 @@ function CustomerIdentity({
         typeof patchOrUpdater === "function"
           ? patchOrUpdater(currentNode)
           : patchOrUpdater;
+      const updatedNode = { ...currentNode, ...patch };
+      const stepSnapshotKey = {
+        customerIdentity: "identity",
+        customerConsent: "consent",
+        borrowerInformation: "borrowerInformation",
+        ntbOnboarding: "ntbOnboarding",
+      }[nodeName];
+      const stepMeta =
+        nodeName === "customerIdentityStep"
+          ? updatedNode
+          : {
+              ...current.customerIdentityStep,
+              ...(stepSnapshotKey ? { [stepSnapshotKey]: updatedNode } : {}),
+            };
       return {
         ...current,
-        [nodeName]: { ...currentNode, ...patch },
+        updatedAt: new Date().toISOString(),
+        [nodeName]: updatedNode,
+        customerIdentityStep: {
+          ...stepMeta,
+          version: 1,
+          status: stepMeta?.status || "In Progress",
+          lastUpdatedAt: new Date().toISOString(),
+        },
       };
     });
   }, []);
 
   useEffect(() => {
-    const initialisedDetails = ensureLeadDetailsNodes(lead.leadDetails, lead);
+    const initialisedDetails = ensureLeadDetailsNodes(
+      getLeadDetailsSource(lead),
+      lead,
+    );
+    const serialisedDetails = JSON.stringify(initialisedDetails);
+    lastQueuedDetailsRef.current = serialisedDetails;
     setLeadDetailsJson(initialisedDetails);
     setShowCustomerSearch(
       initialisedDetails.customerIdentity.customerType === "NTB" &&
@@ -749,7 +1043,7 @@ function CustomerIdentity({
     setSearchValue("");
     setSearchError("");
     setSearchResultStatus("IDLE");
-  }, [lead.id, lead.leadNumber, lead.mobile]);
+  }, [lead.id, lead.leadnumber, lead.leadNumber, lead.mobile, leadId]);
 
   useEffect(() => {
     setBorrowerDraft(borrowerNode.details);
@@ -764,6 +1058,18 @@ function CustomerIdentity({
     }));
     updateLeadDetails?.(leadDetailsJson);
     onLeadDetailsChange?.(leadDetailsJson);
+
+    const serialisedDetails = JSON.stringify(leadDetailsJson);
+    if (serialisedDetails === lastQueuedDetailsRef.current) return;
+    lastQueuedDetailsRef.current = serialisedDetails;
+
+    const leadIdentifier = getLeadIdentifier(lead, leadId);
+    patchQueueRef.current = patchQueueRef.current
+      .catch(() => null)
+      .then(() => patchLeadDetails(leadApiBase, leadIdentifier, leadDetailsJson))
+      .catch((error) => {
+        setNotice(error.message || "Lead details could not be saved.");
+      });
     // Parent callbacks commonly change identity on every render. Persistence
     // is intentionally driven only by a business change to leadDetailsJson.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -772,8 +1078,15 @@ function CustomerIdentity({
   const consentCaptured = consentStatus === "Captured";
   const borrowerInformationSaved = borrowerNode.status === "Saved";
   const borrowerDocumentsComplete =
-    Boolean(borrowerDocuments.pan.preview) &&
-    Boolean(borrowerDocuments.addressProof.preview);
+    borrowerDocuments.pan.status === "Verified" &&
+    Boolean(borrowerDocuments.addressProof.preview) &&
+    !borrowerDocuments.addressProof.scanning;
+  const borrowerDocumentsRemaining =
+    Number(borrowerDocuments.pan.status !== "Verified") +
+    Number(
+      !borrowerDocuments.addressProof.preview ||
+        borrowerDocuments.addressProof.scanning,
+    );
   const ntbOnboarded = ntbOnboardingStatus === "Completed";
   const profileReady = customerConfirmed && consentCaptured;
   const stepComplete =
@@ -783,9 +1096,17 @@ function CustomerIdentity({
     borrowerDocumentsComplete &&
     (customerType === "ETB" || ntbOnboarded);
 
+  useEffect(() => {
+    const nextStatus = stepComplete ? "Completed" : "In Progress";
+    if (leadDetailsJson.customerIdentityStep?.status !== nextStatus) {
+      updateNode("customerIdentityStep", { status: nextStatus });
+    }
+  }, [leadDetailsJson.customerIdentityStep?.status, stepComplete, updateNode]);
+
   useEffect(
     () => () => {
       uploadTimers.current.forEach((timer) => window.clearTimeout(timer));
+      if (aadhaarTimer.current) window.clearTimeout(aadhaarTimer.current);
     },
     [],
   );
@@ -837,6 +1158,7 @@ function CustomerIdentity({
       kycStatus:
         customerType === "ETB" ? customer.kycStatus : ntbOnboardingStatus,
       borrowerInformation: borrowerNode,
+      aadhaarReference: borrowerAadhaar.referenceNumber || "",
       documents: borrowerDocuments,
       freshKycDocumentsRequired: customerType === "NTB",
       leadDetails: leadDetailsJson,
@@ -1047,32 +1369,60 @@ function CustomerIdentity({
           [key]: {
             name: file.name,
             preview,
-            status: "Uploaded",
+            status: "Scanning",
             source: "Fresh upload",
             uploadedAt: getTimestamp(),
             verification: null,
+            scanning: true,
+            ocr: null,
           },
         },
       }));
-      setNotice(
-        key === "pan"
-          ? "PAN uploaded successfully."
-          : "Address proof uploaded successfully.",
-      );
+      setNotice("Document uploaded. OCR scan started.");
+      const timer = window.setTimeout(() => {
+        updateNode("borrowerInformation", (current) => {
+          const extractedDetails =
+            key === "pan"
+              ? {
+                  ...current.details,
+                  firstName: "Shivanjali",
+                  lastName: "Gaikwad",
+                  dateOfBirth: "1996-11-01",
+                  pan: OCR_MOCKS.pan.pan,
+                }
+              : {
+                  ...current.details,
+                  addressLine1: "D-303, Fortune Estate, Hadapsar",
+                  addressLine2: "Near Magarpatta Road",
+                  pincode: "411028",
+                  city: "Pune",
+                  state: "Maharashtra",
+                };
+          return {
+            details: extractedDetails,
+            documents: {
+              ...current.documents,
+              [key]: {
+                ...current.documents[key],
+                status: "Uploaded",
+                scanning: false,
+                ocr: OCR_MOCKS[key],
+                verifiedAt: "",
+                verificationReference: "",
+              },
+            },
+          };
+        });
+        setNotice(
+          key === "pan"
+            ? "PAN details extracted. Select Verify PAN to complete verification."
+            : "Address proof details extracted and applied.",
+        );
+      }, 1900);
+      uploadTimers.current.push(timer);
     } catch (error) {
       setNotice(error.message);
     }
-  };
-
-  const splitFullName = (fullName) => {
-    const parts = fullName.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return { firstName: "", middleName: "", lastName: "" };
-    if (parts.length === 1) return { firstName: parts[0], middleName: "", lastName: "" };
-    if (parts.length === 2) return { firstName: parts[0], middleName: "", lastName: parts[1] };
-    const lastName = parts.pop();
-    const firstName = parts.shift();
-    const middleName = parts.join(" ");
-    return { firstName, middleName, lastName };
   };
 
   const handleBorrowerChange = (event) => {
@@ -1080,12 +1430,13 @@ function CustomerIdentity({
     let normalisedValue = value;
     let updates = {};
 
-    if (name === "name") {
-      const { firstName, middleName, lastName } = splitFullName(value);
-      updates = { firstName, middleName, lastName };
-    } else if (name === "mobile" || name === "pincode") {
+    if (name === "mobile" || name === "pincode") {
       normalisedValue = digitsOnly(value).slice(0, name === "mobile" ? 10 : 6);
-      updates = { [name]: normalisedValue };
+      const location = name === "pincode" ? PINCODE_DIRECTORY[normalisedValue] : null;
+      updates = {
+        [name]: normalisedValue,
+        ...(location || (name === "pincode" && normalisedValue.length === 6 ? { city: "", state: "" } : {})),
+      };
     } else if (name === "pan") {
       normalisedValue = value
         .toUpperCase()
@@ -1097,6 +1448,23 @@ function CustomerIdentity({
     }
 
     setBorrowerDraft((current) => ({ ...current, ...updates }));
+    updateNode("borrowerInformation", (current) => ({
+      status: "Editing",
+      details: { ...current.details, ...updates },
+      documents:
+        name === "pan" && current.documents.pan.status === "Verified"
+          ? {
+              ...current.documents,
+              pan: {
+                ...current.documents.pan,
+                status: current.documents.pan.preview ? "Uploaded" : "Pending",
+                verification: null,
+                verifiedAt: "",
+                verificationReference: "",
+              },
+            }
+          : current.documents,
+    }));
     setBorrowerErrors((current) => ({
       ...current,
       name: "",
@@ -1107,8 +1475,89 @@ function CustomerIdentity({
     }));
   };
 
+  const handleAadhaarChange = (value) => {
+    if (aadhaarTimer.current) window.clearTimeout(aadhaarTimer.current);
+    const digits = digitsOnly(value).slice(0, 12);
+    if (!digits) {
+      updateNode("borrowerInformation", {
+        aadhaar: { status: "Pending", draftValue: "", last4: "", referenceNumber: "", processing: false },
+      });
+      return;
+    }
+    updateNode("borrowerInformation", {
+      aadhaar: { status: "Entering", draftValue: digits, last4: "", referenceNumber: "", processing: false },
+    });
+  };
+
+  const secureAadhaar = () => {
+    const digits = digitsOnly(borrowerAadhaar.draftValue).slice(0, 12);
+    if (digits.length !== 12) {
+      setNotice("Enter all 12 Aadhaar digits before saving.");
+      return;
+    }
+
+    updateNode("borrowerInformation", {
+      aadhaar: {
+        ...borrowerAadhaar,
+        status: "Processing",
+        processing: true,
+      },
+    });
+    aadhaarTimer.current = window.setTimeout(() => {
+      updateNode("borrowerInformation", {
+        aadhaar: {
+          status: "Reference generated",
+          draftValue: "",
+          last4: digits.slice(-4),
+          referenceNumber: createReference("AAD-REF"),
+          processing: false,
+          generatedAt: getTimestamp(),
+        },
+      });
+      setNotice("Aadhaar secured. Only the reference number is retained.");
+    }, 900);
+  };
+
+  const verifyPan = () => {
+    if (!borrowerDocuments.pan.preview || !borrowerDocuments.pan.ocr) {
+      setNotice("Upload and scan the PAN card before verification.");
+      return;
+    }
+
+    updateNode("borrowerInformation", (current) => ({
+      documents: {
+        ...current.documents,
+        pan: { ...current.documents.pan, status: "Verifying" },
+      },
+    }));
+
+    const timer = window.setTimeout(() => {
+      updateNode("borrowerInformation", (current) => ({
+        documents: {
+          ...current.documents,
+          pan: {
+            ...current.documents.pan,
+            status: "Verified",
+            verifiedAt: getTimestamp(),
+            verificationReference: createReference("PAN-VER"),
+            verification: {
+              result: "MATCHED",
+              matches: { name: true, dateOfBirth: true, fatherName: true },
+            },
+          },
+        },
+      }));
+      setNotice("PAN verified successfully. Name, date of birth and father's name matched.");
+    }, 900);
+    uploadTimers.current.push(timer);
+  };
+
   const saveBorrowerInformation = () => {
     const errors = validateBorrower(borrowerDraft);
+    if (!borrowerAadhaar.referenceNumber) {
+      setNotice("Complete Aadhaar capture and wait for the reference number.");
+      return;
+    }
     if (Object.keys(errors).length) {
       setBorrowerErrors(errors);
       setNotice("Please correct the highlighted borrower information.");
@@ -1125,6 +1574,7 @@ function CustomerIdentity({
       addressLine1: borrowerDraft.addressLine1.trim(),
       addressLine2: borrowerDraft.addressLine2.trim(),
       city: borrowerDraft.city.trim(),
+      state: borrowerDraft.state.trim(),
       pincode: borrowerDraft.pincode.trim(),
     };
     const fullName = [details.firstName, details.middleName, details.lastName]
@@ -1656,8 +2106,8 @@ function CustomerIdentity({
             title="Borrower information"
             description={
               customerType === "ETB"
-                ? "Review the CBS borrower profile, update details where required and manage the KYC documents."
-                : "Enter the borrower's details, save the profile and upload the mandatory KYC documents."
+                ? "Review the available KYC documents first. OCR-extracted details can then be verified or corrected."
+                : "Upload PAN and address proof first. The document scan will prefill the borrower details for review."
             }
             status={
               !profileReady
@@ -1687,21 +2137,49 @@ function CustomerIdentity({
           )}
 
           <div className="glci-profile-card">
-            <div className="glci-profile-top">
-              <span className="glci-profile-avatar">
-                {getInitials(customer.fullName)}
-              </span>
-              <div>
-                <strong>{customer.fullName}</strong>
-                <small>
-                  {customerType === "ETB"
-                    ? "Existing YES BANK customer"
-                    : ntbOnboarded
-                      ? "Newly onboarded YES BANK customer"
-                      : "New-to-bank borrower"}
-                  {customer.customerId ? ` · ${customer.customerId}` : ""}
-                </small>
+            <div className="glci-document-section glci-document-section-primary">
+              <div className="glci-document-section-head">
+                <div>
+                  <strong>Upload KYC documents</strong>
+                  <span>Upload PAN and one address proof. OCR will populate the fields below.</span>
+                </div>
+                <StatusBadge variant={borrowerDocumentsComplete ? "success" : "pending"}>
+                  {borrowerDocumentsComplete ? <CheckIcon size={11} /> : <AlertIcon />} {" "}
+                  {borrowerDocumentsComplete
+                    ? "KYC documents ready"
+                    : `${borrowerDocumentsRemaining} document${borrowerDocumentsRemaining === 1 ? "" : "s"} required`}
+                </StatusBadge>
               </div>
+
+              <div className="glci-borrower-document-grid">
+                <BorrowerDocument
+                  label="PAN card"
+                  description="Upload PAN card"
+                  document={borrowerDocuments.pan}
+                  onUpload={(file) => handleDocumentUpload("pan", file)}
+                  onVerify={verifyPan}
+                  verificationRequired
+                  disabled={ntbOnboardingStatus === "Running"}
+                />
+                <BorrowerDocument
+                  label="Address proof"
+                  description="Upload Voter ID, Aadhaar or another accepted OVD"
+                  document={borrowerDocuments.addressProof}
+                  onUpload={(file) => handleDocumentUpload("addressProof", file)}
+                  disabled={ntbOnboardingStatus === "Running"}
+                />
+              </div>
+
+            </div>
+
+            <div className="glci-borrower-controlbar">
+              <span>
+                {borrowerDocumentsComplete ? (
+                  <><CheckIcon size={13} /> Fields populated from KYC scan</>
+                ) : (
+                  <><AlertIcon /> Upload documents to populate borrower details</>
+                )}
+              </span>
               <div className="glci-profile-actions">
                 {!isBorrowerEditing ? (
                   <button
@@ -1738,13 +2216,19 @@ function CustomerIdentity({
             {isBorrowerEditing ? (
               <div className="glci-borrower-form">
                 <BorrowerField
-                  label="Name"
-                  name="name"
-                  value={[borrowerDraft.firstName, borrowerDraft.middleName, borrowerDraft.lastName]
-                    .filter(Boolean)
-                    .join(" ")}
+                  label="First name"
+                  name="firstName"
+                  value={borrowerDraft.firstName}
                   onChange={handleBorrowerChange}
-                  error={borrowerErrors.name || borrowerErrors.firstName}
+                  error={borrowerErrors.firstName}
+                  required
+                />
+                <BorrowerField
+                  label="Last name"
+                  name="lastName"
+                  value={borrowerDraft.lastName}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.lastName}
                   required
                 />
                 <BorrowerField
@@ -1788,55 +2272,68 @@ function CustomerIdentity({
                   onChange={handleBorrowerChange}
                   error={borrowerErrors.email}
                 />
-                {borrowerInformationSaved && (
-                  <>
-                    <BorrowerField
-                      label="PAN"
-                      name="pan"
-                      value={borrowerDraft.pan}
-                      onChange={handleBorrowerChange}
-                      error={borrowerErrors.pan}
-                      maxLength={10}
-                      required
-                    />
-                    <BorrowerField
-                      label="Address line 1"
-                      name="addressLine1"
-                      value={borrowerDraft.addressLine1}
-                      onChange={handleBorrowerChange}
-                      error={borrowerErrors.addressLine1}
-                      maxLength={250}
-                      required
-                    />
-                    <BorrowerField
-                      label="Address line 2"
-                      name="addressLine2"
-                      value={borrowerDraft.addressLine2}
-                      onChange={handleBorrowerChange}
-                      error={borrowerErrors.addressLine2}
-                      maxLength={250}
-                    />
-                    <BorrowerField
-                      label="City"
-                      name="city"
-                      value={borrowerDraft.city}
-                      onChange={handleBorrowerChange}
-                      error={borrowerErrors.city}
-                      maxLength={50}
-                      required
-                    />
-                    <BorrowerField
-                      label="ZIP / Postcode"
-                      name="pincode"
-                      value={borrowerDraft.pincode}
-                      onChange={handleBorrowerChange}
-                      error={borrowerErrors.pincode}
-                      inputMode="numeric"
-                      maxLength={6}
-                      required
-                    />
-                  </>
-                )}
+                <div className="glci-form-divider"><span>Identity & address</span></div>
+                <BorrowerField
+                  label="PAN"
+                  name="pan"
+                  value={borrowerDraft.pan}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.pan}
+                  maxLength={10}
+                  required
+                />
+                <AadhaarCapture
+                  aadhaar={borrowerAadhaar}
+                  onChange={handleAadhaarChange}
+                  onSave={secureAadhaar}
+                />
+                <BorrowerField
+                  label="Address line 1"
+                  name="addressLine1"
+                  value={borrowerDraft.addressLine1}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.addressLine1}
+                  maxLength={250}
+                  wide
+                  required
+                />
+                <BorrowerField
+                  label="Address line 2"
+                  name="addressLine2"
+                  value={borrowerDraft.addressLine2}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.addressLine2}
+                  maxLength={250}
+                  wide
+                />
+                <BorrowerField
+                  label="PIN code"
+                  name="pincode"
+                  value={borrowerDraft.pincode}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.pincode}
+                  inputMode="numeric"
+                  maxLength={6}
+                  required
+                />
+                <BorrowerField
+                  label="City"
+                  name="city"
+                  value={borrowerDraft.city}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.city}
+                  readOnly
+                  required
+                />
+                <BorrowerField
+                  label="State"
+                  name="state"
+                  value={borrowerDraft.state}
+                  onChange={handleBorrowerChange}
+                  error={borrowerErrors.state}
+                  readOnly
+                  required
+                />
                 <div className="glci-borrower-form-actions">
                   <span>
                     Fields marked * are mandatory. Borrower age must be between
@@ -1855,14 +2352,12 @@ function CustomerIdentity({
               <>
                 <div className="glci-detail-grid">
                   <Detail
-                    label="Name"
-                    value={[
-                      borrowerNode.details.firstName,
-                      borrowerNode.details.middleName,
-                      borrowerNode.details.lastName,
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
+                    label="First name"
+                    value={borrowerNode.details.firstName}
+                  />
+                  <Detail
+                    label="Last name"
+                    value={borrowerNode.details.lastName}
                   />
                   <Detail
                     label="Date of birth"
@@ -1881,6 +2376,17 @@ function CustomerIdentity({
                     value={borrowerNode.details.email}
                     verified={customerType === "ETB"}
                   />
+                  <Detail label="PAN" value={borrowerNode.details.pan} verified={Boolean(borrowerNode.details.pan)} />
+                  <Detail
+                    label="Aadhaar reference"
+                    value={borrowerAadhaar.referenceNumber || "Pending"}
+                    verified={Boolean(borrowerAadhaar.referenceNumber)}
+                    wide
+                  />
+                  <Detail label="Address" value={[borrowerNode.details.addressLine1, borrowerNode.details.addressLine2].filter(Boolean).join(", ")} wide />
+                  <Detail label="PIN code" value={borrowerNode.details.pincode} />
+                  <Detail label="City" value={borrowerNode.details.city} />
+                  <Detail label="State" value={borrowerNode.details.state} />
                   {customerType === "ETB" && (
                     <>
                       <Detail
@@ -1900,12 +2406,12 @@ function CustomerIdentity({
               </>
             )}
 
-            <div className="glci-document-section">
+            <div className="glci-document-section glci-document-section-legacy">
               <div className="glci-document-section-head">
                 <div>
                   <strong>KYC documents</strong>
                   <span>
-                    View the available evidence or re-upload a fresher copy.
+                    Upload PAN and address proof for OCR verification.
                   </span>
                 </div>
                 <StatusBadge
@@ -1927,9 +2433,9 @@ function CustomerIdentity({
                   description="Upload PAN card"
                   document={borrowerDocuments.pan}
                   onUpload={(file) => handleDocumentUpload("pan", file)}
-                  disabled={
-                    isBorrowerEditing || ntbOnboardingStatus === "Running"
-                  }
+                  onVerify={verifyPan}
+                  verificationRequired
+                  disabled={ntbOnboardingStatus === "Running"}
                 />
                 <BorrowerDocument
                   label="Address proof"
@@ -1938,13 +2444,11 @@ function CustomerIdentity({
                   onUpload={(file) =>
                     handleDocumentUpload("addressProof", file)
                   }
-                  disabled={
-                    isBorrowerEditing || ntbOnboardingStatus === "Running"
-                  }
+                  disabled={ntbOnboardingStatus === "Running"}
                 />
               </div>
 
-              {borrowerDocumentsComplete && (
+              {false && borrowerDocumentsComplete && (
                 <div className="glci-address-section">
                   <div className="glci-address-section-head">
                     <div>

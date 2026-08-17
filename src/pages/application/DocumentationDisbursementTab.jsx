@@ -136,7 +136,7 @@ const getDemoContext = (leadDetails, lead) => {
       [borrower.firstName, borrower.lastName].filter(Boolean).join(" ") ||
       lead?.customerName ||
       lead?.name ||
-      "Arjun Mehta",
+      "Shivanjali Gaikwad",
     loanAmount:
       checker.sanctionedAmount ||
       checker.approvedAmount ||

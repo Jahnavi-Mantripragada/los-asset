@@ -97,7 +97,7 @@ const FACILITY_OPTIONS = {
         name: "YES Gold Loan - Regular",
         loanType: "TL",
         tenureOptions: ["6 Months", "12 Months", "18 Months"],
-        repaymentTypes: ["EMI", "Monthly interest, principal at maturity"],
+        repaymentTypes: ["EMI", "Quarterly", "Bullet Repayment"],
       },
       {
         name: "YES Gold Loan - Bullet",
@@ -703,7 +703,7 @@ function FacilityBranchLoanDetailsPage({
               </select>
             )}
           </label>
-          {isTermLoan && (
+          {(
             <label>
               <span>Repayment type *</span>
               <select

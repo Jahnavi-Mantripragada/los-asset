@@ -1904,6 +1904,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .glci-kyc-file-row > div:first-child {
@@ -1911,6 +1913,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1 1 120px;
 }
 
 .glci-kyc-file-row strong {
@@ -1927,7 +1930,10 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .glci-kyc-actions a,

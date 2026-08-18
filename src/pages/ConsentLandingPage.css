@@ -286,6 +286,10 @@
   border-radius: 16px;
 }
 
+.consent-page__terms-block--compact {
+  padding-bottom: 18px;
+}
+
 .consent-page__terms-block h4 {
   margin: 0 0 10px;
   color: #0d447c;
@@ -299,6 +303,86 @@
   display: grid;
   gap: 10px;
   font-size: 14px;
+}
+
+.consent-page__aadhaar-copy {
+  margin: 0;
+  color: #516479;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.consent-page__aadhaar-card {
+  margin-top: 18px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 92% 18%, rgba(215, 162, 30, 0.08), transparent 24%),
+    linear-gradient(180deg, #fcfdff 0%, #f7fafc 100%);
+  border: 1px solid #dbe6f0;
+  border-radius: 16px;
+}
+
+.consent-page__aadhaar-card-head {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.consent-page__aadhaar-card-head span {
+  color: #9b6a08;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.consent-page__aadhaar-card-head strong {
+  color: #0d447c;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.consent-page__aadhaar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consent-page__aadhaar-field > span {
+  color: #465b70;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.consent-page__aadhaar-field input {
+  width: 100%;
+  height: 54px;
+  padding: 0 16px;
+  color: #17283b;
+  background: #fff;
+  border: 1px solid #cad9e8;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
+.consent-page__aadhaar-field input:focus {
+  outline: 3px solid rgba(0, 81, 143, 0.16);
+  outline-offset: 2px;
+  border-color: #00518f;
+}
+
+.consent-page__aadhaar-field small {
+  color: #607287;
+  font-size: 12px;
+}
+
+.consent-page__aadhaar-field small strong {
+  color: #0d447c;
+  font-weight: 700;
 }
 
 .consent-page__checkbox-stack {

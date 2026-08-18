@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./CustomerIdentityPage.css";
+import {
+  normaliseIndianWhatsAppNumber,
+  sendWhatsAppMessage,
+} from "../../services/whatsAppService";
 
 const CONSENT_WAIT_SECONDS = 6;
 const DEFAULT_LEAD_API_BASE =
@@ -325,6 +329,37 @@ const createReference = (prefix) =>
     .slice(2, 6)
     .toUpperCase()}`;
 
+const buildConsentLandingUrl = ({
+  customerName,
+  email,
+  leadId,
+  mobile,
+  requestReference,
+}) => {
+  const params = new URLSearchParams({
+    name: customerName || "",
+    leadId: leadId || "",
+    mobile: mobile || "",
+    email: email || "",
+    requestReference: requestReference || "",
+  });
+
+  return `${window.location.origin}/consent?${params.toString()}`;
+};
+
+const buildConsentMessage = ({ consentUrl, customerName }) => {
+  const salutation = customerName ? `Dear ${customerName},` : "Dear Customer,";
+  return `${salutation}
+
+Thank you for choosing YES BANK Gold Loan.
+
+To continue your application, please provide your consent for application processing, KYC/CBS verification, internal checks, and journey-related communication.
+
+Consent Page: ${consentUrl}
+
+If you did not initiate this request, please ignore this message.`;
+};
+
 const maskMobile = (value) => {
   const digits = normaliseMobile(value);
   return digits ? `+91 XXXXX ${digits.slice(-5)}` : "—";
@@ -522,7 +557,7 @@ const ensureLeadDetailsNodes = (rawLeadDetails, lead) => {
   const customerConsent = {
     status: "Pending",
     requestReference: "",
-    channel: "Secure SMS link with OTP",
+    channel: "WhatsApp consent link",
     sentAt: "",
     capturedAt: "",
     expiresAt: "",
@@ -952,6 +987,7 @@ function CustomerIdentity({
   const [searchRunning, setSearchRunning] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [searchResultStatus, setSearchResultStatus] = useState("IDLE");
+  const [consentSending, setConsentSending] = useState(false);
   const [consentSeconds, setConsentSeconds] = useState(CONSENT_WAIT_SECONDS);
   const [notice, setNotice] = useState("");
   const [borrowerDraft, setBorrowerDraft] = useState(
@@ -1115,20 +1151,11 @@ function CustomerIdentity({
     if (consentStatus !== "Sent") return undefined;
 
     const timer = window.setInterval(() => {
-      setConsentSeconds((seconds) => {
-        if (seconds > 1) return seconds - 1;
-
-        updateNode("customerConsent", {
-          status: "Captured",
-          capturedAt: getTimestamp(),
-        });
-        setNotice("Customer consent received and recorded.");
-        return 0;
-      });
+      setConsentSeconds((seconds) => (seconds > 0 ? seconds - 1 : 0));
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [consentStatus, updateNode]);
+  }, [consentStatus]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -1332,27 +1359,64 @@ function CustomerIdentity({
     setNotice("No CBS match found. Applicant confirmed as an NTB customer.");
   };
 
-  const sendConsent = () => {
+  const sendConsent = async () => {
+    const targetPhoneNumber = normaliseIndianWhatsAppNumber(
+      customer.mobile || lead.mobile,
+    );
+
+    if (!targetPhoneNumber) {
+      setNotice("Lead mobile number is unavailable for WhatsApp consent.");
+      return;
+    }
+
     const resendCount =
       consentStatus === "Sent" || consentStatus === "Captured"
         ? (consentNode.resendCount || 0) + 1
         : consentNode.resendCount || 0;
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
-
-    setConsentSeconds(CONSENT_WAIT_SECONDS);
-    updateNode("customerConsent", {
-      status: "Sent",
-      requestReference: createReference("CONSENT"),
-      sentAt: getTimestamp(),
-      capturedAt: "",
-      expiresAt: getTimestamp(expiry),
-      resendCount,
+    const requestReference = createReference("CONSENT");
+    const consentUrl = buildConsentLandingUrl({
+      customerName: customer.fullName,
+      email: customer.email === "—" ? lead.email : customer.email,
+      leadId: getLeadIdentifier(lead, leadId),
+      mobile: normaliseMobile(customer.mobile || lead.mobile),
+      requestReference,
     });
-    setNotice(
-      resendCount
-        ? "Consent request resent to the registered mobile."
-        : "Consent request sent to the registered mobile.",
-    );
+
+    try {
+      setConsentSending(true);
+
+      await sendWhatsAppMessage({
+        targetPhoneNumber,
+        messageBody: buildConsentMessage({
+          consentUrl,
+          customerName: customer.fullName,
+        }),
+      });
+
+      setConsentSeconds(CONSENT_WAIT_SECONDS);
+      updateNode("customerConsent", {
+        status: "Sent",
+        requestReference,
+        sentAt: getTimestamp(),
+        capturedAt: "",
+        expiresAt: getTimestamp(expiry),
+        resendCount,
+      });
+      setNotice(
+        resendCount
+          ? "Consent request resent successfully on WhatsApp."
+          : "Consent request sent successfully on WhatsApp.",
+      );
+    } catch (error) {
+      console.error("Unable to send WhatsApp consent request:", error);
+      setNotice(
+        error.message ||
+          "Unable to send the WhatsApp consent request.",
+      );
+    } finally {
+      setConsentSending(false);
+    }
   };
 
   const handleDocumentUpload = async (key, file) => {
@@ -2016,7 +2080,7 @@ function CustomerIdentity({
                       : "Send secure consent request"}
                 </strong>
                 <p>
-                  Secure SMS link with OTP to{" "}
+                  WhatsApp consent link to{" "}
                   <b>{maskMobile(customer.mobile)}</b>
                 </p>
               </div>
@@ -2038,8 +2102,17 @@ function CustomerIdentity({
                   type="button"
                   className="glci-secondary-button"
                   onClick={sendConsent}
+                  disabled={consentSending}
                 >
-                  <RefreshIcon /> Resend
+                  {consentSending ? (
+                    <>
+                      <Spinner /> Sending...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshIcon /> Resend
+                    </>
+                  )}
                 </button>
               </div>
             ) : consentStatus === "Sent" ? (
@@ -2048,8 +2121,8 @@ function CustomerIdentity({
                 role="status"
                 aria-live="polite"
               >
-                <span className="glci-pulse-ring">
-                  <Spinner />
+                <span className="glci-success-mark">
+                  <CheckIcon />
                 </span>
                 <div>
                   <strong>Consent request sent successfully</strong>
@@ -2063,13 +2136,24 @@ function CustomerIdentity({
                   </small>
                 </div>
                 <div className="glci-consent-actions">
-                  <span className="glci-countdown">{consentSeconds}s</span>
+                  {consentSeconds > 0 && (
+                    <span className="glci-countdown">{consentSeconds}s</span>
+                  )}
                   <button
                     type="button"
                     className="glci-secondary-button"
                     onClick={sendConsent}
+                    disabled={consentSending}
                   >
-                    <RefreshIcon /> Resend
+                    {consentSending ? (
+                      <>
+                        <Spinner /> Sending...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshIcon /> Resend
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -2078,9 +2162,15 @@ function CustomerIdentity({
                 type="button"
                 className="glci-primary-button"
                 onClick={sendConsent}
-                disabled={!customerConfirmed}
+                disabled={!customerConfirmed || consentSending}
               >
-                Send consent request
+                {consentSending ? (
+                  <>
+                    <Spinner /> Sending consent request...
+                  </>
+                ) : (
+                  "Send consent request"
+                )}
               </button>
             )}
 

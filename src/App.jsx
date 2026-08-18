@@ -5,6 +5,7 @@ import { getCurrentUser, fetchAuthSession, signOut } from "aws-amplify/auth";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import LeadDetailPage from "./pages/LeadDetailPage";
+import ConsentLandingPage from "./pages/ConsentLandingPage";
 import ApplicationOnboardingPage from "./pages/application/ApplicationOnboardingPage";
 import ApplicationDetailPage from "./pages/application/ApplicationDetailPage";
 
@@ -216,6 +217,11 @@ function App() {
               <ApplicationOnboardingPage leads={leads} onLogout={handleLogout} />
             </PrivateRoute>
           }
+        />
+
+        <Route
+          path="/consent"
+          element={<ConsentLandingPage />}
         />
 
         {/* Catch-all redirect */}

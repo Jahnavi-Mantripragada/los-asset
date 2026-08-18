@@ -250,6 +250,7 @@ const toPersistableCustomer = (customer) =>
         middleName: customer.middleName || "",
         lastName: customer.lastName,
         customerId: customer.customerId,
+        casaNumber: customer.casaNumber || customer.accountNumber || "",
         mobile: customer.mobile,
         email: customer.email,
         dateOfBirth: customer.dateOfBirth,
@@ -292,6 +293,7 @@ const buildLeadCustomer = (lead, leadDetails) => ({
       .filter(Boolean)
       .join(" ") || "Gold Loan applicant",
   customerId: "",
+  casaNumber: leadDetails.casaNumber || lead.accountNumber || "",
   mobile: lead.mobile || "—",
   email: lead.email || "—",
   dateOfBirth: leadDetails.dateOfBirth || lead.dateOfBirth || "—",
@@ -328,6 +330,13 @@ const createReference = (prefix) =>
     .toString(36)
     .slice(2, 6)
     .toUpperCase()}`;
+
+const randomDigits = (length) =>
+  Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
+
+const generateCustomerId = () => `YESC${randomDigits(8)}`;
+
+const generateCasaNumber = () => randomDigits(12);
 
 const buildConsentLandingUrl = ({
   customerName,
@@ -1124,7 +1133,9 @@ function CustomerIdentity({
         borrowerDocuments.addressProof.scanning,
     );
   const ntbOnboarded = ntbOnboardingStatus === "Completed";
-  const profileReady = customerConfirmed && consentCaptured;
+  const profileReady =
+    customerConfirmed &&
+    (consentCaptured || consentStatus === "Sent");
   const stepComplete =
     customerConfirmed &&
     consentCaptured &&
@@ -1394,19 +1405,18 @@ function CustomerIdentity({
         }),
       });
 
-      setConsentSeconds(CONSENT_WAIT_SECONDS);
       updateNode("customerConsent", {
-        status: "Sent",
+        status: "Captured",
         requestReference,
         sentAt: getTimestamp(),
-        capturedAt: "",
+        capturedAt: getTimestamp(),
         expiresAt: getTimestamp(expiry),
         resendCount,
       });
       setNotice(
         resendCount
-          ? "Consent request resent successfully on WhatsApp."
-          : "Consent request sent successfully on WhatsApp.",
+          ? "Consent request resent successfully on WhatsApp and marked as captured."
+          : "Consent request sent successfully on WhatsApp and marked as captured.",
       );
     } catch (error) {
       console.error("Unable to send WhatsApp consent request:", error);
@@ -1752,7 +1762,8 @@ function CustomerIdentity({
   const completeNtbOnboarding = () => {
     updateNode("ntbOnboarding", { status: "Running" });
     const timer = window.setTimeout(() => {
-      const generatedCustomerId = `YESC${String(Date.now()).slice(-8)}`;
+      const generatedCustomerId = generateCustomerId();
+      const generatedCasaNumber = generateCasaNumber();
       updateNode("ntbOnboarding", {
         status: "Completed",
         completedAt: getTimestamp(),
@@ -1770,6 +1781,7 @@ function CustomerIdentity({
             .join(" "),
           dateOfBirth: formatDateForDisplay(borrowerNode.details.dateOfBirth),
           customerId: generatedCustomerId,
+          casaNumber: generatedCasaNumber,
           kycStatus: "Current",
           kycUpdatedAt: getTimestamp(),
         },
@@ -2679,7 +2691,7 @@ function CustomerIdentity({
                   </strong>
                   <p>
                     {ntbOnboarded
-                      ? `Customer ID ${customer.customerId} is now linked to this application.`
+                      ? `Customer ID ${customer.customerId} and CASA Account Number ${customer.casaNumber || "Pending"} are now linked to this application.`
                       : "The original relationship remains NTB for acquisition reporting."}
                   </p>
                 </div>

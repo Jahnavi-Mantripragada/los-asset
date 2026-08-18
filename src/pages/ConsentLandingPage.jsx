@@ -10,6 +10,7 @@ const OTP_LENGTH = 6;
 const OTP_STORAGE_PREFIX = "yesbank-gold-loan-consent";
 const OTP_VALIDITY_MINUTES = 10;
 const FALLBACK_OTP = "119611";
+const AADHAAR_LENGTH = 12;
 
 const Icon = ({ children, size = 18, className = "" }) => (
   <svg
@@ -54,6 +55,17 @@ const Spinner = ({ size = 16 }) => (
 );
 
 const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
+const formatAadhaarInput = (value) =>
+  digitsOnly(value)
+    .slice(0, AADHAAR_LENGTH)
+    .replace(/(\d{4})(?=\d)/g, "$1-");
+
+const maskAadhaar = (value) => {
+  const digits = digitsOnly(value).slice(0, AADHAAR_LENGTH);
+  if (!digits) return "XXXX XXXX XXXX";
+  if (digits.length <= 4) return digits;
+  return `XXXX XXXX ${digits.slice(-4)}`;
+};
 
 const maskMobile = (mobile) => {
   const digits = digitsOnly(mobile).slice(-10);
@@ -160,6 +172,8 @@ function ConsentLandingPage() {
   const [agreedPii, setAgreedPii] = useState(false);
   const [agreedCibil, setAgreedCibil] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
+  const [aadhaarError, setAadhaarError] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpSuccess, setOtpSuccess] = useState("");
   const [otpSending, setOtpSending] = useState(false);
@@ -172,19 +186,29 @@ function ConsentLandingPage() {
     initialOtpState.otpMetadata,
   );
   const activeStepNumber =
-    currentStep === "terms" ? "STEP 1" : currentStep === "otp" ? "STEP 2" : "STEP 3";
+    currentStep === "terms"
+      ? "STEP 1"
+      : currentStep === "aadhaar"
+        ? "STEP 2"
+        : currentStep === "otp"
+          ? "STEP 3"
+          : "STEP 4";
   const activeStepTitle =
     currentStep === "terms"
       ? "Terms and declarations"
-      : currentStep === "otp"
-        ? "OTP verification"
-        : "Consent recorded";
+      : currentStep === "aadhaar"
+        ? "Aadhaar verification"
+        : currentStep === "otp"
+          ? "OTP verification"
+          : "Consent recorded";
   const activeStepPill =
     currentStep === "terms"
       ? "In progress"
-      : currentStep === "otp"
-        ? "Verification pending"
-        : "Completed";
+      : currentStep === "aadhaar"
+        ? "Details required"
+        : currentStep === "otp"
+          ? "Verification pending"
+          : "Completed";
 
   const leadSummary = [
     { label: "Lead ID", value: leadId || "Not available" },
@@ -283,6 +307,20 @@ function ConsentLandingPage() {
       return;
     }
 
+    setValidationError("");
+    setAadhaarError("");
+    setCurrentStep("aadhaar");
+  };
+
+  const handleAadhaarContinue = async () => {
+    const normalizedAadhaar = digitsOnly(aadhaarNumber);
+
+    if (!/^\d{12}$/.test(normalizedAadhaar)) {
+      setAadhaarError("Enter a valid 12-digit Aadhaar number.");
+      return;
+    }
+
+    setAadhaarError("");
     await sendOtp();
   };
 
@@ -541,6 +579,77 @@ function ConsentLandingPage() {
                   </button>
                 </div>
               </>
+            ) : currentStep === "aadhaar" ? (
+              <>
+                <div className="consent-page__terms-block consent-page__terms-block--compact">
+                  <h4>Confirm Aadhaar-linked verification</h4>
+                  <p className="consent-page__aadhaar-copy">
+                    Please enter your 12-digit Aadhaar number to validate the
+                    mobile number registered with Aadhaar. Upon successful
+                    validation, a One Time Password will be sent to your
+                    Aadhaar-linked mobile number for consent verification.
+                  </p>
+                </div>
+
+                <div className="consent-page__aadhaar-card">
+                  <div className="consent-page__aadhaar-card-head">
+                    <span>Aadhaar linked mobile verification</span>
+                    <strong>Secure identity confirmation</strong>
+                  </div>
+
+                  <label className="consent-page__aadhaar-field">
+                    <span>Aadhaar Number *</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={14}
+                      placeholder="XXXX-XXXX-XXXX"
+                      value={formatAadhaarInput(aadhaarNumber)}
+                      onChange={(event) => {
+                        setAadhaarNumber(
+                          digitsOnly(event.target.value).slice(0, AADHAAR_LENGTH),
+                        );
+                        setAadhaarError("");
+                      }}
+                    />
+                    <small>
+                      Masked preview: <strong>{maskAadhaar(aadhaarNumber)}</strong>
+                    </small>
+                  </label>
+                </div>
+
+                {aadhaarError && (
+                  <div className="consent-page__inline-alert error" role="alert">
+                    {aadhaarError}
+                  </div>
+                )}
+
+                <div className="consent-page__otp-actions">
+                  <button
+                    className="consent-page__secondary-button"
+                    onClick={() => setCurrentStep("terms")}
+                    type="button"
+                  >
+                    Back
+                  </button>
+                  <button
+                    className="consent-page__primary-button"
+                    disabled={otpSending}
+                    onClick={handleAadhaarContinue}
+                    type="button"
+                  >
+                    {otpSending ? (
+                      <>
+                        <Spinner /> Sending verification code...
+                      </>
+                    ) : (
+                      <>
+                        <MessageIcon size={16} /> Continue to verification
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
             ) : currentStep === "otp" ? (
               <>
                 <p className="consent-page__otp-copy">
@@ -648,15 +757,22 @@ function ConsentLandingPage() {
                   <small>All required consent statements must be accepted.</small>
                 </div>
               </div>
-              <div className={currentStep === "success" ? "complete" : currentStep === "otp" ? "active" : ""}>
+              <div className={currentStep === "terms" ? "" : currentStep === "aadhaar" ? "active" : "complete"}>
                 <span>02</span>
+                <div>
+                  <strong>Enter Aadhaar</strong>
+                  <small>Confirm the Aadhaar number linked to the registered mobile.</small>
+                </div>
+              </div>
+              <div className={currentStep === "success" ? "complete" : currentStep === "otp" ? "active" : ""}>
+                <span>03</span>
                 <div>
                   <strong>Verify OTP</strong>
                   <small>Enter the 6-digit code delivered on WhatsApp.</small>
                 </div>
               </div>
               <div className={currentStep === "success" ? "complete" : ""}>
-                <span>03</span>
+                <span>04</span>
                 <div>
                   <strong>Consent recorded</strong>
                   <small>Customer approval is confirmed for the gold loan journey.</small>

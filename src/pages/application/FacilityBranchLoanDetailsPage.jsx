@@ -157,6 +157,7 @@ const createJewelleryItem = (sequence = 1) => ({
   lendingRatePerGram: getLendingRateForQuality(22),
   jewelleryDefects: "",
   ownershipProof: null,
+  jewelImage: null,
 });
 
 const normalizeJewelleryItem = (item, index) => {
@@ -174,6 +175,7 @@ const normalizeJewelleryItem = (item, index) => {
     lendingRatePerGram: getLendingRateForQuality(qualityFinenessK),
     jewelleryDefects: item?.jewelleryDefects || item?.remarks || "",
     ownershipProof: item?.ownershipProof || null,
+    jewelImage: item?.jewelImage || null,
   };
 };
 
@@ -182,7 +184,9 @@ const isItemComplete = (item) =>
     item.jewelleryType &&
       Number(item.numberOfItems) > 0 &&
       item.ownershipProof?.name &&
-      item.ownershipProof?.dataUrl
+      item.ownershipProof?.dataUrl &&
+      item.jewelImage?.name &&
+      item.jewelImage?.dataUrl
   );
 
 const parseLeadDetails = (leadDetails) => {
@@ -622,6 +626,48 @@ function FacilityBranchLoanDetailsPage({
     reader.readAsDataURL(file);
   };
 
+  const handleJewelImageUpload = (id, file) => {
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png"];
+    const errorKey = `${id}-jewel-image`;
+
+    if (!allowedTypes.includes(file.type)) {
+      setUploadErrors((current) => ({
+        ...current,
+        [errorKey]: "Upload a JPG, JPEG or PNG image file.",
+      }));
+      return;
+    }
+
+    if (file.size > 10 * 1024) {
+      setUploadErrors((current) => ({
+        ...current,
+        [errorKey]: "Image size must be 10 KB or less.",
+      }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateJewelleryItem(id, "jewelImage", {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        dataUrl: reader.result,
+        uploadedAt: new Date().toISOString(),
+      });
+      setUploadErrors((current) => ({ ...current, [errorKey]: "" }));
+    };
+    reader.onerror = () => {
+      setUploadErrors((current) => ({
+        ...current,
+        [errorKey]: "The image could not be read. Please try again.",
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="fbl-page">
       <section className="fbl-section fbl-card">
@@ -845,6 +891,29 @@ function FacilityBranchLoanDetailsPage({
                     </small>
                   )}
                 </div>
+                <div className="jds-image-field">
+                  <span>Jewel Image *</span>
+                  <label className={`jds-upload ${item.jewelImage ? "uploaded" : ""}`}>
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                      onChange={(event) =>
+                        handleJewelImageUpload(item.id, event.target.files?.[0])
+                      }
+                    />
+                    <UploadIcon />
+                    <span>
+                      {item.jewelImage?.name || "Upload jewel image"}
+                    </span>
+                    <strong>{item.jewelImage ? "Replace" : "Choose file"}</strong>
+                  </label>
+                  <small>JPG, JPEG or PNG Maximum 10 KB</small>
+                  {uploadErrors[`${item.id}-jewel-image`] && (
+                    <small className="jds-upload-error" role="alert">
+                      {uploadErrors[`${item.id}-jewel-image`]}
+                    </small>
+                  )}
+                </div>
               </div>
               <button
                 className="jds-remove-button"
@@ -887,3 +956,7 @@ function FacilityBranchLoanDetailsPage({
 }
 
 export default FacilityBranchLoanDetailsPage;
+
+
+
+

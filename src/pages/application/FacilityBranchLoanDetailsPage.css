@@ -85,7 +85,8 @@
 
 .fbl-form-grid > label,
 .jds-item-fields > label,
-.jds-proof-field {
+.jds-proof-field,
+.jds-image-field {
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -94,7 +95,8 @@
 
 .fbl-form-grid label > span,
 .jds-item-fields label > span:first-child,
-.jds-proof-field > span {
+.jds-proof-field > span,
+.jds-image-field > span {
   color: #465b70;
   font-size: 10px;
   font-weight: 700;
@@ -130,7 +132,8 @@
 }
 
 .fbl-form-grid small,
-.jds-proof-field small {
+.jds-proof-field small,
+.jds-image-field small {
   color: var(--fbl-muted);
   font-size: 9px;
 }
@@ -240,7 +243,11 @@
 }
 
 .jds-proof-field {
-  grid-column: span 3;
+  grid-column: span 2;
+}
+
+.jds-image-field {
+  grid-column: 3 / span 2;
 }
 
 .jds-upload {
@@ -382,7 +389,8 @@
   }
 
   .jds-defects-field,
-  .jds-proof-field {
+  .jds-proof-field,
+  .jds-image-field {
     grid-column: span 1;
   }
 }
@@ -415,7 +423,8 @@
   }
 
   .jds-defects-field,
-  .jds-proof-field {
+  .jds-proof-field,
+  .jds-image-field {
     grid-column: auto;
   }
 

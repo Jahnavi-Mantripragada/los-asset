@@ -124,6 +124,16 @@
 .documentation-tab__checklist input:focus-visible + .documentation-tab__custom-check { outline: 3px solid rgba(0,81,143,.22); outline-offset: 2px; }
 .documentation-tab__checklist input:disabled ~ span { cursor: not-allowed; }
 
+.documentation-tab__account-select-section { background: #f8fbfd; border: 1px solid #dce8ef; border-radius: 11px; margin-top: 16px; padding: 18px; }
+.documentation-tab__account-select-section .documentation-tab__section-heading { margin-bottom: 14px; }
+.documentation-tab__account-select-section h3 { font-size: 15px; margin: 0; }
+.documentation-tab__account-select-section p { color: var(--dd-muted); font-size: 13px; margin: 3px 0 0; }
+.documentation-tab__account-select-row { align-items: center; display: flex; gap: 12px; }
+.documentation-tab__account-label { color: var(--dd-ink); flex: 0 0 auto; font-size: 13px; font-weight: 700; }
+.documentation-tab__account-dropdown { appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23617386' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center; border: 1px solid var(--dd-border); border-radius: 8px; color: var(--dd-ink); cursor: pointer; flex: 1; font: inherit; font-size: 13px; max-width: 360px; min-height: 40px; padding: 8px 36px 8px 12px; transition: border-color .15s; }
+.documentation-tab__account-dropdown:focus { border-color: var(--dd-blue); outline: 3px solid rgba(0,81,143,.18); outline-offset: 1px; }
+.documentation-tab__account-dropdown:disabled { background-color: #f3f5f7; cursor: not-allowed; opacity: .65; }
+
 .documentation-tab__disbursement { align-items: center; background: linear-gradient(120deg, #f0f7fc, #fff); border: 1px solid #c9dfed; border-radius: 13px; display: grid; gap: 14px; grid-template-columns: auto 1fr auto; margin-top: 28px; padding: 19px; }
 .documentation-tab__disbursement.is-complete { background: linear-gradient(120deg, #edf8f2, #fff); border-color: #b9ddca; }
 .documentation-tab__disbursement-icon { align-items: center; background: var(--dd-blue); border-radius: 11px; color: #fff; display: flex; height: 47px; justify-content: center; width: 47px; }

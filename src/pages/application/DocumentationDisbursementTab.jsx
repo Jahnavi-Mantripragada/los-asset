@@ -194,6 +194,7 @@ export default function DocumentationDisbursementTab({
   const [showDisbursementConfirm, setShowDisbursementConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState("");
+  const [selectedDisbursementAccount, setSelectedDisbursementAccount] = useState("");
   const fileInputRef = useRef(null);
   const esignFileInputRef = useRef(null);
 
@@ -636,7 +637,7 @@ export default function DocumentationDisbursementTab({
           transactionReference,
           facilityType: context.facilityType,
           amount: context.loanAmount,
-          destinationAccount: context.accountNumber,
+          destinationAccount: selectedDisbursementAccount || context.accountNumber,
           cbsStatus:
             context.facilityType === "OD" ? "LIMIT_CREATED" : "AMOUNT_CREDITED",
           processedBy: loggedInUserEmail || persona,
@@ -901,6 +902,34 @@ export default function DocumentationDisbursementTab({
         </div>
       </div>}
 
+      {!alreadyDisbursed && (
+        <div className="documentation-tab__workflow-section documentation-tab__account-select-section">
+          <div className="documentation-tab__section-heading">
+            <div>
+              <h3>Disbursement account</h3>
+              <p>Select the account to which the sanctioned amount will be credited.</p>
+            </div>
+          </div>
+          <div className="documentation-tab__account-select-row">
+            <label className="documentation-tab__account-label" htmlFor="disbursement-account-select">
+              Credit account
+            </label>
+            <select
+              className="documentation-tab__account-dropdown"
+              disabled={alreadyDisbursed || isProcessing}
+              id="disbursement-account-select"
+              onChange={(e) => setSelectedDisbursementAccount(e.target.value)}
+              value={selectedDisbursementAccount}
+            >
+              <option value="">— Select account —</option>
+              <option value={context.accountNumber}>
+                {context.accountNumber} — Savings Account (Primary)
+              </option>
+            </select>
+          </div>
+        </div>
+      )}
+
       <div className={`documentation-tab__disbursement${alreadyDisbursed ? " is-complete" : ""}`}>
         <div className="documentation-tab__disbursement-icon"><Icon name={alreadyDisbursed ? "check" : "bank"} size={26} /></div>
         <div className="documentation-tab__disbursement-copy">
@@ -908,11 +937,18 @@ export default function DocumentationDisbursementTab({
           {alreadyDisbursed ? (
             <p>{context.facilityType === "OD" ? "OD limit created in CBS" : `${formatCurrency('400000')} credited to ${workflow.disbursement.destinationAccount}`} · {workflow.disbursement.transactionReference} · {formatDateTime(workflow.disbursement.completedAt)}</p>
           ) : (
-            <p>{context.facilityType === "OD" ? `Create an OD limit of ${formatCurrency(context.loanAmount)} in CBS.` : `Credit ${formatCurrency(context.loanAmount)} to account ${context.accountNumber}.`}</p>
+            <p>{context.facilityType === "OD" ? `Create an OD limit of ${formatCurrency(context.loanAmount)} in CBS.` : `Credit ${formatCurrency(context.loanAmount)} to account ${selectedDisbursementAccount || context.accountNumber}.`}</p>
           )}
         </div>
         {!alreadyDisbursed && (
-          <button className="documentation-tab__button danger" disabled={!readyForDisbursement || isProcessing} onClick={() => setShowDisbursementConfirm(true)} type="button"><Icon name="bank" />Disburse loan</button>
+          <button
+            className="documentation-tab__button danger"
+            disabled={!readyForDisbursement || isProcessing || !selectedDisbursementAccount}
+            onClick={() => setShowDisbursementConfirm(true)}
+            type="button"
+          >
+            <Icon name="bank" />Disburse loan
+          </button>
         )}
       </div>
 
@@ -944,7 +980,7 @@ export default function DocumentationDisbursementTab({
           <div aria-labelledby="disbursement-confirm-title" aria-modal="true" className="documentation-tab__modal compact" role="alertdialog">
             <div className="documentation-tab__confirm-icon"><Icon name="bank" size={28} /></div>
             <h3 id="disbursement-confirm-title">Confirm final disbursement</h3>
-            <p>{context.facilityType === "OD" ? `This will create an OD limit of ${formatCurrency(context.loanAmount)} in CBS.` : `${formatCurrency(context.loanAmount)} will be credited to ${context.accountNumber}.`} This action will complete the application.</p>
+            <p>{context.facilityType === "OD" ? `This will create an OD limit of ${formatCurrency(context.loanAmount)} in CBS.` : `${formatCurrency(context.loanAmount)} will be credited to ${selectedDisbursementAccount || context.accountNumber}.`} This action will complete the application.</p>
             <div className="documentation-tab__modal-actions"><button className="documentation-tab__button ghost" disabled={isProcessing} onClick={() => setShowDisbursementConfirm(false)} type="button">Cancel</button><button className="documentation-tab__button danger" disabled={isProcessing} onClick={completeDisbursement} type="button">{isProcessing ? "Processing in CBS…" : "Confirm disbursement"}</button></div>
           </div>
         </div>

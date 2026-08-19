@@ -857,12 +857,17 @@
 
 .details-field.wide,
 .photo-upload-field.wide,
+.jewellery-image-field.wide,
 .minor-notice.wide {
   grid-column: span 2;
 }
 
 .columns-3 .details-field.wide,
 .columns-3 .photo-upload-field.wide {
+  grid-column: span 3;
+}
+
+.columns-3 .jewellery-image-field.wide {
   grid-column: span 3;
 }
 
@@ -927,8 +932,16 @@
   border-color: var(--dt-danger);
 }
 
+.jewellery-image-field.has-error {
+  border-color: var(--dt-danger);
+}
+
 .details-field .field-error,
 .photo-upload-field .field-error {
+  color: var(--dt-danger);
+}
+
+.jewellery-image-field .field-error {
   color: var(--dt-danger);
 }
 
@@ -1087,6 +1100,107 @@
   width: 12px;
   height: 12px;
 }
+
+.jewellery-image-field {
+  padding: 13px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 11px 14px;
+  background: #f8fafc;
+  border: 1px solid #c9dce8;
+  border-radius: 9px;
+}
+
+.jewellery-image-field__heading {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--dt-muted);
+}
+
+.jewellery-image-field__heading > div { display: grid; gap: 3px; }
+.jewellery-image-field__heading span { color: var(--dt-ink); font-size: 0.7rem; font-weight: 800; }
+.jewellery-image-field__heading small,
+.jewellery-image-field__heading em { color: var(--dt-muted); font-size: 0.6rem; font-style: normal; }
+
+.jewellery-image-card {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jewellery-image-card img {
+  width: 96px;
+  height: 70px;
+  display: block;
+  object-fit: cover;
+  background: #e9f0f5;
+  border: 1px solid var(--dt-line);
+  border-radius: 6px;
+}
+
+.jewellery-image-card div { min-width: 0; display: grid; gap: 3px; }
+.jewellery-image-card strong { overflow: hidden; color: var(--dt-blue-950); font-size: 0.7rem; text-overflow: ellipsis; white-space: nowrap; }
+.jewellery-image-card small { color: var(--dt-muted); font-size: 0.58rem; }
+
+.replace-image-button {
+  align-self: center;
+  min-height: 34px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dt-blue-800);
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #bad2e1;
+  border-radius: 7px;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.replace-image-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.replace-image-button svg { width: 14px; height: 14px; }
+
+.image-match-check {
+  grid-column: 1 / -1;
+  padding-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dt-ink);
+  border-top: 1px solid #dce7ef;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.image-match-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--dt-blue-800); }
+.image-match-check input:disabled { cursor: not-allowed; }
+
+.jewellery-image-empty {
+  min-height: 50px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dt-warning);
+  background: #fff8e8;
+  border: 1px solid #ecd39b;
+  border-radius: 6px;
+  font-size: 0.65rem;
+}
+
+.jewellery-image-empty svg { width: 16px; height: 16px; }
 
 .details-empty-state {
   min-height: 220px;
@@ -1513,7 +1627,8 @@
   }
 
   .columns-3 .details-field.wide,
-  .columns-3 .photo-upload-field.wide {
+  .columns-3 .photo-upload-field.wide,
+  .columns-3 .jewellery-image-field.wide {
     grid-column: span 2;
   }
 
@@ -1629,11 +1744,16 @@
   .details-read-grid > div.wide,
   .details-field.wide,
   .photo-upload-field.wide,
+  .jewellery-image-field.wide,
   .minor-notice.wide,
   .columns-3 .details-field.wide,
-  .columns-3 .photo-upload-field.wide {
+  .columns-3 .photo-upload-field.wide,
+  .columns-3 .jewellery-image-field.wide {
     grid-column: auto;
   }
+
+  .jewellery-image-field { grid-template-columns: minmax(0, 1fr); }
+  .replace-image-button { justify-self: start; }
 
   .details-table-wrap {
     overflow: visible;

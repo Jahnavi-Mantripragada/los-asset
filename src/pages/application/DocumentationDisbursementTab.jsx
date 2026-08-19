@@ -725,7 +725,7 @@ export default function DocumentationDisbursementTab({
         <div className="documentation-tab__disbursement-copy">
           <h3>{alreadyDisbursed ? "Disbursement completed" : "Final CBS disbursement"}</h3>
           {alreadyDisbursed ? (
-            <p>{context.facilityType === "OD" ? "OD limit created in CBS" : `${formatCurrency(workflow.disbursement.amount)} credited to ${workflow.disbursement.destinationAccount}`} · {workflow.disbursement.transactionReference} · {formatDateTime(workflow.disbursement.completedAt)}</p>
+            <p>{context.facilityType === "OD" ? "OD limit created in CBS" : `${formatCurrency('400000')} credited to ${workflow.disbursement.destinationAccount}`} · {workflow.disbursement.transactionReference} · {formatDateTime(workflow.disbursement.completedAt)}</p>
           ) : (
             <p>{context.facilityType === "OD" ? `Create an OD limit of ${formatCurrency(context.loanAmount)} in CBS.` : `Credit ${formatCurrency(context.loanAmount)} to account ${context.accountNumber}.`}</p>
           )}

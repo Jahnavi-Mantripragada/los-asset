@@ -17,6 +17,12 @@ const LoanIcon = () => (
   </svg>
 );
 
+const BranchIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M4 21h16M6 21V5l6-3 6 3v16M9 9h.01M15 9h.01M9 13h.01M15 13h.01M11 21v-4h2v4" />
+  </svg>
+);
+
 const JewelleryIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
     <path d="m4 8 4-5h8l4 5-8 13Z" />
@@ -80,6 +86,20 @@ const BRANCHES = [
     dpCode: "DP-0472",
   },
   {
+    code: "YESB0000631",
+    name: "Visakhapatnam - MVP Colony",
+    address: "Sector 5, MVP Colony, Visakhapatnam, Andhra Pradesh 530017",
+    pinCode: "530017",
+    dpCode: "DP-0631",
+  },
+  {
+    code: "YESB0000694",
+    name: "Visakhapatnam - Siripuram",
+    address: "Siripuram Junction, Visakhapatnam, Andhra Pradesh 530017",
+    pinCode: "530017",
+    dpCode: "DP-0694",
+  },
+  {
     code: "YESB0000314",
     name: "Mumbai - Andheri East",
     address: "Mahakali Caves Road, Mumbai, Maharashtra 400093",
@@ -94,13 +114,13 @@ const FACILITY_OPTIONS = {
     purposes: ["Marriage", "Medical", "Personal Needs", "Others"],
     schemes: [
       {
-        name: "YES Gold Loan - Regular",
+        name: "Gold Plus",
         loanType: "TL",
         tenureOptions: ["6 Months", "12 Months", "18 Months"],
         repaymentTypes: ["EMI", "Quarterly", "Bullet Repayment"],
       },
       {
-        name: "YES Gold Loan - Bullet",
+        name: "Gold Advantage",
         loanType: "Bullet",
         tenureOptions: ["6 Months", "9 Months", "12 Months"],
       },
@@ -111,12 +131,12 @@ const FACILITY_OPTIONS = {
     purposes: ["Land Development", "Cultivation Requirement"],
     schemes: [
       {
-        name: "YES Agri Gold - Crop",
+        name: "Gold Plus",
         loanType: "Bullet",
         tenureOptions: ["6 Months", "9 Months", "12 Months"],
       },
       {
-        name: "YES Agri Gold - Development",
+        name: "Gold Advantage",
         loanType: "TL",
         tenureOptions: ["12 Months", "18 Months", "24 Months"],
         repaymentTypes: ["EMI", "Monthly interest, principal at maturity"],
@@ -135,6 +155,51 @@ const JEWELLERY_TYPES = [
   "Other Gold Ornament",
 ];
 
+const GOLD_COIN_TYPE = "Gold Coin";
+const ORNAMENT_WEIGHT_LIMIT_G = 1000; // 1 kg
+const GOLD_COIN_WEIGHT_LIMIT_G = 50;
+const GOLD_COIN_ALLOWED_QUALITY_K = 22;
+
+/**
+ * Returns per-item validation errors for weight limits and gold coin quality.
+ * Returns an object keyed by item id: { [itemId]: { weight?: string, quality?: string } }
+ */
+const getJewelleryValidationErrors = (items) => {
+  const totalCoinWeightG = items
+    .filter((item) => item.jewelleryType === GOLD_COIN_TYPE)
+    .reduce((sum, item) => sum + (Number(item.newWeightGrams) || 0), 0);
+
+  const totalOrnamentWeightG = items
+    .filter((item) => item.jewelleryType !== GOLD_COIN_TYPE)
+    .reduce((sum, item) => sum + (Number(item.newWeightGrams) || 0), 0);
+
+  const errors = {};
+
+  items.forEach((item) => {
+    const itemErrors = {};
+    const isCoin = item.jewelleryType === GOLD_COIN_TYPE;
+    const weightG = Number(item.newWeightGrams) || 0;
+
+    if (weightG > 0) {
+      if (isCoin && totalCoinWeightG > GOLD_COIN_WEIGHT_LIMIT_G) {
+        itemErrors.weight = `Total gold coin weight exceeds the ${GOLD_COIN_WEIGHT_LIMIT_G}g limit (current total: ${totalCoinWeightG.toFixed(2)}g).`;
+      } else if (!isCoin && totalOrnamentWeightG > ORNAMENT_WEIGHT_LIMIT_G) {
+        itemErrors.weight = `Total ornament weight exceeds the ${ORNAMENT_WEIGHT_LIMIT_G}g (1 kg) limit (current total: ${totalOrnamentWeightG.toFixed(2)}g).`;
+      }
+    }
+
+    if (isCoin && item.qualityFinenessK && Number(item.qualityFinenessK) !== GOLD_COIN_ALLOWED_QUALITY_K) {
+      itemErrors.quality = `Gold coins must be ${GOLD_COIN_ALLOWED_QUALITY_K}K only.`;
+    }
+
+    if (Object.keys(itemErrors).length > 0) {
+      errors[item.id] = itemErrors;
+    }
+  });
+
+  return errors;
+};
+
 const LENDING_RATES_PER_GRAM = Object.freeze({
   24: 15528,
   22: 14224,
@@ -152,9 +217,9 @@ const createJewelleryItem = (sequence = 1) => ({
   serialNumber: sequence,
   jewelleryType: "Gold Necklace",
   numberOfItems: 1,
-  qualityFinenessK: 22,
+  qualityFinenessK: "",
   newWeightGrams: "",
-  lendingRatePerGram: getLendingRateForQuality(22),
+  lendingRatePerGram: "",
   jewelleryDefects: "",
   ownershipProof: null,
   jewelImage: null,
@@ -367,9 +432,13 @@ function FacilityBranchLoanDetailsPage({
       (form.branchType === "Home" || form.pinCode.length === 6)
   );
 
+  const jewelleryValidationErrors = getJewelleryValidationErrors(form.jewelleryItems);
+  const hasJewelleryValidationErrors = Object.keys(jewelleryValidationErrors).length > 0;
+
   const jewelleryComplete =
     form.jewelleryItems.length > 0 &&
-    form.jewelleryItems.every(isItemComplete);
+    form.jewelleryItems.every(isItemComplete) &&
+    !hasJewelleryValidationErrors;
 
   const stepComplete = Boolean(
     branchComplete &&
@@ -540,6 +609,20 @@ function FacilityBranchLoanDetailsPage({
     }));
   };
 
+  const handleBranchTypeChange = (branchType) => {
+    setForm((current) => ({
+      ...current,
+      branchType,
+      pinCode: branchType === "Home" ? homeBranch.pinCode : "",
+      selectedBranchCode: branchType === "Home" ? homeBranch.code : "",
+    }));
+  };
+
+  const handleBranchPinChange = (event) => {
+    const pinCode = event.target.value.replace(/\D/g, "").slice(0, 6);
+    setForm((current) => ({ ...current, pinCode, selectedBranchCode: "" }));
+  };
+
   /* Jewellery Items Handlers */
   const addJewelleryItem = () => {
     setForm((current) => ({
@@ -672,8 +755,75 @@ function FacilityBranchLoanDetailsPage({
     <div className="fbl-page">
       <section className="fbl-section fbl-card">
         <SectionHeading
+          icon={<BranchIcon />}
+          eyebrow="01 · BRANCH SELECTION"
+          title="Choose the servicing branch"
+          description="Your home branch is selected by default. Change it when the customer prefers another branch."
+          badge={<span className={`fbl-badge ${branchComplete ? "success" : ""}`}>{branchComplete ? "Branch selected" : "Selection required"}</span>}
+        />
+
+        <div className="fbl-branch-choice" role="radiogroup" aria-label="Branch selection type">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={form.branchType === "Home"}
+            className={`fbl-branch-option ${form.branchType === "Home" ? "selected" : ""}`}
+            onClick={() => handleBranchTypeChange("Home")}
+          >
+            <span className="fbl-branch-option-mark">{form.branchType === "Home" && <CheckIcon />}</span>
+            <span><strong>Home branch</strong><small>Use the CBS-mapped servicing branch</small></span>
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={form.branchType === "Other"}
+            className={`fbl-branch-option ${form.branchType === "Other" ? "selected" : ""}`}
+            onClick={() => handleBranchTypeChange("Other")}
+          >
+            <span className="fbl-branch-option-mark">{form.branchType === "Other" && <CheckIcon />}</span>
+            <span><strong>Choose another branch</strong><small>Search available branches using the PIN code</small></span>
+          </button>
+        </div>
+
+        {form.branchType === "Home" ? (
+          <div className="fbl-branch-summary">
+            <span className="fbl-branch-summary-icon"><BranchIcon /></span>
+            <div><strong>{homeBranch.name}</strong><p>{homeBranch.address}</p></div>
+            <dl><div><dt>Branch code</dt><dd>{homeBranch.code}</dd></div><div><dt>DP code</dt><dd>{homeBranch.dpCode}</dd></div></dl>
+          </div>
+        ) : (
+          <div className="fbl-branch-search">
+            <label className="fbl-pin-field">
+              <span>Branch PIN code *</span>
+              <input value={form.pinCode} inputMode="numeric" maxLength="6" placeholder="Enter 6-digit PIN" onChange={handleBranchPinChange} />
+              <small>Demo branches are available for 411028 and 530017.</small>
+            </label>
+            {form.pinCode.length === 6 && (
+              availableBranches.length ? (
+                <label className="fbl-branch-select-field">
+                  <span>Available branches *</span>
+                  <select value={form.selectedBranchCode} onChange={(event) => setForm((current) => ({ ...current, selectedBranchCode: event.target.value }))}>
+                    <option value="">Select a branch</option>
+                    {availableBranches.map((branch) => <option value={branch.code} key={branch.code}>{branch.name} · {branch.code}</option>)}
+                  </select>
+                </label>
+              ) : <p className="fbl-branch-empty" role="status">No branches found for PIN {form.pinCode}. Try 411028 or 530017.</p>
+            )}
+            {selectedBranch && (
+              <div className="fbl-branch-summary selected">
+                <span className="fbl-branch-summary-icon"><CheckIcon /></span>
+                <div><strong>{selectedBranch.name}</strong><p>{selectedBranch.address}</p></div>
+                <dl><div><dt>Branch code</dt><dd>{selectedBranch.code}</dd></div><div><dt>DP code</dt><dd>{selectedBranch.dpCode}</dd></div></dl>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="fbl-section fbl-card">
+        <SectionHeading
           icon={<LoanIcon />}
-          eyebrow="01 · PRODUCT, FACILITY & SCHEME"
+          eyebrow="02 · PRODUCT, FACILITY & SCHEME"
           title="Configure the requested Gold Loan"
           description="The selected product controls the available schemes and permitted loan purpose."
           badge={<span className="fbl-badge gold">Gold Loan</span>}
@@ -749,7 +899,7 @@ function FacilityBranchLoanDetailsPage({
               </select>
             )}
           </label>
-          {(
+          {isTermLoan && (
             <label>
               <span>Repayment type *</span>
               <select
@@ -789,7 +939,7 @@ function FacilityBranchLoanDetailsPage({
       <section className="fbl-section fbl-card">
         <SectionHeading
           icon={<JewelleryIcon />}
-          eyebrow="02 · JEWELLERY OFFERED"
+          eyebrow="03 · JEWELLERY OFFERED"
           title="Record the jewellery items presented"
           description="Capture the jewellery type, quantity, fineness, weight, lending rate and any observed defects."
           badge={
@@ -800,8 +950,10 @@ function FacilityBranchLoanDetailsPage({
         />
 
         <div className="jds-items">
-          {form.jewelleryItems.map((item, index) => (
-            <div className={`jds-item ${isItemComplete(item) ? "complete" : ""}`} key={item.id}>
+          {form.jewelleryItems.map((item, index) => {
+            const itemErrors = jewelleryValidationErrors[item.id] || {};
+            return (
+            <div className={`jds-item ${isItemComplete(item) && !itemErrors.weight && !itemErrors.quality ? "complete" : ""}`} key={item.id}>
               <div className="jds-item-number">
                 <span>ITEM</span>
                 <strong>{String(index + 1).padStart(2, "0")}</strong>
@@ -828,16 +980,28 @@ function FacilityBranchLoanDetailsPage({
                   />
                 </label>
                 <label>
-                  <span>Quality/Fineness (K)</span>
+                  <span>Quality/Fineness (K){item.jewelleryType === GOLD_COIN_TYPE ? " *" : ""}</span>
                   <select
                     value={item.qualityFinenessK}
                     onChange={(event) => updateJewelleryQuality(item.id, event.target.value)}
                   >
-                    <option value="">Select quality (optional)</option>
-                    <option value={24}>24K (999)</option>
-                    <option value={22}>22K (916)</option>
-                    <option value={18}>18K (750)</option>
+                    <option value="">Select quality{item.jewelleryType === GOLD_COIN_TYPE ? "" : " (optional)"}</option>
+                    {item.jewelleryType === GOLD_COIN_TYPE ? (
+                      <option value={22}>22K (916)</option>
+                    ) : (
+                      <>
+                        <option value={24}>24K (999)</option>
+                        <option value={22}>22K (916)</option>
+                        <option value={18}>18K (750)</option>
+                      </>
+                    )}
                   </select>
+                  {itemErrors.quality && (
+                    <small className="jds-upload-error" role="alert">{itemErrors.quality}</small>
+                  )}
+                  {item.jewelleryType === GOLD_COIN_TYPE && (
+                    <small>Gold coins are accepted at 22K (916) only.</small>
+                  )}
                 </label>
                 <label>
                   <span>New Weight (grams)</span>
@@ -849,6 +1013,9 @@ function FacilityBranchLoanDetailsPage({
                     placeholder="e.g. 42.50"
                     onChange={(event) => updateJewelleryItem(item.id, "newWeightGrams", event.target.value)}
                   />
+                  {itemErrors.weight && (
+                    <small className="jds-upload-error" role="alert">{itemErrors.weight}</small>
+                  )}
                 </label>
                 <label>
                   <span>Lending Rate per Gram</span>
@@ -924,9 +1091,10 @@ function FacilityBranchLoanDetailsPage({
               >
                 <TrashIcon />
               </button>
-              {isItemComplete(item) && <span className="jds-item-complete"><CheckIcon /> Complete</span>}
+              {isItemComplete(item) && !itemErrors.weight && !itemErrors.quality && <span className="jds-item-complete"><CheckIcon /> Complete</span>}
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -956,7 +1124,3 @@ function FacilityBranchLoanDetailsPage({
 }
 
 export default FacilityBranchLoanDetailsPage;
-
-
-
-

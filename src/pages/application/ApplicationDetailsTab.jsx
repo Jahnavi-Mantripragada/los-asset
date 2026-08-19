@@ -259,7 +259,7 @@ const emptyAppraisal = () => ({
   alloyDeduction: "",
   fasteningDeduction: "",
   otherDeduction: "",
-  photographs: [],
+  jewelleryMatchesImage: false,
   remarks: "",
   status: "Pending",
 });
@@ -281,12 +281,11 @@ const normalizeItems = (items) =>
       grossWeight: item.appraisal?.grossWeight || item.newWeightGrams || item.netWeight || item.weight || "",
       defectPresent: item.appraisal?.defectPresent || (item.jewelleryDefects ? "Yes" : "No"),
       defectDescription: item.appraisal?.defectDescription || item.jewelleryDefects || "",
-      photographs:
-        item.appraisal?.photographs ||
-        item.assessment?.photographs ||
-        item.appraiserAssessment?.photographs ||
-        item.photographs ||
-        [],
+      jewelleryMatchesImage: Boolean(
+        item.appraisal?.jewelleryMatchesImage ??
+          item.assessment?.jewelleryMatchesImage ??
+          item.appraiserAssessment?.jewelleryMatchesImage,
+      ),
     },
   }));
 
@@ -869,7 +868,7 @@ export default function ApplicationDetailsTab({
           const details = application.details || {};
           const appraisalNode = {
             ...(details.jewelleryAppraisal || application.appraisal || {}),
-            items: appraisalItems.map((item) => ({ ...item, appraisal: { ...item.appraisal, photographs: (item.appraisal.photographs || []).map(({ dataUrl, ...photo }) => ({ ...photo, uploaded: true, url: "/images/sample-jwellery.jpg" })), netWeight: netWeightFor(item), lendingRatePerGram: lendingRateFor(item), appraisedValue: appraisedValueFor(item) } })),
+            items: appraisalItems.map((item) => ({ ...item, appraisal: { ...item.appraisal, netWeight: netWeightFor(item), lendingRatePerGram: lendingRateFor(item), appraisedValue: appraisedValueFor(item) } })),
             totalAppraisedValue: appraisalItems.reduce((sum, item) => sum + appraisedValueFor(item), 0),
             lastSavedAt: new Date().toISOString(),
           };
@@ -884,31 +883,34 @@ export default function ApplicationDetailsTab({
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
   }, [appraisalItems, makerDraft, checkerDraft, commitUpdate]);
 
-  const handlePhotographs = (itemId, files) => {
-    [...files].forEach((file) => {
+  const handleReplacementImage = (itemId, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
       setAppraisalItems((current) =>
-        current.map((item) => item.id === itemId ? {
-          ...item,
-          appraisal: {
-            ...item.appraisal,
-            photographs: [
-              ...(Array.isArray(item.appraisal.photographs) ? item.appraisal.photographs : []),
-              { id: `PHOTO-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, name: file.name, type: file.type, uploaded: true, uploadedAt: new Date().toISOString(), url: "/images/sample-jwellery.jpg" },
-            ],
-          },
-        } : item),
+        current.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                jewelImage: {
+                  type: file.type,
+                  dataUrl: reader.result,
+                  size: file.size,
+                  name: file.name,
+                  uploadedAt: new Date().toISOString(),
+                },
+                appraisal: { ...item.appraisal, jewelleryMatchesImage: false },
+              }
+            : item,
+        ),
       );
-    });
-  };
-
-  const removePhoto = (itemId, photoId) => {
-    setAppraisalItems((current) =>
-      current.map((item) =>
-        item.id === itemId
-          ? { ...item, appraisal: { ...item.appraisal, photographs: item.appraisal.photographs.filter((photo) => photo.id !== photoId) } }
-          : item,
-      ),
-    );
+      setValidationErrors((current) => ({
+        ...current,
+        [`${itemId}.jewelImage`]: "",
+        [`${itemId}.jewelleryMatchesImage`]: "",
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const weightSummary = useMemo(() => {
@@ -937,7 +939,8 @@ export default function ApplicationDetailsTab({
           "Total deductions must be lower than the gross weight.";
       }
       if (item.appraisal.defectPresent === "Yes" && !item.appraisal.defectDescription.trim()) errors[`${item.id}.defectDescription`] = "Describe the defect.";
-      if (!item.appraisal.photographs?.length) errors[`${item.id}.photographs`] = "Upload at least one photograph.";
+      if (!item.jewelImage?.dataUrl) errors[`${item.id}.jewelImage`] = "A jewellery image is required.";
+      if (!item.appraisal.jewelleryMatchesImage) errors[`${item.id}.jewelleryMatchesImage`] = "Confirm that the jewellery is as per the image.";
     });
     if (!appraisalItems.length) errors.items = "No jewellery items are available for appraisal.";
     if (weightSummary.some((item) => item.exceeded)) errors.weightLimit = "Borrower-level weight policy is exceeded.";
@@ -958,7 +961,6 @@ export default function ApplicationDetailsTab({
       ...item,
       appraisal: {
         ...item.appraisal,
-        photographs: (item.appraisal.photographs || []).map(({ dataUrl, ...photo }) => ({ ...photo, uploaded: true, url: "/images/sample-jwellery.jpg" })),
         netWeight: netWeightFor(item),
         lendingRatePerGram: lendingRateFor(item),
         appraisedValue: appraisedValueFor(item),
@@ -1343,7 +1345,13 @@ export default function ApplicationDetailsTab({
                 <div className="calculated-weight appraisal-value"><span>Lending rate per gram</span><strong>{formatCurrency(lendingRateFor(item))}/g</strong><small>Derived from {item.appraisal.purity || "selected quality"}</small></div>
                 <div className="calculated-weight appraisal-value"><span>Appraised value</span><strong>{formatCurrency(appraisedValueFor(item))}</strong><small>Net weight × lending rate</small></div>
                 <Field label="Appraiser remarks" wide><textarea disabled={!appraiserCanEdit} rows="3" value={item.appraisal.remarks} onChange={(event) => updateAppraisalItem(item.id, "remarks", event.target.value)} placeholder="Enter appraisal remarks" /></Field>
-                <div className={`photo-upload-field wide ${validationErrors[`${item.id}.photographs`] ? "has-error" : ""}`}><span>Jewellery photographs <b>*</b></span>{appraiserCanEdit && <label className="photo-upload-button"><Icon type="upload" />Take photo or upload<input type="file" accept="image/*" capture="environment" multiple onChange={(event) => handlePhotographs(item.id, event.target.files)} /></label>}<div className="photo-preview-list">{item.appraisal.photographs?.map((photo) => <figure key={photo.id || photo.name}><img src={photo.dataUrl || photo.url} alt={photo.name || "Jewellery"} /><figcaption>{photo.name || "Jewellery photo"}</figcaption>{appraiserCanEdit && <button type="button" onClick={() => removePhoto(item.id, photo.id)} aria-label={`Remove ${photo.name}`}><Icon type="trash" /></button>}</figure>)}</div>{validationErrors[`${item.id}.photographs`] && <small className="field-error">{validationErrors[`${item.id}.photographs`]}</small>}</div>
+                <div className={`jewellery-image-field wide ${validationErrors[`${item.id}.jewelImage`] || validationErrors[`${item.id}.jewelleryMatchesImage`] ? "has-error" : ""}`}>
+                  <div className="jewellery-image-field__heading"><div><span>Customer-uploaded jewellery image <b>*</b></span><small>Use this image to verify the ornament presented for appraisal.</small></div>{item.jewelImage?.uploadedAt && <em>Uploaded {formatDate(item.jewelImage.uploadedAt)}</em>}</div>
+                  {item.jewelImage?.dataUrl ? <div className="jewellery-image-card"><img src={item.jewelImage.dataUrl} alt={item.jewelImage.name || `${item.description} uploaded by customer`} /><div><strong>{item.jewelImage.name || "Jewellery image"}</strong><small>{item.jewelImage.type || "Image"}{item.jewelImage.size ? ` · ${Math.ceil(item.jewelImage.size / 1024)} KB` : ""}</small></div></div> : <div className="jewellery-image-empty"><Icon type="alert" /><span>No customer image is available. Upload a replacement image to continue.</span></div>}
+                  {appraiserCanEdit && <label className="replace-image-button"><Icon type="upload" />Replace image<input type="file" accept="image/*" capture="environment" onChange={(event) => handleReplacementImage(item.id, event.target.files?.[0])} /></label>}
+                  <label className="image-match-check"><input type="checkbox" disabled={!appraiserCanEdit || !item.jewelImage?.dataUrl} checked={Boolean(item.appraisal.jewelleryMatchesImage)} onChange={(event) => updateAppraisalItem(item.id, "jewelleryMatchesImage", event.target.checked)} /><span>Jewellery is as per image</span></label>
+                  {validationErrors[`${item.id}.jewelImage`] && <small className="field-error">{validationErrors[`${item.id}.jewelImage`]}</small>}{validationErrors[`${item.id}.jewelleryMatchesImage`] && <small className="field-error">{validationErrors[`${item.id}.jewelleryMatchesImage`]}</small>}
+                </div>
               </div></div>
             </div>}
           </article>;

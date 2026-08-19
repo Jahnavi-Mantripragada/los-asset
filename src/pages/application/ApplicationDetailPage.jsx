@@ -422,9 +422,7 @@ function ApplicationDetailPage({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [activeTab, setActiveTab] = useState(
-    persona === "Checker" ? "summary" : "summary",
-  );
+  const [activeTab, setActiveTab] = useState("summary");
   const [requestedSection, setRequestedSection] = useState("");
   const [activityExpanded, setActivityExpanded] = useState(false);
 
@@ -747,11 +745,16 @@ function ApplicationDetailPage({
 
   useEffect(() => {
     if (!lead || initialTabResolvedRef.current) return;
-    const initialTab = persona === "Checker" ? "summary" : currentAction.tab;
-    setActiveTab(initialTab);
-    setRequestedSection(persona === "Checker" ? "" : currentAction.section || "");
     initialTabResolvedRef.current = true;
-  }, [currentAction, lead, persona]);
+    if (persona === "Checker") {
+      setActiveTab("summary");
+      setRequestedSection("");
+    } else {
+      setActiveTab(currentAction.tab);
+      setRequestedSection(currentAction.section || "");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead]); // Only run once when lead first loads — persona and currentAction are stable at this point
 
   const activityEvents = Array.isArray(applicationDetail?.activity?.events)
     ? applicationDetail.activity.events

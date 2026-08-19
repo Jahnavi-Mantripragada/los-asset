@@ -725,6 +725,7 @@ function EligibilitySupportingDetailsPage({
                 <div className="esd-eligibility-banner-text">
                   <strong>
                     You are eligible for loan amount of {formatCurrency(stepData.cibil.eligibleLoanAmount)} (₹35 Lakhs)
+                    (As per bank's internal policy)
                   </strong>
                   <p>
                     Based on CIBIL score ({stepData.cibil.score}) and CBS credit evaluation.

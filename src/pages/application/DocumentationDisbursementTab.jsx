@@ -168,6 +168,7 @@ const createDefaultWorkflow = () => ({
     status: "not_started",
     consentConfirmed: false,
     manualDocument: null,
+    esignDocuments: [],
   },
   preDisbursement: {
     accountVerified: false,
@@ -194,6 +195,7 @@ export default function DocumentationDisbursementTab({
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState("");
   const fileInputRef = useRef(null);
+  const esignFileInputRef = useRef(null);
 
   const leadDetails = useMemo(
     () => parseLeadDetails(lead?.leadDetails ?? lead?.lead_details),
@@ -480,6 +482,70 @@ export default function DocumentationDisbursementTab({
     );
   };
 
+  const handleEsignFileUpload = async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!files.length) return;
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    const oversized = files.find((f) => f.size > 10 * 1024 * 1024);
+    const invalid = files.find((f) => !allowedTypes.includes(f.type));
+    if (invalid) {
+      setSaveState("error");
+      setSaveError("Only PDF, JPG or PNG files are allowed.");
+      return;
+    }
+    if (oversized) {
+      setSaveState("error");
+      setSaveError("Each file must be 10 MB or smaller.");
+      return;
+    }
+    const now = new Date().toISOString();
+    const newDocs = files.map((f) => ({
+      name: f.name,
+      type: f.type,
+      size: f.size,
+      uploadedAt: now,
+      reference: createReference("ESIGN-DOC"),
+      url: "/doc.pdf",
+    }));
+    const nextEsignDocuments = [
+      ...(workflow.execution.esignDocuments || []),
+      ...newDocs,
+    ];
+    await persistWorkflow(
+      {
+        ...workflow,
+        execution: {
+          ...workflow.execution,
+          esignDocuments: nextEsignDocuments,
+        },
+      },
+      newDocs.length === 1
+        ? {
+            type: "esign_document_uploaded",
+            title: `Supporting document uploaded: ${newDocs[0].name}`,
+            section: "Document Execution",
+            metadata: { fileName: newDocs[0].name },
+          }
+        : {
+            type: "esign_documents_uploaded",
+            title: `${newDocs.length} supporting documents uploaded`,
+            section: "Document Execution",
+            metadata: { fileCount: newDocs.length },
+          }
+    );
+  };
+
+  const removeEsignDocument = async (indexToRemove) => {
+    const nextEsignDocuments = (workflow.execution.esignDocuments || []).filter(
+      (_, i) => i !== indexToRemove
+    );
+    await persistWorkflow({
+      ...workflow,
+      execution: { ...workflow.execution, esignDocuments: nextEsignDocuments },
+    });
+  };
+
   const handleManualUpload = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -668,19 +734,134 @@ export default function DocumentationDisbursementTab({
 
         {eSignRequired && (
           <div className="documentation-tab__execution-panel">
+            <input
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="sr-only"
+              multiple
+              onChange={handleEsignFileUpload}
+              ref={esignFileInputRef}
+              type="file"
+            />
             {workflow.execution.status === "not_started" && (
               <>
-                <label className="documentation-tab__consent"><input checked={workflow.execution.consentConfirmed} onChange={(event) => setWorkflow((current) => ({ ...current, execution: { ...current.execution, consentConfirmed: event.target.checked } }))} type="checkbox" /><span>I confirm the customer has consented to receive the e-sign link.</span></label>
-                <button className="documentation-tab__button" disabled={!workflow.execution.consentConfirmed || isProcessing} onClick={sendEsignRequest} type="button"><Icon name="send" />{isProcessing ? "Sending…" : "Send e-sign request"}</button>
+                <label className="documentation-tab__consent">
+                  <input
+                    checked={workflow.execution.consentConfirmed}
+                    onChange={(event) =>
+                      setWorkflow((current) => ({
+                        ...current,
+                        execution: {
+                          ...current.execution,
+                          consentConfirmed: event.target.checked,
+                        },
+                      }))
+                    }
+                    type="checkbox"
+                  />
+                  <span>I confirm the customer has consented to receive the e-sign link.</span>
+                </label>
+                <button
+                  className="documentation-tab__button"
+                  disabled={!workflow.execution.consentConfirmed || isProcessing}
+                  onClick={sendEsignRequest}
+                  type="button"
+                >
+                  <Icon name="send" />
+                  {isProcessing ? "Sending…" : "Send e-sign request"}
+                </button>
               </>
             )}
             {workflow.execution.status === "request_sent" && (
               <div className="documentation-tab__esign-status">
-                <div><span className="pulse" /><div><strong>Awaiting customer signature</strong><p>Link shared by SMS and email · {workflow.execution.neslReference}</p></div></div>
-                <button className="documentation-tab__button secondary" onClick={markEsignComplete} type="button">Simulate customer signed</button>
+                <div>
+                  <span className="pulse" />
+                  <div>
+                    <strong>Awaiting customer signature</strong>
+                    <p>Link shared by SMS and email · {workflow.execution.neslReference}</p>
+                  </div>
+                </div>
+                <button className="documentation-tab__button secondary" onClick={markEsignComplete} type="button">
+                  Simulate customer signed
+                </button>
               </div>
             )}
-            {executionComplete && <p className="documentation-tab__success"><Icon name="check" />E-sign completed on {formatDateTime(workflow.execution.completedAt)} · {workflow.execution.signedDocumentReference}</p>}
+            {executionComplete && (
+              <p className="documentation-tab__success">
+                <Icon name="check" />
+                E-sign completed on {formatDateTime(workflow.execution.completedAt)} · {workflow.execution.signedDocumentReference}
+              </p>
+            )}
+
+            <div className="documentation-tab__esign-uploads">
+              <div className="documentation-tab__esign-uploads-header">
+                <span className="documentation-tab__esign-uploads-label">
+                  Supporting documents
+                  {(workflow.execution.esignDocuments || []).length > 0 && (
+                    <span className="documentation-tab__esign-uploads-count">
+                      {(workflow.execution.esignDocuments || []).length}
+                    </span>
+                  )}
+                </span>
+                <button
+                  className="documentation-tab__button secondary"
+                  disabled={!canManageDocuments}
+                  onClick={() => esignFileInputRef.current?.click()}
+                  type="button"
+                >
+                  <Icon name="upload" size={16} />
+                  Upload files
+                </button>
+              </div>
+
+              {(workflow.execution.esignDocuments || []).length === 0 ? (
+                <button
+                  className="documentation-tab__upload documentation-tab__upload--compact"
+                  disabled={!canManageDocuments}
+                  onClick={() => esignFileInputRef.current?.click()}
+                  type="button"
+                >
+                  <Icon name="upload" size={20} />
+                  <strong>Attach supporting documents</strong>
+                  <span>PDF, JPG or PNG · Max 10 MB each · Multiple allowed</span>
+                </button>
+              ) : (
+                <ul className="documentation-tab__esign-file-list" role="list">
+                  {(workflow.execution.esignDocuments || []).map((doc, index) => (
+                    <li className="documentation-tab__esign-file-item" key={`${doc.reference}-${index}`}>
+                      <span className="documentation-tab__esign-file-icon">
+                        <Icon name="file" size={16} />
+                      </span>
+                      <span className="documentation-tab__esign-file-info">
+                        <strong>{doc.name}</strong>
+                        <small>Uploaded {formatDateTime(doc.uploadedAt)}</small>
+                      </span>
+                      <div className="documentation-tab__esign-file-actions">
+                        <a
+                          className="documentation-tab__text-button"
+                          href={doc.url || "/doc.pdf"}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          <Icon name="eye" size={14} />
+                          View
+                        </a>
+                        {canManageDocuments && (
+                          <button
+                            aria-label={`Remove ${doc.name}`}
+                            className="documentation-tab__text-button documentation-tab__text-button--danger"
+                            onClick={() => removeEsignDocument(index)}
+                            type="button"
+                          >
+                            <Icon name="close" size={14} />
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
 

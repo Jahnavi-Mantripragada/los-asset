@@ -422,7 +422,9 @@ function ApplicationDetailPage({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [activeTab, setActiveTab] = useState("summary");
+  const [activeTab, setActiveTab] = useState(
+    persona === "Checker" ? "summary" : "summary",
+  );
   const [requestedSection, setRequestedSection] = useState("");
   const [activityExpanded, setActivityExpanded] = useState(false);
 
@@ -745,10 +747,11 @@ function ApplicationDetailPage({
 
   useEffect(() => {
     if (!lead || initialTabResolvedRef.current) return;
-    setActiveTab(currentAction.tab);
-    setRequestedSection(currentAction.section || "");
+    const initialTab = persona === "Checker" ? "summary" : currentAction.tab;
+    setActiveTab(initialTab);
+    setRequestedSection(persona === "Checker" ? "" : currentAction.section || "");
     initialTabResolvedRef.current = true;
-  }, [currentAction, lead]);
+  }, [currentAction, lead, persona]);
 
   const activityEvents = Array.isArray(applicationDetail?.activity?.events)
     ? applicationDetail.activity.events

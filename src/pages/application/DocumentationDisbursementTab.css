@@ -100,6 +100,21 @@
 .documentation-tab__upload span { color: var(--dd-muted); font-size: 12px; }
 .documentation-tab__uploaded-file > div:first-child { justify-content: flex-start; }
 
+.documentation-tab__esign-uploads { border-top: 1px solid var(--dd-border); margin-top: 16px; padding-top: 14px; }
+.documentation-tab__esign-uploads-header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 10px; }
+.documentation-tab__esign-uploads-label { align-items: center; color: var(--dd-ink); display: flex; font-size: 13px; font-weight: 750; gap: 7px; }
+.documentation-tab__esign-uploads-count { align-items: center; background: var(--dd-blue); border-radius: 999px; color: #fff; display: inline-flex; font-size: 11px; font-weight: 800; height: 20px; justify-content: center; min-width: 20px; padding: 0 5px; }
+.documentation-tab__upload--compact { min-height: 78px; }
+.documentation-tab__esign-file-list { display: flex; flex-direction: column; gap: 0; list-style: none; margin: 0; padding: 0; }
+.documentation-tab__esign-file-item { align-items: center; border-top: 1px solid var(--dd-border); display: grid; gap: 10px; grid-template-columns: auto 1fr auto; padding: 10px 4px; }
+.documentation-tab__esign-file-item:first-child { border-top: 0; }
+.documentation-tab__esign-file-icon { align-items: center; background: #f0f4f7; border-radius: 7px; color: #6a7d8d; display: flex; flex: 0 0 32px; height: 32px; justify-content: center; width: 32px; }
+.documentation-tab__esign-file-info { min-width: 0; }
+.documentation-tab__esign-file-info strong { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.documentation-tab__esign-file-info small { color: var(--dd-muted); display: block; font-size: 11.5px; margin-top: 2px; }
+.documentation-tab__esign-file-actions { align-items: center; display: flex; gap: 2px; }
+.documentation-tab__text-button--danger { color: var(--dd-red); }
+
 .documentation-tab__checklist { display: grid; gap: 9px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .documentation-tab__checklist label { align-items: center; background: var(--dd-surface); border: 1px solid transparent; border-radius: 9px; cursor: pointer; display: flex; font-size: 13px; gap: 9px; min-height: 48px; padding: 10px 12px; }
 .documentation-tab__checklist label.checked { background: #eef8f3; border-color: #c9e8d9; }

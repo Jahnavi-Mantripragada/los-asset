@@ -11,9 +11,9 @@ const WORKFLOW_USERS = {
 };
 
 const SECTIONS = [
-  { id: "jewelleryAppraisal", number: "04", label: "Jewellery Appraisal", icon: "jewellery" },
-  { id: "eligibilityRecommendation", number: "05", label: "Eligibility & Recommendation", icon: "calculator" },
-  { id: "checkerDecision", number: "06", label: "Checker Decision", icon: "decision" },
+  { id: "jewelleryAppraisal", number: "01", label: "Jewellery appraisal", shortLabel: "Appraisal", icon: "jewellery" },
+  { id: "eligibilityRecommendation", number: "02", label: "Loan recommendation", shortLabel: "Recommendation", icon: "calculator" },
+  { id: "checkerDecision", number: "03", label: "Checker decision", shortLabel: "Decision", icon: "decision" },
 ];
 
 const DEMO_APPLICATION_WORKFLOWS = {
@@ -63,56 +63,10 @@ const LENDING_RATE_BY_PURITY = {
   "18K / 750": 11646,
 };
 const PUSHBACK_SECTIONS = [
-  "Jewellery Appraisal",
-  "Eligibility & Recommendation",
+  { value: "Jewellery Appraisal", label: "Jewellery appraisal" },
+  { value: "Eligibility & Recommendation", label: "Loan recommendation" },
 ];
 
-const DEFAULT_JEWELLERY_ITEMS = [
-  {
-    id: "JWL-001",
-    serialNumber: 1,
-    description: "Gold chain",
-    itemCount: 1,
-    category: "Gold Ornament",
-    ownershipDeclaration: "Declared by customer",
-    makerRemarks: "Hallmarked chain presented in good condition.",
-    appraisal: {
-      defectPresent: "No",
-      defectDescription: "",
-      purity: "22K / 916",
-      grossWeight: 42.6,
-      stoneDeduction: 0,
-      alloyDeduction: 1.2,
-      fasteningDeduction: 0.25,
-      otherDeduction: 0,
-      photographs: [],
-      remarks: "BIS hallmark verified; normal wear observed.",
-      status: "In Progress",
-    },
-  },
-  {
-    id: "JWL-002",
-    serialNumber: 2,
-    description: "Pair of gold bangles",
-    itemCount: 2,
-    category: "Gold Ornament",
-    ownershipDeclaration: "Declared by customer",
-    makerRemarks: "Matching pair submitted for appraisal.",
-    appraisal: {
-      defectPresent: "No",
-      defectDescription: "",
-      purity: "22K / 916",
-      grossWeight: 58.4,
-      stoneDeduction: 1.8,
-      alloyDeduction: 0.5,
-      fasteningDeduction: 0,
-      otherDeduction: 0,
-      photographs: [],
-      remarks: "Purity and weight verified.",
-      status: "In Progress",
-    },
-  },
-];
 const WEIGHT_LIMITS = {
   goldOrnament: { label: "Gold ornaments", limit: 1000 },
   goldCoin: { label: "Gold coins", limit: 50 },
@@ -204,7 +158,7 @@ const formatDateTime = (value) => {
 };
 const statusTone = (value) => {
   const status = String(value || "pending").toLowerCase();
-  if (/complete|verified|approved|eligible|sanctioned|signed|generated|disbursed|active|passed|not required/.test(status)) return "success";
+  if (/complete|verified|approved|eligible|sanctioned|signed|generated|disbursed|active|passed|submitted|ready|not required/.test(status)) return "success";
   if (/fail|reject|block|expired|exceed|below|missing/.test(status)) return "danger";
   if (/progress|awaiting|required|pending|rework|pushback|clarification/.test(status)) return "warning";
   return "neutral";
@@ -250,6 +204,12 @@ const netWeightFor = (item) => {
 const lendingRateFor = (item) => LENDING_RATE_BY_PURITY[item?.appraisal?.purity] || 0;
 const appraisedValueFor = (item) =>
   Math.round(netWeightFor(item) * lendingRateFor(item));
+const applicableLtvFor = (appraisedValue) => {
+  const value = toNumber(appraisedValue) || 0;
+  if (value <= 250000) return 85;
+  if (value <= 500000) return 80;
+  return 75;
+};
 const emptyAppraisal = () => ({
   defectPresent: "No",
   defectDescription: "",
@@ -322,10 +282,12 @@ const SectionHeading = ({ eyebrow, title, description, status, editable }) => (
     </div>
     <div className="details-section-heading__meta">
       {status && <Status value={status} />}
-      <span className={`details-access ${editable ? "can-edit" : "read-only"}`}>
-        <Icon type={editable ? "edit" : "lock"} />
-        {editable ? "Editable" : "Read only"}
-      </span>
+      {editable && (
+        <span className="details-access can-edit">
+          <Icon type="edit" />
+          Action required
+        </span>
+      )}
     </div>
   </header>
 );
@@ -472,22 +434,44 @@ const buildView = (leadDetails, lead) => {
   const makerSource = application.makerFinalisation || details.eligibilityRecommendation || {};
   const charges = application.charges || makerSource.charges || support.charges || {};
   const nominee = makerSource.nominee || support.nominee || {};
+  const calculatedNetWeight = appraisal.items.reduce(
+    (sum, item) => sum + netWeightFor(item),
+    0,
+  );
+  const calculatedAppraisedValue = appraisal.items.reduce(
+    (sum, item) => sum + appraisedValueFor(item),
+    0,
+  );
+  const totalAppraisedValue =
+    calculatedAppraisedValue || toNumber(eligibilitySource.schemeLendingValue) || 0;
+  const applicableLtv = applicableLtvFor(totalAppraisedValue);
+  const ltvBasedValue = Math.round((totalAppraisedValue * applicableLtv) / 100);
+  const availableExposureLimit =
+    toNumber(eligibilitySource.availableExposureLimit) || 3500000;
+  const maximumEligibleAmount = Math.min(
+    ltvBasedValue,
+    totalAppraisedValue,
+    availableExposureLimit,
+  );
   const eligibility = {
     ibjaGoldRate: eligibilitySource.ibjaGoldRate || eligibilitySource.ibjaRate || 6950,
-    schemePercentage: eligibilitySource.schemePercentage || 85,
+    schemePercentage: applicableLtv,
     lendingRatePerGram: eligibilitySource.schemeLendingRatePerGram || eligibilitySource.lendingRatePerGram || 5908,
-    totalNetWeight: eligibilitySource.totalNetWeight || appraisal.items.reduce((sum, item) => sum + netWeightFor(item), 0),
-    schemeLendingValue: eligibilitySource.schemeLendingValue || appraisal.items.reduce((sum, item) => sum + appraisedValueFor(item), 0),
-    availableExposureLimit: eligibilitySource.availableExposureLimit || 3500000,
-    ltvBasedValue: eligibilitySource.ltvBasedValue || 482979,
-    applicableLtv: eligibilitySource.applicableLtv || 75,
-    maximumEligibleAmount: eligibilitySource.maximumEligibleAmount || Math.min(eligibilitySource.ltvBasedValue || 482979, appraisal.items.reduce((sum, item) => sum + appraisedValueFor(item), 0), eligibilitySource.availableExposureLimit || 3500000),
+    totalNetWeight: calculatedNetWeight || toNumber(eligibilitySource.totalNetWeight) || 0,
+    schemeLendingValue: totalAppraisedValue,
+    availableExposureLimit,
+    ltvBasedValue,
+    applicableLtv,
+    maximumEligibleAmount,
     controllingLimit: eligibilitySource.controllingLimit || "Minimum of LTV value, appraised value and available exposure",
     requiredAmount: makerSource.requiredAmount || eligibilitySource.requiredAmount || 450000,
     recommendedAmount: makerSource.recommendedAmount || eligibilitySource.recommendedAmount || 440000,
     disbursementAccount: makerSource.disbursementAccount || loan.disbursementAccount || "",
     makerComments: makerSource.makerComments || makerSource.comments || "Recommended based on verified net weight and applicable LTV.",
-    eSignRequired: Boolean(makerSource.eSignRequired),
+    eSignRequired:
+      makerSource.eSignRequired === undefined
+        ? true
+        : Boolean(makerSource.eSignRequired),
     status: makerSource.status || "Pending",
     charges: {
       processingCharge: charges.processingCharge || 2200,
@@ -655,6 +639,12 @@ export default function ApplicationDetailsTab({
     pushbackSection: view.checker.pushbackSection || "Eligibility & Recommendation",
     pushbackReason: view.checker.pushbackReason || "",
     rejectionReason: view.checker.rejectionReason || "",
+  });
+  const [checkerDecisionMode, setCheckerDecisionMode] = useState(() => {
+    const existingDecision = String(view.checker.decision || "").toLowerCase();
+    if (existingDecision.includes("push")) return "pushback";
+    if (existingDecision.includes("reject")) return "reject";
+    return "approve";
   });
   const [saveState, setSaveState] = useState("idle");
   const [saveError, setSaveError] = useState("");
@@ -925,6 +915,9 @@ export default function ApplicationDetailsTab({
       exceeded: totals[key] > config.limit,
     }));
   }, [appraisalItems]);
+  const relevantWeightSummary = weightSummary.filter(
+    (item) => item.total > 0 || item.key === "goldOrnament" || item.key === "goldCoin",
+  );
 
   const validateAppraisal = () => {
     const errors = {};
@@ -1214,245 +1207,614 @@ export default function ApplicationDetailsTab({
     return view.checker.status || view.checker.decision || "Pending";
   };
 
-  const renderCustomer = () => (
-    <section className="details-section">
-      <SectionHeading eyebrow="IDENTITY & CONSENT" title="Customer & KYC" description="Verified customer information captured during application creation." status={view.customer.kycStatus} editable={false} />
-      <div className="details-info-banner"><Icon type="info" /><span>This section is sourced from Customer Authentication & Consent and remains read-only after application creation.</span></div>
-      <ReadOnlyGrid columns={3} fields={[
-        { label: "Customer name", value: view.customer.name },
-        { label: "Relationship", value: view.customer.relationship },
-        { label: "CBS Customer ID", value: view.customer.cbsCustomerId },
-        { label: "Date of birth", value: formatDate(view.customer.dob) },
-        { label: "PAN", value: view.customer.pan },
-        { label: "KYC status", value: view.customer.kycStatus, status: true },
-        { label: "Registered mobile", value: view.customer.mobile },
-        { label: "Registered email", value: view.customer.email },
-        { label: "Consent status", value: view.customer.consentStatus, status: true },
-        { label: "Permanent address", value: view.customer.permanentAddress, wide: true },
-        { label: "Communication address", value: view.customer.communicationAddress, wide: true },
-        { label: "Consent reference", value: view.customer.consentReference, helper: view.customer.consentAt ? `Captured ${formatDateTime(view.customer.consentAt)}` : "" },
-      ]} />
-    </section>
-  );
+  const renderAppraisal = () => {
+    const totalNetWeight = appraisalItems.reduce(
+      (sum, item) => sum + netWeightFor(item),
+      0,
+    );
+    const totalAppraisedValue = appraisalItems.reduce(
+      (sum, item) => sum + appraisedValueFor(item),
+      0,
+    );
+    const completedItems = appraisalItems.filter(
+      (item) => statusTone(item.appraisal.status) === "success",
+    ).length;
 
-  const renderLoanBranch = () => (
-    <section className="details-section">
-      <SectionHeading eyebrow="FACILITY SETUP" title="Loan & Branch" description="Facility, scheme, exposure, servicing branch and account configuration." status={hasValue(view.loan.requestedAmount) ? "Completed" : "Pending"} editable={false} />
-      <ReadOnlyGrid columns={3} fields={[
-        { label: "Facility", value: view.loan.facilityType },
-        { label: "Scheme", value: view.loan.scheme },
-        { label: "Loan purpose", value: view.loan.purpose },
-        { label: "Original requested amount", value: formatCurrency(view.loan.requestedAmount) },
-        { label: "Tenure", value: view.loan.tenure },
-        { label: "Repayment type", value: view.loan.repaymentType },
-        { label: "Existing Gold Loan exposure", value: formatCurrency(view.loan.existingExposure) },
-        { label: "Aggregate exposure", value: formatCurrency(view.loan.aggregateExposure) },
-        { label: "Charges CASA account", value: view.loan.chargesAccount },
-        { label: "Disbursement account", value: view.loan.disbursementAccount },
-      ]} />
-      <div className="details-subsection-heading"><h4>Servicing branch</h4></div>
-      <ReadOnlyGrid columns={3} fields={[
-        { label: "Branch name", value: view.loan.branch.name },
-        { label: "Branch code", value: view.loan.branch.code },
-        { label: "DP code", value: view.loan.branch.dpCode },
-        { label: "PIN code", value: view.loan.branch.pinCode },
-        { label: "Complete address", value: view.loan.branch.address, wide: true },
-      ]} />
-      <div className="details-subsection-heading"><h4>Existing Gold Loans</h4><span>{view.loan.existingLoans.length} account(s)</span></div>
-      {view.loan.existingLoans.length ? (
-        <div className="details-table-wrap"><table className="details-table"><thead><tr><th>Account</th><th>Scheme</th><th>Sanctioned amount</th><th>Outstanding</th><th>Status</th></tr></thead><tbody>{view.loan.existingLoans.map((item, index) => <tr key={item.accountNumber || index}><td data-label="Account">{textValue(item.maskedAccountNumber || item.accountNumber)}</td><td data-label="Scheme">{textValue(item.scheme)}</td><td data-label="Sanctioned amount">{formatCurrency(item.sanctionedAmount)}</td><td data-label="Outstanding">{formatCurrency(item.outstandingAmount || item.outstanding)}</td><td data-label="Status"><Status value={item.status || "Active"} /></td></tr>)}</tbody></table></div>
-      ) : <div className="details-empty-inline">No existing Gold Loan accounts were returned by CBS.</div>}
-    </section>
-  );
-
-  const renderCompliance = () => {
-    const cibilRequired = String(view.compliance.cibilRequired).toLowerCase() === "true";
-    const landRequired = String(view.compliance.landRequired).toLowerCase() === "true";
     return (
-      <section className="details-section">
-        <SectionHeading eyebrow="CONDITIONAL CHECKS" title="Compliance" description="CIBIL/CIC and agricultural land evidence captured during application creation." status={sectionStatus("compliance")} editable={false} />
-        <div className="compliance-grid">
-          <article className="compliance-card"><header><span><Icon type="shield" /></span><div><p>CREDIT ASSESSMENT</p><h4>CIBIL / CIC</h4></div><Status value={cibilRequired ? view.compliance.cibilStatus : "Not required"} /></header><ReadOnlyGrid columns={2} fields={[
-            { label: "Requirement", value: cibilRequired ? "Required" : "Not required", status: true },
-            { label: "Report status", value: cibilRequired ? view.compliance.cibilStatus : "Not required", status: true },
-            { label: "Credit score", value: view.compliance.cibilScore },
-            { label: "Minimum score", value: view.compliance.minimumScore },
-            { label: "Bureau reference", value: view.compliance.cibilReference },
-            { label: "Completed at", value: formatDateTime(view.compliance.cibilAt) },
-          ]} />{cibilRequired && view.compliance.cibilReport && <a className="details-document-link" href={view.compliance.cibilReport} target="_blank" rel="noreferrer">View CIBIL report <Icon type="chevron" /></a>}</article>
-          <article className="compliance-card"><header><span><Icon type="bank" /></span><div><p>AGRICULTURAL FACILITY</p><h4>Land & crop details</h4></div><Status value={landRequired ? view.compliance.landStatus : "Not required"} /></header>{landRequired ? <ReadOnlyGrid columns={2} fields={[
-            { label: "State", value: view.compliance.state },
-            { label: "District", value: view.compliance.district },
-            { label: "Village", value: view.compliance.village },
-            { label: "Survey number", value: view.compliance.surveyNumber },
-            { label: "Season", value: view.compliance.season },
-            { label: "Crop", value: view.compliance.crop },
-            { label: "Land area", value: view.compliance.landArea },
-            { label: "Cost per unit", value: formatCurrency(view.compliance.costPerUnit) },
-            { label: "Ownership", value: view.compliance.ownershipStatus },
-            { label: "Verified by", value: view.compliance.verifiedBy, helper: view.compliance.verifiedAt ? formatDateTime(view.compliance.verifiedAt) : "" },
-          ]} /> : <div className="compliance-not-required"><Icon type="check" /><div><strong>Land details are not required</strong><p>The selected facility and exposure do not trigger the agricultural land-document rule.</p></div></div>}</article>
+      <section className="details-section appraisal-section">
+        <SectionHeading
+          eyebrow="Step 1 of 3 · Collateral assessment"
+          title="Jewellery appraisal"
+          description="Verify each ornament against the supplied image, record deductions and confirm its lendable value."
+          status={view.appraisal.status}
+          editable={appraiserCanEdit}
+        />
+
+        <div className="section-summary-grid" aria-label="Appraisal summary">
+          <article>
+            <small>Items assessed</small>
+            <strong>{completedItems} of {appraisalItems.length}</strong>
+          </article>
+          <article>
+            <small>Total net weight</small>
+            <strong>{formatWeight(totalNetWeight)}</strong>
+          </article>
+          <article className="is-featured">
+            <small>Total appraised value</small>
+            <strong>{formatCurrency(totalAppraisedValue)}</strong>
+          </article>
+          <article>
+            <small>Weight policy</small>
+            <strong>{weightSummary.some((item) => item.exceeded) ? "Limit exceeded" : "Within limit"}</strong>
+          </article>
         </div>
+
+        <div className="assignment-strip" aria-label="Assigned appraiser">
+          <span className="assignment-strip__icon"><Icon type="jewellery" /></span>
+          <div>
+            <small>Assigned appraiser</small>
+            <strong>Anant Deshmukh</strong>
+            <span>{view.appraisal.appraiser.id} · {view.appraisal.appraiser.type} · {view.appraisal.appraiser.branch}</span>
+          </div>
+        </div>
+
+        <div className="weight-policy-grid" aria-label="Borrower weight limits">
+          {relevantWeightSummary.map((item) => (
+            <article key={item.key} className={item.exceeded ? "is-exceeded" : ""}>
+              <div>
+                <p>{item.label}</p>
+                <strong>{formatWeight(item.total)} <span>of {formatWeight(item.limit)}</span></strong>
+              </div>
+              <div className="weight-progress" aria-hidden="true">
+                <i style={{ width: `${Math.min(100, (item.total / item.limit) * 100)}%` }} />
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {validationErrors.weightLimit && <div className="details-validation-banner"><Icon type="alert" />{validationErrors.weightLimit}</div>}
+        {validationErrors.items && <div className="details-validation-banner"><Icon type="alert" />{validationErrors.items}</div>}
+
+        <div className="content-heading">
+          <div><h4>Ornaments received</h4><p>Select an item to review its evidence and assessment.</p></div>
+          <span>{appraisalItems.length} item{appraisalItems.length === 1 ? "" : "s"}</span>
+        </div>
+
+        <div className="appraisal-item-list">
+          {appraisalItems.map((item) => {
+            const expanded = expandedItemId === item.id;
+            const netWeight = netWeightFor(item);
+            const imageError =
+              validationErrors[`${item.id}.jewelImage`] ||
+              validationErrors[`${item.id}.jewelleryMatchesImage`];
+
+            return (
+              <article key={item.id} className={`appraisal-item ${expanded ? "is-expanded" : ""}`}>
+                <button
+                  type="button"
+                  className="appraisal-item__header"
+                  onClick={() => setExpandedItemId(expanded ? "" : item.id)}
+                  aria-expanded={expanded}
+                >
+                  <span className="item-number">{String(item.serialNumber).padStart(2, "0")}</span>
+                  <span className="item-title">
+                    <strong>{item.description}</strong>
+                    <small>{item.category} · Quantity {item.itemCount}</small>
+                  </span>
+                  <span className="item-weight"><small>Net weight</small><strong>{formatWeight(netWeight)}</strong></span>
+                  <span className="item-weight"><small>Appraised value</small><strong>{formatCurrency(appraisedValueFor(item))}</strong></span>
+                  <Status value={item.appraisal.status} />
+                  <span className="item-chevron"><Icon type="chevron" /></span>
+                </button>
+
+                {expanded && (
+                  <div className="appraisal-item__body">
+                    <section className="review-block">
+                      <div className="content-heading compact">
+                        <div><h4>Collateral received</h4><p>Information captured by the Maker.</p></div>
+                      </div>
+                      <ReadOnlyGrid columns={3} fields={[
+                        { label: "Description", value: item.description },
+                        { label: "Quantity", value: item.itemCount },
+                        { label: "Category", value: item.category },
+                        { label: "Ownership declaration", value: item.ownershipDeclaration },
+                        { label: "Ownership proof", value: item.ownershipProof?.name || item.ownershipProof || "Not uploaded" },
+                        { label: "Maker remarks", value: item.makerRemarks || "—", wide: true },
+                      ]} />
+                    </section>
+
+                    <div className="appraisal-detail-grid">
+                      <section className={`evidence-panel ${imageError ? "has-error" : ""}`}>
+                        <div className="content-heading compact">
+                          <div><h4>Image verification</h4><p>Compare the presented ornament with the customer image.</p></div>
+                        </div>
+                        {item.jewelImage?.dataUrl ? (
+                          <figure className="jewellery-evidence">
+                            <img src={item.jewelImage.dataUrl} alt={item.jewelImage.name || `${item.description} uploaded by customer`} />
+                            <figcaption>
+                              <strong>{item.jewelImage.name || "Jewellery image"}</strong>
+                              <span>{item.jewelImage.type || "Image"}{item.jewelImage.size ? ` · ${Math.ceil(item.jewelImage.size / 1024)} KB` : ""}</span>
+                              {item.jewelImage.uploadedAt && <small>Uploaded {formatDate(item.jewelImage.uploadedAt)}</small>}
+                            </figcaption>
+                          </figure>
+                        ) : (
+                          <div className="jewellery-image-empty"><Icon type="alert" /><span>No customer image is available.</span></div>
+                        )}
+
+                        {appraiserCanEdit ? (
+                          <>
+                            <label className="replace-image-button">
+                              <Icon type="upload" />
+                              {item.jewelImage?.dataUrl ? "Replace image" : "Upload image"}
+                              <input type="file" accept="image/*" capture="environment" onChange={(event) => handleReplacementImage(item.id, event.target.files?.[0])} />
+                            </label>
+                            <label className="image-match-check">
+                              <input
+                                type="checkbox"
+                                disabled={!item.jewelImage?.dataUrl}
+                                checked={Boolean(item.appraisal.jewelleryMatchesImage)}
+                                onChange={(event) => updateAppraisalItem(item.id, "jewelleryMatchesImage", event.target.checked)}
+                              />
+                              <span>Jewellery matches the uploaded image</span>
+                            </label>
+                          </>
+                        ) : (
+                          <div className={`verification-result ${item.appraisal.jewelleryMatchesImage ? "is-verified" : ""}`}>
+                            <Icon type={item.appraisal.jewelleryMatchesImage ? "check" : "alert"} />
+                            {item.appraisal.jewelleryMatchesImage ? "Image match confirmed" : "Image match not confirmed"}
+                          </div>
+                        )}
+                        {validationErrors[`${item.id}.jewelImage`] && <small className="field-error">{validationErrors[`${item.id}.jewelImage`]}</small>}
+                        {validationErrors[`${item.id}.jewelleryMatchesImage`] && <small className="field-error">{validationErrors[`${item.id}.jewelleryMatchesImage`]}</small>}
+                      </section>
+
+                      <section className="assessment-panel">
+                        <div className="content-heading compact">
+                          <div><h4>Appraiser assessment</h4><p>{appraiserCanEdit ? "Enter only the measured and observed values." : "Recorded assessment and derived values."}</p></div>
+                        </div>
+
+                        {appraiserCanEdit ? (
+                          <>
+                            <div className="details-form-grid columns-2">
+                              <Field label="Quality / purity" required error={validationErrors[`${item.id}.purity`]}>
+                                <select value={item.appraisal.purity} onChange={(event) => updateAppraisalItem(item.id, "purity", event.target.value)}>
+                                  <option value="">Select purity</option>
+                                  {PURITY_OPTIONS.map((option) => <option key={option}>{option}</option>)}
+                                </select>
+                              </Field>
+                              <Field label="Gross weight (g)" required error={validationErrors[`${item.id}.grossWeight`]}>
+                                <input type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.grossWeight} onChange={(event) => updateAppraisalItem(item.id, "grossWeight", event.target.value)} />
+                              </Field>
+                              <Field label="Stone deduction (g)"><input type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.stoneDeduction} onChange={(event) => updateAppraisalItem(item.id, "stoneDeduction", event.target.value)} /></Field>
+                              <Field label="Alloy deduction (g)"><input type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.alloyDeduction} onChange={(event) => updateAppraisalItem(item.id, "alloyDeduction", event.target.value)} /></Field>
+                              <Field label="String / fastening (g)"><input type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.fasteningDeduction} onChange={(event) => updateAppraisalItem(item.id, "fasteningDeduction", event.target.value)} /></Field>
+                              <Field label="Other deductions (g)"><input type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.otherDeduction} onChange={(event) => updateAppraisalItem(item.id, "otherDeduction", event.target.value)} /></Field>
+                              <Field label="Defect present" required>
+                                <select value={item.appraisal.defectPresent} onChange={(event) => updateAppraisalItem(item.id, "defectPresent", event.target.value)}><option>No</option><option>Yes</option></select>
+                              </Field>
+                              {item.appraisal.defectPresent === "Yes" && (
+                                <Field label="Defect description" required error={validationErrors[`${item.id}.defectDescription`]}>
+                                  <input value={item.appraisal.defectDescription} onChange={(event) => updateAppraisalItem(item.id, "defectDescription", event.target.value)} placeholder="Describe the observed defect" />
+                                </Field>
+                              )}
+                              <Field label="Appraiser remarks" wide>
+                                <textarea rows="3" value={item.appraisal.remarks} onChange={(event) => updateAppraisalItem(item.id, "remarks", event.target.value)} placeholder="Add relevant appraisal observations" />
+                              </Field>
+                            </div>
+                            <div className="derived-value-row" aria-label="Calculated appraisal values">
+                              <span><small>Net weight</small><strong>{formatWeight(netWeight)}</strong></span>
+                              <span><small>Lending rate</small><strong>{formatCurrency(lendingRateFor(item))}/g</strong></span>
+                              <span className="is-featured"><small>Appraised value</small><strong>{formatCurrency(appraisedValueFor(item))}</strong></span>
+                            </div>
+                          </>
+                        ) : (
+                          <ReadOnlyGrid columns={2} fields={[
+                            { label: "Quality / purity", value: item.appraisal.purity },
+                            { label: "Gross weight", value: formatWeight(item.appraisal.grossWeight) },
+                            { label: "Total deductions", value: formatWeight(deductionTotalFor(item)) },
+                            { label: "Net weight", value: formatWeight(netWeight) },
+                            { label: "Lending rate", value: `${formatCurrency(lendingRateFor(item))}/g` },
+                            { label: "Appraised value", value: formatCurrency(appraisedValueFor(item)) },
+                            { label: "Defect status", value: item.appraisal.defectPresent === "Yes" ? item.appraisal.defectDescription || "Defect recorded" : "No defect recorded" },
+                            { label: "Appraiser remarks", value: item.appraisal.remarks || "—", wide: true },
+                          ]} />
+                        )}
+                      </section>
+                    </div>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
+
+        {appraiserCanEdit && (
+          <div className="action-panel">
+            <Field label="Return comments" error={validationErrors.clarification} wide>
+              <textarea rows="2" value={clarificationComment} onChange={(event) => setClarificationComment(event.target.value)} placeholder="Add a comment only when returning the application to the Maker" />
+            </Field>
+            <div className="details-action-row split-actions">
+              <button type="button" className="warning" onClick={() => persistAppraisal("clarification")}>Return for clarification</button>
+              <div>
+                {/awaiting|pending/.test(appraisalStatusText) && <button type="button" className="secondary" onClick={() => persistAppraisal("start")}>Start appraisal</button>}
+                <button type="button" className="secondary" onClick={() => persistAppraisal("save")}>Save draft</button>
+                <button type="button" className="primary" onClick={() => persistAppraisal("complete")}>Complete appraisal</button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     );
   };
-
-  const renderAppraisal = () => (
-    <section className="details-section appraisal-section">
-      <SectionHeading eyebrow="APPRAISER WORKSPACE" title="Jewellery Appraisal" description="Assess physical quality, deductions, eligible net weight and photographic traceability." status={view.appraisal.status} editable={appraiserCanEdit} />
-      <div className="appraiser-summary" aria-label="Assigned appraiser">
-        <span className="appraiser-summary__avatar">
-          {view.appraisal.appraiser.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
-        </span>
-        <div>
-          <small>ASSIGNED APPRAISER / JEWELLER</small>
-          <strong>{view.appraisal.appraiser.name}</strong>
-          <p>{view.appraisal.appraiser.id} · {view.appraisal.appraiser.type} · {view.appraisal.appraiser.branch}</p>
-        </div>
-        <Status value={view.appraisal.status} />
-      </div>
-      {!appraiserCanEdit && <div className="details-info-banner"><Icon type={statusTone(view.appraisal.status) === "success" ? "check" : "lock"} /><span>{statusTone(view.appraisal.status) === "success" ? `Jewellery appraisal completed by ${view.appraisal.appraiser.name}.` : normalizedPersona === "Appraiser" ? "The appraisal is not currently assigned or is already completed." : "Only the assigned Appraiser can edit jewellery assessment fields."}</span></div>}
-      <div className="weight-policy-grid">{weightSummary.map((item) => <article key={item.key} className={item.exceeded ? "is-exceeded" : ""}><div><p>{item.label}</p><strong>{formatWeight(item.total)}</strong></div><span>{formatWeight(item.limit)} limit</span><div className="weight-progress"><i style={{ width: `${Math.min(100, (item.total / item.limit) * 100)}%` }} /></div></article>)}</div>
-      {validationErrors.weightLimit && <div className="details-validation-banner"><Icon type="alert" />{validationErrors.weightLimit}</div>}
-      {validationErrors.items && <div className="details-validation-banner"><Icon type="alert" />{validationErrors.items}</div>}
-      <div className="appraisal-item-list">
-        {appraisalItems.map((item) => {
-          const expanded = expandedItemId === item.id;
-          const netWeight = netWeightFor(item);
-          return <article key={item.id} className={`appraisal-item ${expanded ? "is-expanded" : ""}`}>
-            <button type="button" className="appraisal-item__header" onClick={() => setExpandedItemId(expanded ? "" : item.id)} aria-expanded={expanded}>
-              <span className="item-number">{String(item.serialNumber).padStart(2, "0")}</span><span className="item-title"><strong>{item.description}</strong><small>{item.category} · {item.itemCount} item(s)</small></span><span className="item-weight"><small>Net weight</small><strong>{formatWeight(netWeight)}</strong></span><Status value={item.appraisal.status} /><span className="item-chevron"><Icon type="chevron" /></span>
-            </button>
-            {expanded && <div className="appraisal-item__body">
-              <div className="maker-information"><div className="details-subsection-heading"><h4>Maker-entered information</h4><span>Read only</span></div><ReadOnlyGrid columns={3} fields={[
-                { label: "Ornament description", value: item.description },
-                { label: "Number of items", value: item.itemCount },
-                { label: "Category", value: item.category },
-                { label: "Ownership declaration", value: item.ownershipDeclaration },
-                { label: "Ownership proof", value: item.ownershipProof?.name || item.ownershipProof || "Not uploaded" },
-                { label: "Maker remarks", value: item.makerRemarks || "—", wide: true },
-              ]} /></div>
-              <div className="appraiser-form"><div className="details-subsection-heading"><h4>Appraiser assessment</h4><span>{appraiserCanEdit ? "Enter assessment" : "Read only"}</span></div><div className="details-form-grid columns-3">
-                <Field label="Defect present" required><select disabled={!appraiserCanEdit} value={item.appraisal.defectPresent} onChange={(event) => updateAppraisalItem(item.id, "defectPresent", event.target.value)}><option>No</option><option>Yes</option></select></Field>
-                <Field label="Defect description" required={item.appraisal.defectPresent === "Yes"} error={validationErrors[`${item.id}.defectDescription`]} wide><input disabled={!appraiserCanEdit || item.appraisal.defectPresent !== "Yes"} value={item.appraisal.defectDescription} onChange={(event) => updateAppraisalItem(item.id, "defectDescription", event.target.value)} placeholder="Describe observed defect" /></Field>
-                <Field label="Quality / purity" required error={validationErrors[`${item.id}.purity`]}><select disabled={!appraiserCanEdit} value={item.appraisal.purity} onChange={(event) => updateAppraisalItem(item.id, "purity", event.target.value)}><option value="">Select purity</option>{PURITY_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select></Field>
-                <Field label="Gross weight (g)" required error={validationErrors[`${item.id}.grossWeight`]}><input disabled={!appraiserCanEdit} type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.grossWeight} onChange={(event) => updateAppraisalItem(item.id, "grossWeight", event.target.value)} /></Field>
-                <Field label="Stone deduction (g)"><input disabled={!appraiserCanEdit} type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.stoneDeduction} onChange={(event) => updateAppraisalItem(item.id, "stoneDeduction", event.target.value)} /></Field>
-                <Field label="Alloy deduction (g)"><input disabled={!appraiserCanEdit} type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.alloyDeduction} onChange={(event) => updateAppraisalItem(item.id, "alloyDeduction", event.target.value)} /></Field>
-                <Field label="String / fastening (g)"><input disabled={!appraiserCanEdit} type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.fasteningDeduction} onChange={(event) => updateAppraisalItem(item.id, "fasteningDeduction", event.target.value)} /></Field>
-                <Field label="Other deductions (g)"><input disabled={!appraiserCanEdit} type="number" inputMode="decimal" min="0" step="0.01" value={item.appraisal.otherDeduction} onChange={(event) => updateAppraisalItem(item.id, "otherDeduction", event.target.value)} /></Field>
-                <div className="calculated-weight"><span>Calculated net weight</span><strong>{formatWeight(netWeight)}</strong><small>Gross weight minus all deductions</small></div>
-                <div className="calculated-weight appraisal-value"><span>Lending rate per gram</span><strong>{formatCurrency(lendingRateFor(item))}/g</strong><small>Derived from {item.appraisal.purity || "selected quality"}</small></div>
-                <div className="calculated-weight appraisal-value"><span>Appraised value</span><strong>{formatCurrency(appraisedValueFor(item))}</strong><small>Net weight × lending rate</small></div>
-                <Field label="Appraiser remarks" wide><textarea disabled={!appraiserCanEdit} rows="3" value={item.appraisal.remarks} onChange={(event) => updateAppraisalItem(item.id, "remarks", event.target.value)} placeholder="Enter appraisal remarks" /></Field>
-                <div className={`jewellery-image-field wide ${validationErrors[`${item.id}.jewelImage`] || validationErrors[`${item.id}.jewelleryMatchesImage`] ? "has-error" : ""}`}>
-                  <div className="jewellery-image-field__heading"><div><span>Customer-uploaded jewellery image <b>*</b></span><small>Use this image to verify the ornament presented for appraisal.</small></div>{item.jewelImage?.uploadedAt && <em>Uploaded {formatDate(item.jewelImage.uploadedAt)}</em>}</div>
-                  {item.jewelImage?.dataUrl ? <div className="jewellery-image-card"><img src={item.jewelImage.dataUrl} alt={item.jewelImage.name || `${item.description} uploaded by customer`} /><div><strong>{item.jewelImage.name || "Jewellery image"}</strong><small>{item.jewelImage.type || "Image"}{item.jewelImage.size ? ` · ${Math.ceil(item.jewelImage.size / 1024)} KB` : ""}</small></div></div> : <div className="jewellery-image-empty"><Icon type="alert" /><span>No customer image is available. Upload a replacement image to continue.</span></div>}
-                  {appraiserCanEdit && <label className="replace-image-button"><Icon type="upload" />Replace image<input type="file" accept="image/*" capture="environment" onChange={(event) => handleReplacementImage(item.id, event.target.files?.[0])} /></label>}
-                  <label className="image-match-check"><input type="checkbox" disabled={!appraiserCanEdit || !item.jewelImage?.dataUrl} checked={Boolean(item.appraisal.jewelleryMatchesImage)} onChange={(event) => updateAppraisalItem(item.id, "jewelleryMatchesImage", event.target.checked)} /><span>Jewellery is as per image</span></label>
-                  {validationErrors[`${item.id}.jewelImage`] && <small className="field-error">{validationErrors[`${item.id}.jewelImage`]}</small>}{validationErrors[`${item.id}.jewelleryMatchesImage`] && <small className="field-error">{validationErrors[`${item.id}.jewelleryMatchesImage`]}</small>}
-                </div>
-              </div></div>
-            </div>}
-          </article>;
-        })}
-      </div>
-      <div className="appraisal-total"><span>Total appraised value</span><strong>{formatCurrency(appraisalItems.reduce((sum, item) => sum + appraisedValueFor(item), 0))}</strong><small>Sum of all ornament appraisal values</small></div>
-      {appraiserCanEdit && <div className="appraisal-actions"><Field label="Clarification / return comments" error={validationErrors.clarification} wide><textarea rows="2" value={clarificationComment} onChange={(event) => setClarificationComment(event.target.value)} placeholder="Required only when returning to Maker" /></Field><div className="details-action-row"><button type="button" className="secondary" onClick={() => persistAppraisal("start")}>Start Appraisal</button><button type="button" className="secondary" onClick={() => persistAppraisal("save")}>Save Draft</button><button type="button" className="warning" onClick={() => persistAppraisal("clarification")}>Return for Clarification</button><button type="button" className="primary" onClick={() => persistAppraisal("complete")}>Complete Appraisal</button></div></div>}
-    </section>
-  );
 
   const renderEligibility = () => {
     const isOverdraft = String(view.loan.repaymentType || view.loan.facilityType).toLowerCase().includes("overdraft");
     const activeAccounts = view.loan.accounts.filter((account) => !account.status || String(account.status).toLowerCase() === "active");
     const minor = nomineeAge !== null && nomineeAge < 18;
-    return <section className="details-section eligibility-section">
-      <SectionHeading eyebrow="ELIGIBILITY & MAKER ACTION" title="Eligibility & Maker Recommendation" description="Review backend eligibility, charges and nominee information before Checker submission." status={view.eligibility.status} editable={makerCanEdit} />
-      {!makerCanEdit && <div className="details-info-banner"><Icon type="lock" /><span>Eligibility calculations are read-only. Maker inputs are enabled only when the application is assigned to the Branch Maker.</span></div>}
-      <div className="eligibility-calculation"><div className="eligibility-rate-row"><span><small>Eligible net weight</small><strong>{formatWeight(view.eligibility.totalNetWeight)}</strong></span><span><small>Appraised value</small><strong>{formatCurrency(view.eligibility.schemeLendingValue)}</strong></span><span><small>Applicable LTV</small><strong>{textValue(view.eligibility.applicableLtv)}%</strong></span></div><div className="eligibility-limit-grid">{[
-        ["A", "LTV-based value", view.eligibility.ltvBasedValue],
-        ["B", "Appraised value", view.eligibility.schemeLendingValue],
-        ["C", "Available exposure limit", view.eligibility.availableExposureLimit],
-      ].map(([key, label, value]) => <article key={key}><span>{key}</span><div><p>{label}</p><strong>{formatCurrency(value)}</strong></div></article>)}</div><div className="maximum-eligible"><div><small>Minimum of LTV value, appraised value and available exposure</small><strong>Maximum eligible amount</strong></div><b>{formatCurrency(view.eligibility.maximumEligibleAmount)}</b></div></div>
-      <div className="maker-panels">
-        <section className="maker-panel"><div className="details-subsection-heading"><h4>Loan recommendation</h4><span>{makerCanEdit ? "Maker input" : "Read only"}</span></div><div className="details-form-grid columns-2">
-          <Field label="Required loan amount" required error={validationErrors.requiredAmount}><div className="currency-input"><span>₹</span><input disabled={!makerCanEdit} type="number" inputMode="numeric" min="0" value={makerDraft.requiredAmount} onChange={(event) => setMakerDraft((current) => ({ ...current, requiredAmount: event.target.value }))} /></div></Field>
-          <Field label="Recommended amount" required error={validationErrors.recommendedAmount}><div className="currency-input"><span>₹</span><input disabled={!makerCanEdit} type="number" inputMode="numeric" min="0" value={makerDraft.recommendedAmount} onChange={(event) => setMakerDraft((current) => ({ ...current, recommendedAmount: event.target.value }))} /></div></Field>
-          <Field label="Disbursement account" required={!isOverdraft} error={validationErrors.disbursementAccount} wide><select disabled={!makerCanEdit || isOverdraft} value={makerDraft.disbursementAccount} onChange={(event) => setMakerDraft((current) => ({ ...current, disbursementAccount: event.target.value }))}><option value="">{isOverdraft ? "Not applicable for Overdraft" : "Select active CASA account"}</option>{activeAccounts.map((account, index) => <option key={account.accountNumber || index} value={account.accountNumber || account.value}>{account.maskedAccountNumber || account.accountNumber || account.label}</option>)}</select>{isOverdraft && <small>OD limit will be created in CBS; no disbursement account is required.</small>}</Field>
-          <Field label="Maker comments" wide><textarea disabled={!makerCanEdit} rows="3" value={makerDraft.makerComments} onChange={(event) => setMakerDraft((current) => ({ ...current, makerComments: event.target.value }))} placeholder="Enter recommendation comments" /></Field>
-          <Field label="Document execution" wide><select disabled={!makerCanEdit} value={makerDraft.eSignRequired ? "eSign" : "Manual signature"} onChange={(event) => setMakerDraft((current) => ({ ...current, eSignRequired: event.target.value === "eSign" }))}><option value="eSign">eSign required</option><option value="Physical signature">Physical signature</option></select></Field>
-        </div></section>
-        <section className="maker-panel"><div className="details-subsection-heading"><h4>Processing & appraiser charges</h4><span>Backend calculated</span></div><ReadOnlyGrid columns={2} fields={[
-          { label: "Processing charge", value: formatCurrency(view.eligibility.charges.processingCharge) },
-          { label: "Appraiser charge", value: formatCurrency(view.eligibility.charges.appraiserCharge) },
-          { label: "GST", value: formatCurrency(view.eligibility.charges.gst) },
-          { label: "Other charges", value: formatCurrency(view.eligibility.charges.otherCharges) },
-          { label: "Total charges", value: formatCurrency(view.eligibility.charges.totalCharges) },
-          { label: "Deduction account", value: view.eligibility.charges.chargesAccount },
-        ]} /></section>
-        <section className="maker-panel nominee-panel"><div className="details-subsection-heading"><h4>Nominee details</h4><span>{makerCanEdit ? "Maker input" : "Read only"}</span></div>{makerCanEdit && <label className="details-checkbox"><input type="checkbox" checked={makerDraft.nominee.useSavingsNominee} onChange={(event) => {
-          const checked = event.target.checked;
-          const fetchedNominee = view.loan.savingsNominee || {};
-          setMakerDraft((current) => ({
-            ...current,
-            nominee: {
-              ...current.nominee,
-              useSavingsNominee: checked,
-              ...(checked
-                ? {
-                    name: fetchedNominee.name || current.nominee.name,
-                    relationship: fetchedNominee.relationship || current.nominee.relationship,
-                    dateOfBirth: fetchedNominee.dateOfBirth || current.nominee.dateOfBirth,
-                    address: fetchedNominee.address || current.nominee.address,
-                    guardianName: fetchedNominee.guardianName || current.nominee.guardianName,
-                    guardianRelationship: fetchedNominee.guardianRelationship || current.nominee.guardianRelationship,
-                    guardianContact: fetchedNominee.guardianContact || current.nominee.guardianContact,
-                  }
-                : {}),
-            },
-          }));
-        }} /><span>Use nominee from Savings Account / fetch from CBS</span></label>}<div className="details-form-grid columns-2">
-          <Field label="Nominee name" required error={validationErrors.nomineeName}><input disabled={!makerCanEdit} value={makerDraft.nominee.name} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, name: event.target.value } }))} /></Field>
-          <Field label="Relationship" required error={validationErrors.nomineeRelationship}><select disabled={!makerCanEdit} value={makerDraft.nominee.relationship} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, relationship: event.target.value } }))}><option value="">Select relationship</option>{["Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other"].map((option) => <option key={option}>{option}</option>)}</select></Field>
-          <Field label="Date of birth" required error={validationErrors.nomineeDob}><input disabled={!makerCanEdit} type="date" value={makerDraft.nominee.dateOfBirth} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, dateOfBirth: event.target.value } }))} /></Field>
-          <Field label="Nominee address"><input disabled={!makerCanEdit} value={makerDraft.nominee.address} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, address: event.target.value } }))} /></Field>
-          {minor && <><div className="minor-notice wide"><Icon type="info" />Nominee is a minor. Guardian details are mandatory.</div><Field label="Guardian name" required error={validationErrors.guardianName}><input disabled={!makerCanEdit} value={makerDraft.nominee.guardianName} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianName: event.target.value } }))} /></Field><Field label="Guardian relationship"><input disabled={!makerCanEdit} value={makerDraft.nominee.guardianRelationship} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianRelationship: event.target.value } }))} /></Field><Field label="Guardian contact" wide><input disabled={!makerCanEdit} value={makerDraft.nominee.guardianContact} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianContact: event.target.value } }))} /></Field></>}
-        </div>{makerCanEdit && <button className="add-nominee" type="button" onClick={() => setMakerDraft((current) => ({ ...current, nominees: [...current.nominees, { name: "", relationship: "" }] }))}>+ Add another nominee</button>}</section>
-      </div>
-      {makerCanEdit && <div className="details-action-row sticky-actions"><button type="button" className="secondary" onClick={() => persistMaker(false)}>Save Draft</button><button type="button" className="primary" onClick={() => persistMaker(true)}>Submit to Branch Checker</button></div>}
-    </section>;
+    const ltvBand = view.eligibility.applicableLtv === 85
+      ? "Up to ₹2.5 lakh"
+      : view.eligibility.applicableLtv === 80
+        ? "₹2.5–5 lakh"
+        : "Above ₹5 lakh";
+
+    return (
+      <section className="details-section eligibility-section">
+        <SectionHeading
+          eyebrow="Step 2 of 3 · Maker finalisation"
+          title="Loan recommendation"
+          description="Review the calculated lending limit, confirm the customer request and prepare the recommendation for Checker review."
+          status={view.eligibility.status}
+          editable={makerCanEdit}
+        />
+
+        <section className="eligibility-overview" aria-labelledby="eligibility-overview-title">
+          <div className="eligibility-overview__header">
+            <div>
+              <h4 id="eligibility-overview-title">Lending position</h4>
+              <p>System-assessed limits based on the completed appraisal and current policy.</p>
+            </div>
+            <span className="eligibility-policy-chip">{ltvBand} policy band</span>
+          </div>
+
+          <div className="eligibility-metrics" aria-label="Eligibility values">
+            <article>
+              <small>Appraised collateral</small>
+              <strong>{formatCurrency(view.eligibility.schemeLendingValue)}</strong>
+              <span>Verified value</span>
+            </article>
+            <article>
+              <small>Applicable LTV</small>
+              <strong>{textValue(view.eligibility.applicableLtv)}%</strong>
+              <span>Policy applied</span>
+            </article>
+            <article>
+              <small>LTV lending value</small>
+              <strong>{formatCurrency(view.eligibility.ltvBasedValue)}</strong>
+              <span>System derived</span>
+            </article>
+            <article>
+              <small>Available exposure</small>
+              <strong>{formatCurrency(view.eligibility.availableExposureLimit)}</strong>
+              <span>Current customer limit</span>
+            </article>
+          </div>
+
+          <div className="eligibility-ceiling">
+            <div>
+              <small>Maximum eligible amount</small>
+              <span>Current recommendation ceiling</span>
+            </div>
+            <strong>{formatCurrency(view.eligibility.maximumEligibleAmount)}</strong>
+          </div>
+        </section>
+
+        <div className="maker-workspace">
+          <section className="maker-primary-panel">
+            <div className="content-heading">
+              <div><h4>Recommendation details</h4><p>{makerCanEdit ? "Confirm the amount, account and document execution method." : "Recommendation submitted by the Maker."}</p></div>
+            </div>
+
+            {makerCanEdit ? (
+              <>
+                <div className="details-form-grid columns-2">
+                  <Field label="Customer requested amount" required error={validationErrors.requiredAmount}>
+                    <div className="currency-input"><span>₹</span><input type="number" inputMode="numeric" min="0" value={makerDraft.requiredAmount} onChange={(event) => setMakerDraft((current) => ({ ...current, requiredAmount: event.target.value }))} /></div>
+                  </Field>
+                  <Field label="Recommended amount" required error={validationErrors.recommendedAmount}>
+                    <div className="currency-input"><span>₹</span><input type="number" inputMode="numeric" min="0" value={makerDraft.recommendedAmount} onChange={(event) => setMakerDraft((current) => ({ ...current, recommendedAmount: event.target.value }))} /></div>
+                  </Field>
+                  <Field label="Disbursement account" required={!isOverdraft} error={validationErrors.disbursementAccount} wide>
+                    <select disabled={isOverdraft} value={makerDraft.disbursementAccount} onChange={(event) => setMakerDraft((current) => ({ ...current, disbursementAccount: event.target.value }))}>
+                      <option value="">{isOverdraft ? "Not applicable for Overdraft" : "Select an active CASA account"}</option>
+                      {activeAccounts.map((account, index) => <option key={account.accountNumber || index} value={account.accountNumber || account.value}>{account.maskedAccountNumber || account.accountNumber || account.label}</option>)}
+                    </select>
+                    {isOverdraft && <small>OD limit will be created directly in CBS.</small>}
+                  </Field>
+                  <Field label="Recommendation comments" wide>
+                    <textarea rows="3" value={makerDraft.makerComments} onChange={(event) => setMakerDraft((current) => ({ ...current, makerComments: event.target.value }))} placeholder="Summarise the recommendation rationale" />
+                  </Field>
+                </div>
+
+                <fieldset className="execution-options">
+                  <legend>Document execution</legend>
+                  <label className={makerDraft.eSignRequired ? "is-selected" : ""}>
+                    <input type="radio" name="documentExecution" checked={makerDraft.eSignRequired} onChange={() => setMakerDraft((current) => ({ ...current, eSignRequired: true }))} />
+                    <span><strong>eSign</strong><small>Send documents to the registered mobile and email.</small></span>
+                  </label>
+                  <label className={!makerDraft.eSignRequired ? "is-selected" : ""}>
+                    <input type="radio" name="documentExecution" checked={!makerDraft.eSignRequired} onChange={() => setMakerDraft((current) => ({ ...current, eSignRequired: false }))} />
+                    <span><strong>Physical signature</strong><small>Collect and upload the signed document after sanction.</small></span>
+                  </label>
+                </fieldset>
+              </>
+            ) : (
+              <ReadOnlyGrid columns={2} fields={[
+                { label: "Customer requested amount", value: formatCurrency(view.eligibility.requiredAmount) },
+                { label: "Recommended amount", value: formatCurrency(view.eligibility.recommendedAmount) },
+                { label: "Disbursement account", value: view.eligibility.disbursementAccount || "Not applicable" },
+                { label: "Document execution", value: view.eligibility.eSignRequired ? "eSign" : "Physical signature" },
+                { label: "Recommendation comments", value: view.eligibility.makerComments || "—", wide: true },
+              ]} />
+            )}
+          </section>
+
+          <aside className="charges-panel">
+            <div className="content-heading compact">
+              <div><h4>Charges</h4><p>Calculated by the system.</p></div>
+            </div>
+            <dl className="charge-list">
+              <div><dt>Processing charge</dt><dd>{formatCurrency(view.eligibility.charges.processingCharge)}</dd></div>
+              <div><dt>Appraiser charge</dt><dd>{formatCurrency(view.eligibility.charges.appraiserCharge)}</dd></div>
+              <div><dt>GST</dt><dd>{formatCurrency(view.eligibility.charges.gst)}</dd></div>
+              {toNumber(view.eligibility.charges.otherCharges) > 0 && <div><dt>Other charges</dt><dd>{formatCurrency(view.eligibility.charges.otherCharges)}</dd></div>}
+              <div className="charge-total"><dt>Total charges</dt><dd>{formatCurrency(view.eligibility.charges.totalCharges)}</dd></div>
+              <div><dt>Deduction account</dt><dd>{textValue(view.eligibility.charges.chargesAccount)}</dd></div>
+            </dl>
+          </aside>
+        </div>
+
+        <section className="nominee-panel">
+          <div className="content-heading">
+            <div><h4>Nominee details</h4><p>Primary nominee for the Gold Loan account.</p></div>
+            {makerCanEdit && (
+              <label className="details-checkbox">
+                <input type="checkbox" checked={makerDraft.nominee.useSavingsNominee} onChange={(event) => {
+                  const checked = event.target.checked;
+                  const fetchedNominee = view.loan.savingsNominee || {};
+                  setMakerDraft((current) => ({
+                    ...current,
+                    nominee: {
+                      ...current.nominee,
+                      useSavingsNominee: checked,
+                      ...(checked ? {
+                        name: fetchedNominee.name || current.nominee.name,
+                        relationship: fetchedNominee.relationship || current.nominee.relationship,
+                        dateOfBirth: fetchedNominee.dateOfBirth || current.nominee.dateOfBirth,
+                        address: fetchedNominee.address || current.nominee.address,
+                        guardianName: fetchedNominee.guardianName || current.nominee.guardianName,
+                        guardianRelationship: fetchedNominee.guardianRelationship || current.nominee.guardianRelationship,
+                        guardianContact: fetchedNominee.guardianContact || current.nominee.guardianContact,
+                      } : {}),
+                    },
+                  }));
+                }} />
+                <span>Use Savings Account nominee</span>
+              </label>
+            )}
+          </div>
+
+          {makerCanEdit ? (
+            <>
+              <div className="details-form-grid columns-2">
+                <Field label="Nominee name" required error={validationErrors.nomineeName}><input value={makerDraft.nominee.name} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, name: event.target.value } }))} /></Field>
+                <Field label="Relationship" required error={validationErrors.nomineeRelationship}><select value={makerDraft.nominee.relationship} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, relationship: event.target.value } }))}><option value="">Select relationship</option>{["Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other"].map((option) => <option key={option}>{option}</option>)}</select></Field>
+                <Field label="Date of birth" required error={validationErrors.nomineeDob}><input type="date" value={makerDraft.nominee.dateOfBirth} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, dateOfBirth: event.target.value } }))} /></Field>
+                <Field label="Nominee address"><input value={makerDraft.nominee.address} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, address: event.target.value } }))} /></Field>
+                {minor && <><div className="minor-notice wide"><Icon type="info" />Nominee is a minor. Guardian details are mandatory.</div><Field label="Guardian name" required error={validationErrors.guardianName}><input value={makerDraft.nominee.guardianName} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianName: event.target.value } }))} /></Field><Field label="Guardian relationship"><input value={makerDraft.nominee.guardianRelationship} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianRelationship: event.target.value } }))} /></Field><Field label="Guardian contact" wide><input value={makerDraft.nominee.guardianContact} onChange={(event) => setMakerDraft((current) => ({ ...current, nominee: { ...current.nominee, guardianContact: event.target.value } }))} /></Field></>}
+              </div>
+
+              {makerDraft.nominees.map((nominee, index) => (
+                <div className="additional-nominee" key={`nominee-${index}`}>
+                  <div className="content-heading compact"><div><h4>Additional nominee {index + 1}</h4></div><button className="remove-nominee" type="button" onClick={() => setMakerDraft((current) => ({ ...current, nominees: current.nominees.filter((_, nomineeIndex) => nomineeIndex !== index) }))}>Remove</button></div>
+                  <div className="details-form-grid columns-2">
+                    <Field label="Nominee name"><input value={nominee.name || ""} onChange={(event) => setMakerDraft((current) => ({ ...current, nominees: current.nominees.map((entry, nomineeIndex) => nomineeIndex === index ? { ...entry, name: event.target.value } : entry) }))} /></Field>
+                    <Field label="Relationship"><select value={nominee.relationship || ""} onChange={(event) => setMakerDraft((current) => ({ ...current, nominees: current.nominees.map((entry, nomineeIndex) => nomineeIndex === index ? { ...entry, relationship: event.target.value } : entry) }))}><option value="">Select relationship</option>{["Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other"].map((option) => <option key={option}>{option}</option>)}</select></Field>
+                  </div>
+                </div>
+              ))}
+              {makerDraft.nominees.length < 1 && <button className="add-nominee" type="button" onClick={() => setMakerDraft((current) => ({ ...current, nominees: [...current.nominees, { name: "", relationship: "" }] }))}>+ Add a second nominee</button>}
+            </>
+          ) : (
+            <>
+              <ReadOnlyGrid columns={2} fields={[
+                { label: "Nominee name", value: view.eligibility.nominee.name },
+                { label: "Relationship", value: view.eligibility.nominee.relationship },
+                { label: "Date of birth", value: formatDate(view.eligibility.nominee.dateOfBirth) },
+                { label: "Address", value: view.eligibility.nominee.address },
+                ...(minor ? [
+                  { label: "Guardian name", value: view.eligibility.nominee.guardianName },
+                  { label: "Guardian contact", value: view.eligibility.nominee.guardianContact },
+                ] : []),
+              ]} />
+              {view.eligibility.nominees.map((nominee, index) => (
+                <div className="additional-nominee read-only" key={`saved-nominee-${index}`}>
+                  <strong>Additional nominee {index + 1}</strong>
+                  <span>{textValue(nominee.name)} · {textValue(nominee.relationship)}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </section>
+
+        {makerCanEdit && (
+          <div className="details-action-row sticky-actions">
+            <button type="button" className="secondary" onClick={() => persistMaker(false)}>Save draft</button>
+            <button type="button" className="primary" onClick={() => persistMaker(true)}>Submit to Branch Checker</button>
+          </div>
+        )}
+      </section>
+    );
   };
 
-  const renderChecker = () => (
-    <section className="details-section checker-section">
-      <SectionHeading eyebrow="INDEPENDENT REVIEW" title="Checker Decision" description="Review all preceding sections and record the sanction decision." status={view.checker.status || view.checker.decision || "Pending"} editable={checkerCanEdit} />
-      <div className="checker-review-grid">{[
-        ["Jewellery appraisal", view.appraisal.status],
-        ["Eligibility recommendation", view.eligibility.status],
-        ["Maker submission", view.eligibility.status === "Submitted to Checker" ? "Completed" : "Pending"],
-      ].map(([label, status]) => <article key={label}><span>{label}</span><Status value={status} /></article>)}</div>
-      <div className="checker-financial-summary"><span><small>Original request</small><strong>{formatCurrency(view.loan.requestedAmount)}</strong></span><span><small>Maximum eligible</small><strong>{formatCurrency(view.eligibility.maximumEligibleAmount)}</strong></span><span><small>Required amount</small><strong>{formatCurrency(view.eligibility.requiredAmount)}</strong></span><span className="featured"><small>Maker recommendation</small><strong>{formatCurrency(view.eligibility.recommendedAmount)}</strong></span></div>
-      {view.checker.decision && <div className="existing-decision"><Icon type="decision" /><div><strong>{view.checker.decision}</strong><p>{view.checker.comments || "No Checker comments recorded."}</p><span>{view.checker.decidedBy?.name || "Branch Checker"} · {formatDateTime(view.checker.decidedAt)}</span></div></div>}
-      <div className="checker-decision-form"><div className="details-form-grid columns-2"><Field label="Decision comments" required error={validationErrors.checkerComments} wide><textarea disabled={!checkerCanEdit} rows="4" value={checkerDraft.comments} onChange={(event) => setCheckerDraft((current) => ({ ...current, comments: event.target.value }))} placeholder="Record review observations and decision rationale" /></Field><Field label="Pushback section"><select disabled={!checkerCanEdit} value={checkerDraft.pushbackSection} onChange={(event) => setCheckerDraft((current) => ({ ...current, pushbackSection: event.target.value }))}>{PUSHBACK_SECTIONS.map((section) => <option key={section}>{section}</option>)}</select></Field><Field label="Pushback reason" error={validationErrors.pushbackReason}><input disabled={!checkerCanEdit} value={checkerDraft.pushbackReason} onChange={(event) => setCheckerDraft((current) => ({ ...current, pushbackReason: event.target.value }))} placeholder="Required correction or clarification" /></Field><Field label="Rejection reason" error={validationErrors.rejectionReason} wide><input disabled={!checkerCanEdit} value={checkerDraft.rejectionReason} onChange={(event) => setCheckerDraft((current) => ({ ...current, rejectionReason: event.target.value }))} placeholder="Customer declined, policy ineligible, fraud concern, other" /></Field></div>
-        {checkerCanEdit ? <div className="checker-actions"><button type="button" className="danger" onClick={() => persistCheckerDecision("reject")}>Reject</button><button type="button" className="warning" onClick={() => persistCheckerDecision("pushback")}>Push Back</button><button type="button" className="primary" onClick={() => persistCheckerDecision("approve")}>Approve & Sanction</button></div> : <div className="details-info-banner"><Icon type="lock" /><span>Checker controls are enabled only when the application is assigned for sanction review.</span></div>}
-      </div>
-    </section>
-  );
+  const renderChecker = () => {
+    const decisionButton = {
+      approve: { label: "Approve and sanction", className: "primary" },
+      pushback: { label: "Send back for correction", className: "warning" },
+      reject: { label: "Reject application", className: "danger" },
+    }[checkerDecisionMode];
+
+    return (
+      <section className="details-section checker-section">
+        <SectionHeading
+          eyebrow="Step 3 of 3 · Independent review"
+          title="Checker decision"
+          description="Confirm that appraisal and recommendation are complete, then record one clear sanction decision."
+          status={view.checker.status || view.checker.decision || "Pending"}
+          editable={checkerCanEdit}
+        />
+
+        <div className="checker-review-grid" aria-label="Review readiness">
+          {[
+            ["Jewellery appraisal", view.appraisal.status],
+            ["Maker recommendation", view.eligibility.status],
+            ["Application ready", view.eligibility.status === "Submitted to Checker" ? "Ready for review" : "Pending"],
+          ].map(([label, status]) => (
+            <article key={label}>
+              <span className={`review-state-icon is-${statusTone(status)}`}><Icon type={statusTone(status) === "success" ? "check" : "info"} /></span>
+              <div><strong>{label}</strong><small>{textValue(status)}</small></div>
+            </article>
+          ))}
+        </div>
+
+        <div className="checker-financial-summary" aria-label="Loan amount summary">
+          <span><small>Original request</small><strong>{formatCurrency(view.loan.requestedAmount)}</strong></span>
+          <span><small>Maximum eligible</small><strong>{formatCurrency(view.eligibility.maximumEligibleAmount)}</strong></span>
+          <span><small>Maker recommendation</small><strong>{formatCurrency(view.eligibility.recommendedAmount)}</strong></span>
+          <span className="featured"><small>Variance from request</small><strong>{formatCurrency((toNumber(view.eligibility.recommendedAmount) || 0) - (toNumber(view.loan.requestedAmount) || 0))}</strong></span>
+        </div>
+
+        {view.checker.decision && (
+          <div className="existing-decision">
+            <span className="existing-decision__icon"><Icon type="decision" /></span>
+            <div>
+              <small>Recorded decision</small>
+              <strong>{view.checker.decision}</strong>
+              <p>{view.checker.comments || "No Checker comments recorded."}</p>
+              <span>{view.checker.decidedBy?.name || "Branch Checker"} · {formatDateTime(view.checker.decidedAt)}</span>
+            </div>
+          </div>
+        )}
+
+        {checkerCanEdit ? (
+          <section className="checker-decision-form">
+            <div className="content-heading">
+              <div><h4>Record decision</h4><p>Select the outcome first. Only the information needed for that outcome will be requested.</p></div>
+            </div>
+
+            <fieldset className="decision-options">
+              <legend className="sr-only">Checker decision</legend>
+              <label className={checkerDecisionMode === "approve" ? "is-selected is-approve" : ""}>
+                <input type="radio" name="checkerDecision" value="approve" checked={checkerDecisionMode === "approve"} onChange={(event) => setCheckerDecisionMode(event.target.value)} />
+                <span><Icon type="check" /><strong>Approve</strong><small>Sanction and move to documentation.</small></span>
+              </label>
+              <label className={checkerDecisionMode === "pushback" ? "is-selected is-pushback" : ""}>
+                <input type="radio" name="checkerDecision" value="pushback" checked={checkerDecisionMode === "pushback"} onChange={(event) => setCheckerDecisionMode(event.target.value)} />
+                <span><Icon type="edit" /><strong>Send back</strong><small>Request a specific correction.</small></span>
+              </label>
+              <label className={checkerDecisionMode === "reject" ? "is-selected is-reject" : ""}>
+                <input type="radio" name="checkerDecision" value="reject" checked={checkerDecisionMode === "reject"} onChange={(event) => setCheckerDecisionMode(event.target.value)} />
+                <span><Icon type="alert" /><strong>Reject</strong><small>Close the application with a reason.</small></span>
+              </label>
+            </fieldset>
+
+            <div className="details-form-grid columns-2">
+              <Field label="Decision comments" required error={validationErrors.checkerComments} wide>
+                <textarea rows="4" value={checkerDraft.comments} onChange={(event) => setCheckerDraft((current) => ({ ...current, comments: event.target.value }))} placeholder="Record the review outcome and rationale" />
+              </Field>
+
+              {checkerDecisionMode === "pushback" && (
+                <>
+                  <Field label="Send back to" required>
+                    <select value={checkerDraft.pushbackSection} onChange={(event) => setCheckerDraft((current) => ({ ...current, pushbackSection: event.target.value }))}>{PUSHBACK_SECTIONS.map((section) => <option key={section.value} value={section.value}>{section.label}</option>)}</select>
+                  </Field>
+                  <Field label="Correction required" required error={validationErrors.pushbackReason}>
+                    <input value={checkerDraft.pushbackReason} onChange={(event) => setCheckerDraft((current) => ({ ...current, pushbackReason: event.target.value }))} placeholder="State the exact correction needed" />
+                  </Field>
+                </>
+              )}
+
+              {checkerDecisionMode === "reject" && (
+                <Field label="Rejection reason" required error={validationErrors.rejectionReason} wide>
+                  <input value={checkerDraft.rejectionReason} onChange={(event) => setCheckerDraft((current) => ({ ...current, rejectionReason: event.target.value }))} placeholder="Policy ineligible, customer declined, fraud concern, or other" />
+                </Field>
+              )}
+            </div>
+
+            <div className="checker-actions">
+              <button type="button" className={decisionButton.className} onClick={() => persistCheckerDecision(checkerDecisionMode)}>{decisionButton.label}</button>
+            </div>
+          </section>
+        ) : !view.checker.decision ? (
+          <div className="pending-review-note"><Icon type="info" /><div><strong>No Checker action is available yet</strong><span>The decision controls appear when the application is submitted and assigned to the Branch Checker.</span></div></div>
+        ) : null}
+      </section>
+    );
+  };
 
   const sectionContent = {
     jewelleryAppraisal: renderAppraisal,
     eligibilityRecommendation: renderEligibility,
     checkerDecision: renderChecker,
   };
+  const currentOwner =
+    view.application.currentOwner ||
+    view.application.assignment?.currentOwner ||
+    view.appraisal.appraiser.name;
 
   return (
     <section className="details-tab" aria-labelledby="details-tab-title">
-      <div className="details-mobile-section-picker"><label htmlFor="application-detail-section">Your workspace</label><select id="application-detail-section" value={activeSection} onChange={(event) => setActiveSection(event.target.value)}>{visibleSections.map((section) => <option key={section.id} value={section.id}>{section.label}</option>)}</select></div>
+      <div className="case-summary-bar">
+        <div className="case-summary-primary">
+          <small>Application</small>
+          <strong>{resolvedApplicationNumber || resolvedLeadId || "Gold Loan"}</strong>
+          <span>{view.customer.name} · {view.loan.branch.name}</span>
+        </div>
+        <div><small>Requested amount</small><strong>{formatCurrency(view.loan.requestedAmount)}</strong></div>
+        <div><small>Current status</small><Status value={view.application.status || sectionStatus(activeSection)} /></div>
+        <div><small>Assigned to</small><strong>{textValue(currentOwner)}</strong><span>{normalizedPersona === "Viewer" ? "Workflow owner" : `${normalizedPersona} view`}</span></div>
+      </div>
+
+      <div className="details-mobile-section-picker">
+        <label htmlFor="application-detail-section">Current step</label>
+        <select id="application-detail-section" value={activeSection} onChange={(event) => setActiveSection(event.target.value)}>
+          {visibleSections.map((section) => <option key={section.id} value={section.id}>{section.number} · {section.label}</option>)}
+        </select>
+      </div>
+
       <div className="details-workspace">
-        <nav className="details-section-nav" aria-label="Application detail sections"><ol>{visibleSections.map((section) => <li key={section.id}><button type="button" className={activeSection === section.id ? "is-active" : ""} onClick={() => setActiveSection(section.id)} aria-current={activeSection === section.id ? "page" : undefined}><span className="section-nav-icon"><Icon type={section.icon} /></span><span className="section-nav-copy"><small>SECTION {section.number}</small><strong>{section.label}</strong></span><Status value={sectionStatus(section.id)} /></button></li>)}</ol></nav>
+        <nav className="details-section-nav" aria-label="Application review steps">
+          <ol>
+            {visibleSections.map((section) => (
+              <li key={section.id}>
+                <button type="button" className={activeSection === section.id ? "is-active" : ""} onClick={() => setActiveSection(section.id)} aria-current={activeSection === section.id ? "step" : undefined}>
+                  <span className="section-nav-step">{section.number}</span>
+                  <span className="section-nav-icon"><Icon type={section.icon} /></span>
+                  <span className="section-nav-copy"><small>Step {section.number}</small><strong>{section.label}</strong></span>
+                  <Status value={sectionStatus(section.id)} />
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
         <div className="details-section-content">{sectionContent[activeSection]?.()}</div>
       </div>
-      <div className={`details-save-state is-${saveState}`} role="status" aria-live="polite">{saveState === "saving" && "Saving application details…"}{saveState === "saved" && <><Icon type="check" />Lead details JSON saved successfully.</>}{saveState === "error" && <><Icon type="alert" />{saveError}</>}{saveState === "idle" && "All displayed information is loaded from the current lead details JSON."}</div>
+      {saveState !== "idle" && (
+        <div className={`details-save-state is-${saveState}`} role="status" aria-live="polite">
+          {saveState === "saving" && "Saving changes…"}
+          {saveState === "saved" && <><Icon type="check" />Changes saved</>}
+          {saveState === "error" && <><Icon type="alert" />{saveError}</>}
+        </div>
+      )}
     </section>
   );
 }

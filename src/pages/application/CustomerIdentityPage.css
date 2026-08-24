@@ -2071,3 +2071,107 @@
   .glci-kyc-file-row { flex-direction: column; }
   .glci-kyc-ocr dl { grid-template-columns: 1fr; }
 }
+
+/* Container for NTB Onboarding Action */
+.glci-ntb-card {
+  margin-top: 14px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--glci-border-soft);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.glci-ntb-card.created {
+  background: #fffdf5;
+  border-color: #f7e6a1;
+  box-shadow: 0 4px 12px rgba(130, 101, 0, 0.08);
+}
+
+.glci-ntb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.glci-ntb-eyebrow {
+  color: var(--glci-gold-700);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.glci-ntb-header-text h4 {
+  margin: 3px 0 0;
+  color: var(--glci-blue-900);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Structured Key-Value Credentials Grid */
+.glci-generated-credentials {
+  margin-top: 14px;
+  padding-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border-top: 1px dashed #edd992;
+}
+
+.glci-credential-box {
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e2d398;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.glci-cred-label {
+  display: block;
+  color: var(--glci-muted);
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.glci-cred-value-row {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.glci-cred-value {
+  color: var(--glci-blue-950);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.glci-copy-btn {
+  padding: 3px 8px;
+  color: var(--glci-blue-700);
+  background: var(--glci-blue-50);
+  border: 1px solid #cce0f5;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.glci-copy-btn:hover {
+  background: var(--glci-blue-100);
+}
+
+@media (max-width: 700px) {
+  .glci-ntb-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .glci-generated-credentials {
+    grid-template-columns: 1fr;
+  }
+}

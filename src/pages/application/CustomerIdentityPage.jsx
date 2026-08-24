@@ -2682,19 +2682,19 @@ function CustomerIdentity({
             </div>
 
             {customerType === "NTB" && (
-              <div className="glci-ntb-action">
-                <div>
-                  <strong>
+            <div className={`glci-ntb-card ${ntbOnboarded ? "created" : "pending"}`}>
+              <div className="glci-ntb-header">
+                <div className="glci-ntb-header-text">
+                  <span className="glci-ntb-eyebrow">
+                    {ntbOnboarded ? "CBS INTEGRATION SUCCESSFUL" : "NEW TO BANK ONBOARDING"}
+                  </span>
+                  <h4>
                     {ntbOnboarded
-                      ? "CBS customer profile created"
-                      : "Create customer after borrower and document verification"}
-                  </strong>
-                  <p>
-                    {ntbOnboarded
-                      ? `Customer ID ${customer.customerId} and CASA Account Number ${customer.casaNumber || "Pending"} are now linked to this application.`
-                      : "The original relationship remains NTB for acquisition reporting."}
-                  </p>
+                      ? "CBS Customer Profile Created"
+                      : "Create customer profile after borrower and document verification"}
+                  </h4>
                 </div>
+
                 <button
                   type="button"
                   className="glci-primary-button"
@@ -2712,14 +2712,47 @@ function CustomerIdentity({
                     </>
                   ) : ntbOnboarded ? (
                     <>
-                      <CheckIcon /> Customer created
+                      <CheckIcon /> Profile active
                     </>
                   ) : (
                     "Complete KYC & create customer"
                   )}
                 </button>
               </div>
-            )}
+
+              {ntbOnboarded && (
+                <div className="glci-generated-credentials">
+                  <div className="glci-credential-box">
+                    <span className="glci-cred-label">CBS CUSTOMER ID</span>
+                    <div className="glci-cred-value-row">
+                      <strong className="glci-cred-value">{customer.customerId}</strong>
+                      <button
+                        type="button"
+                        className="glci-copy-btn"
+                        onClick={() => navigator.clipboard.writeText(customer.customerId)}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="glci-credential-box">
+                    <span className="glci-cred-label">CASA ACCOUNT NUMBER</span>
+                    <div className="glci-cred-value-row">
+                      <strong className="glci-cred-value">{customer.casaNumber || "Pending"}</strong>
+                      <button
+                        type="button"
+                        className="glci-copy-btn"
+                        onClick={() => navigator.clipboard.writeText(customer.casaNumber || "")}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           </div>
         </section>
       </div>

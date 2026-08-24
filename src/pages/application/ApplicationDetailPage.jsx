@@ -854,7 +854,7 @@ function ApplicationDetailPage({
           </button>
           <img
             className="application-logo"
-            src="/yes-bank-logo-dark-bg.png"
+            src="/images/yes-bank-logo-dark-bg.png"
             alt="YES BANK"
           />
           <span className="application-topbar__divider" aria-hidden="true" />

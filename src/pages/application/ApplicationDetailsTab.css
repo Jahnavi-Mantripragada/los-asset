@@ -2197,20 +2197,22 @@
 /* Business-facing lending summary; values only, no formula presentation */
 .eligibility-overview {
   overflow: hidden;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #cbd9e3;
   border-radius: 4px;
   box-shadow: var(--dt-shadow-sm);
+  margin-bottom: 16px;
 }
 
 .eligibility-overview__header {
-  padding: 11px 13px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   background: #f2f7fa;
   border-bottom: 1px solid #d6e1e8;
+  flex-wrap: wrap;
 }
 
 .eligibility-overview__header h4 {
@@ -2226,14 +2228,15 @@
 }
 
 .eligibility-policy-chip {
-  padding: 4px 7px;
+  padding: 4px 10px;
   color: #74520f;
   background: #fff6dc;
   border: 1px solid #e4cf92;
-  border-radius: 3px;
-  font-size: 10.5px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .eligibility-metrics {

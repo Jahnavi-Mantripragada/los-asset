@@ -2404,23 +2404,28 @@
 
 .checker-review-grid,
 .checker-financial-summary {
-  border-color: #d3dde5;
-  border-radius: 3px;
+  background: #ffffff;
+  border: 1px solid var(--dt-line);
+  border-radius: 6px;
   box-shadow: var(--dt-shadow-sm);
+  overflow: hidden;
 }
 
 .checker-review-grid article,
 .checker-financial-summary > span {
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 
 .checker-review-grid strong,
 .checker-financial-summary strong {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dt-blue-950);
 }
 
 .checker-review-grid small {
-  font-size: 10.5px;
+  font-size: 11px;
+  color: var(--dt-muted);
 }
 
 .review-state-icon {

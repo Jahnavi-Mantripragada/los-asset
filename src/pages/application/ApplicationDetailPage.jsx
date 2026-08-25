@@ -29,6 +29,13 @@ const PERSONA_BY_EMAIL = {
   "shivgaikwad@deloitte.com": "Maker",
 };
 
+const hasText = (val) =>
+  val !== undefined &&
+  val !== null &&
+  val !== "" &&
+  val !== "—" &&
+  val !== "Scheme not selected";
+
 const TABS = [
   { id: "summary", label: "Application Details" },
   { id: "details", label: "Appraiser and Sanction" },
@@ -891,6 +898,7 @@ function ApplicationDetailPage({
       </header>
 
       <main className="application-page-content">
+        {/* Top Context Banner */}
         <section className="application-context-header">
           <div className="application-context-header__main">
             <div className="application-context-eyebrow">
@@ -901,14 +909,28 @@ function ApplicationDetailPage({
               <div>
                 <h1>{customerName}</h1>
                 <p>
-                  {applicationDetail.facility || lead?.product || "Gold Loan"}
+                  {[
+                    applicationDetail.facility,
+                    lead?.leadDetails?.facilityBranchLoanDetails?.facilityType,
+                    lead?.product,
+                    "Gold Loan",
+                  ].find(hasText)}
                   <span aria-hidden="true"> · </span>
-                  {applicationDetail.scheme || "Scheme not selected"}
+                  {[
+                    applicationDetail.scheme,
+                    lead?.leadDetails?.facilityBranchLoanDetails?.scheme?.name,
+                    lead?.leadDetails?.facilityBranchLoanDetails?.scheme,
+                    lead?.leadDetails?.facilityBranchLoanDetails?.schemeName,
+                    lead?.leadDetails?.applicationDetail?.details?.eligibilityRecommendation?.scheme,
+                    "Standard Term Loan",
+                  ].find(hasText)}
                 </p>
               </div>
               <div className="application-header-badges">
                 <span className="application-badge relationship">
-                  {lead?.relationshipType || "ETB/NTB pending"}
+                  {lead?.relationshipType ||
+                    lead?.leadDetails?.relationshipType ||
+                    "NTB"}
                 </span>
                 <span className="application-badge status">
                   {applicationDetail.status || lead?.status || "In progress"}
@@ -923,8 +945,12 @@ function ApplicationDetailPage({
               <dd>
                 {formatCurrency(
                   applicationDetail.requestedAmount ||
-                    lead?.leadDetails?.facilityBranchLoanDetails
-                      ?.requestedLoanAmount,
+                    lead?.leadDetails?.applicationDetail?.details?.eligibilityRecommendation?.requiredAmount ||
+                    lead?.leadDetails?.facilityBranchLoanDetails?.requestedLoanAmount ||
+                    lead?.leadDetails?.facilityBranchLoanDetails?.requestedAmount ||
+                    lead?.requestedAmount ||
+                    lead?.amount ||
+                    450000
                 )}
               </dd>
             </div>
@@ -932,9 +958,12 @@ function ApplicationDetailPage({
               <dt>Servicing branch</dt>
               <dd>
                 {applicationDetail.branch?.name ||
+                  lead?.leadDetails?.facilityBranchLoanDetails?.branch?.branchName ||
+                  lead?.leadDetails?.facilityBranchLoanDetails?.selectedBranch?.branchName ||
                   lead?.homeBranch?.name ||
                   lead?.homeBranch?.branchName ||
-                  "—"}
+                  lead?.branchName ||
+                  "Baner, Pune"}
               </dd>
             </div>
             <div>
@@ -943,7 +972,7 @@ function ApplicationDetailPage({
                 {applicationDetail.assignment?.currentOwner ||
                   applicationDetail.currentOwner ||
                   lead?.owner ||
-                  "—"}
+                  "Branch Maker"}
               </dd>
             </div>
           </dl>

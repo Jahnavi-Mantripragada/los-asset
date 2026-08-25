@@ -919,18 +919,27 @@ export default function ApplicationDetailsTab({
     (item) => item.total > 0 || item.key === "goldOrnament" || item.key === "goldCoin",
   );
 
+  // Simple validation safeguard for non-negative values
   const validateAppraisal = () => {
     const errors = {};
     appraisalItems.forEach((item) => {
       if (!item.appraisal.purity) errors[`${item.id}.purity`] = "Select quality/purity.";
       if (!(toNumber(item.appraisal.grossWeight) > 0)) errors[`${item.id}.grossWeight`] = "Enter a valid gross weight.";
-      if (
-        toNumber(item.appraisal.grossWeight) > 0 &&
-        deductionTotalFor(item) >= toNumber(item.appraisal.grossWeight)
-      ) {
-        errors[`${item.id}.grossWeight`] =
-          "Total deductions must be lower than the gross weight.";
+      
+      const gross = toNumber(item.appraisal.grossWeight) || 0;
+      const deductions = deductionTotalFor(item);
+      if (gross > 0 && deductions >= gross) {
+        errors[`${item.id}.grossWeight`] = "Total deductions must be lower than the gross weight.";
       }
+      if (
+        toNumber(item.appraisal.stoneDeduction) < 0 ||
+        toNumber(item.appraisal.alloyDeduction) < 0 ||
+        toNumber(item.appraisal.fasteningDeduction) < 0 ||
+        toNumber(item.appraisal.otherDeduction) < 0
+      ) {
+        errors[`${item.id}.grossWeight`] = "Deductions cannot be negative values.";
+      }
+      
       if (item.appraisal.defectPresent === "Yes" && !item.appraisal.defectDescription.trim()) errors[`${item.id}.defectDescription`] = "Describe the defect.";
       if (!item.jewelImage?.dataUrl) errors[`${item.id}.jewelImage`] = "A jewellery image is required.";
       if (!item.appraisal.jewelleryMatchesImage) errors[`${item.id}.jewelleryMatchesImage`] = "Confirm that the jewellery is as per the image.";
@@ -1773,16 +1782,6 @@ export default function ApplicationDetailsTab({
 
   return (
     <section className="details-tab" aria-labelledby="details-tab-title">
-      <div className="case-summary-bar">
-        <div className="case-summary-primary">
-          <small>Application</small>
-          <strong>{resolvedApplicationNumber || resolvedLeadId || "Gold Loan"}</strong>
-          <span>{view.customer.name} · {view.loan.branch.name}</span>
-        </div>
-        <div><small>Requested amount</small><strong>{formatCurrency(view.loan.requestedAmount)}</strong></div>
-        <div><small>Current status</small><Status value={view.application.status || sectionStatus(activeSection)} /></div>
-        <div><small>Assigned to</small><strong>{textValue(currentOwner)}</strong><span>{normalizedPersona === "Viewer" ? "Workflow owner" : `${normalizedPersona} view`}</span></div>
-      </div>
 
       <div className="details-mobile-section-picker">
         <label htmlFor="application-detail-section">Current step</label>

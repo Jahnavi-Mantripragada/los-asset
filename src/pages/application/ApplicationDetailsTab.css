@@ -1795,37 +1795,41 @@
   position: sticky;
   top: 14px;
   overflow: hidden;
-  background: var(--dt-surface);
-  border: 1px solid #ced9e2;
-  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid var(--dt-line);
+  border-radius: 8px;
   box-shadow: var(--dt-shadow-sm);
+  padding: 6px;
 }
 
 .details-section-nav ol {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .details-section-nav li {
   border-right: 0;
-  border-bottom: 1px solid var(--dt-line);
-}
-
-.details-section-nav li:last-child {
   border-bottom: 0;
 }
 
 .details-section-nav button {
-  min-height: 74px;
-  padding: 10px 11px;
-  grid-template-columns: 20px 30px minmax(0, 1fr);
-  gap: 7px;
-  border-radius: 0;
+  min-height: 64px;
+  padding: 10px 12px;
+  grid-template-columns: 20px 28px minmax(0, 1fr);
+  gap: 8px;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.details-section-nav button:hover {
+  background: var(--dt-blue-050);
 }
 
 .details-section-nav button.is-active {
-  color: #fff;
-  background: linear-gradient(110deg, var(--dt-blue-950), #074d7c);
-  box-shadow: inset 3px 0 0 var(--dt-red);
+  color: #ffffff;
+  background: var(--dt-blue-800);
+  box-shadow: none;
 }
 
 .details-section-nav button.is-active::after {

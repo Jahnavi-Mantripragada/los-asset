@@ -2322,30 +2322,35 @@
 
 /* Recommendation and decision panels */
 .maker-workspace {
-  margin-top: 12px;
-  grid-template-columns: minmax(0, 1.65fr) minmax(230px, 0.72fr);
-  gap: 12px;
+  margin-top: 16px;
+  grid-template-columns: minmax(0, 1.65fr) minmax(240px, 0.75fr);
+  gap: 16px;
 }
 
 .maker-primary-panel,
-.charges-panel,
 .nominee-panel,
 .checker-decision-form {
-  padding: 0 14px 14px;
-  border-color: #d3dde5;
-  border-radius: 4px;
-  box-shadow: var(--dt-shadow-sm);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.charges-panel {
+  padding: 16px;
+  background: var(--dt-blue-050);
+  border: 1px solid var(--dt-line);
+  border-radius: 6px;
+  box-shadow: none;
 }
 
 .maker-primary-panel > .content-heading,
 .charges-panel > .content-heading,
 .nominee-panel > .content-heading,
 .checker-decision-form > .content-heading {
-  padding: 12px 0 9px;
-}
-
-.charges-panel {
-  background: #fbfcfd;
+  padding: 0 0 10px;
+  margin-top: 0;
+  border-bottom: 1px solid var(--dt-line);
 }
 
 .currency-input {

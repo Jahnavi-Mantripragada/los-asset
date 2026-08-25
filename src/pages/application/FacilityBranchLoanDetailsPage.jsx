@@ -19,7 +19,7 @@ const LoanIcon = () => (
 
 const BranchIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <path d="M4 21h16M6 21V5l6-3 6 3v16M9 9h.01M15 9h.01M9 13h.01M15 13h.01M11 21v-4h2v4" />
+    <path d="M4 21h16M6 21V5l6-3 6 3v16M9 9h.01M15 9h.01M15 13h.01M11 21v-4h2v4" />
   </svg>
 );
 
@@ -115,14 +115,13 @@ const FACILITY_OPTIONS = {
     schemes: [
       {
         name: "Gold Plus",
-        loanType: "TL",
         tenureOptions: ["6 Months", "12 Months", "18 Months"],
-        repaymentTypes: ["EMI", "Quarterly", "Bullet Repayment"],
+        repaymentTypes: ["EMI", "Quarterly", "Monthly Interest"],
       },
       {
         name: "Gold Advantage",
-        loanType: "Bullet",
         tenureOptions: ["6 Months", "9 Months", "12 Months"],
+        repaymentTypes: ["EMI", "Quarterly", "Monthly Interest"],
       },
     ],
   },
@@ -132,12 +131,11 @@ const FACILITY_OPTIONS = {
     schemes: [
       {
         name: "Gold Plus",
-        loanType: "Bullet",
         tenureOptions: ["6 Months", "9 Months", "12 Months"],
+        repaymentTypes: ["EMI", "Monthly interest, principal at maturity"],
       },
       {
         name: "Gold Advantage",
-        loanType: "TL",
         tenureOptions: ["12 Months", "18 Months", "24 Months"],
         repaymentTypes: ["EMI", "Monthly interest, principal at maturity"],
       },
@@ -160,10 +158,6 @@ const ORNAMENT_WEIGHT_LIMIT_G = 1000; // 1 kg
 const GOLD_COIN_WEIGHT_LIMIT_G = 50;
 const GOLD_COIN_ALLOWED_QUALITY_K = 22;
 
-/**
- * Returns per-item validation errors for weight limits and gold coin quality.
- * Returns an object keyed by item id: { [itemId]: { weight?: string, quality?: string } }
- */
 const getJewelleryValidationErrors = (items) => {
   const totalCoinWeightG = items
     .filter((item) => item.jewelleryType === GOLD_COIN_TYPE)
@@ -283,13 +277,11 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
   const storedBranch = stored.branchSelection || {};
   const storedLoan = stored.productFacilityAndScheme || {};
 
-  const productType = storedLoan.productType || stored.facilityType || "Retail";
-  const facility = FACILITY_OPTIONS[productType] || FACILITY_OPTIONS.Retail;
-  const schemeName =
-    storedLoan.schemeName || stored.schemeName || facility.schemes[0].name;
-  const scheme =
-    facility.schemes.find((item) => item.name === schemeName) ||
-    facility.schemes[0];
+  const productType = storedLoan.productType || stored.facilityType || "";
+  const schemeName = storedLoan.schemeName || stored.schemeName || "";
+  const purpose = storedLoan.purpose || stored.purpose || "";
+  const tenure = storedLoan.tenure || stored.tenure || "";
+  const repaymentType = storedLoan.repaymentType || stored.repaymentType || "";
 
   const branchType = storedBranch.type || stored.branchType || "Home";
   const storedSelectedBranch =
@@ -313,19 +305,13 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
           storedSelectedBranch?.code ||
           "",
     productType,
-    schemeName: scheme.name,
-    purpose: storedLoan.purpose || stored.purpose || facility.purposes[0],
+    schemeName,
+    purpose,
     requestedLoanAmount: Number(
       storedLoan.requestedLoanAmount ?? stored.requestedLoanAmount ?? 0
     ),
-    tenure: storedLoan.tenure || stored.tenure || scheme.tenureOptions[0] || "",
-    repaymentType:
-      scheme.loanType === "TL"
-        ? storedLoan.repaymentType ||
-          stored.repaymentType ||
-          scheme.repaymentTypes?.[0] ||
-          ""
-        : "",
+    tenure,
+    repaymentType,
     jewelleryItems: storedItems,
   };
 };
@@ -412,11 +398,10 @@ function FacilityBranchLoanDetailsPage({
     );
   }, [availableBranches, form.branchType, form.selectedBranchCode, homeBranch]);
 
-  const facility = FACILITY_OPTIONS[form.productType] || FACILITY_OPTIONS.Retail;
-  const selectedScheme =
-    facility.schemes.find((scheme) => scheme.name === form.schemeName) ||
-    facility.schemes[0];
-  const isTermLoan = selectedScheme?.loanType === "TL";
+  const facility = form.productType ? FACILITY_OPTIONS[form.productType] : null;
+  const selectedScheme = facility
+    ? facility.schemes.find((scheme) => scheme.name === form.schemeName) || null
+    : null;
 
   const existingOutstanding = 0;
   const requestedLoanAmount = Number(form.requestedLoanAmount || 0);
@@ -443,11 +428,11 @@ function FacilityBranchLoanDetailsPage({
   const stepComplete = Boolean(
     branchComplete &&
       form.productType &&
-      selectedScheme?.name &&
+      form.schemeName &&
       form.purpose &&
       requestedLoanAmount > 0 &&
       form.tenure &&
-      (!isTermLoan || form.repaymentType) &&
+      form.repaymentType &&
       jewelleryComplete
   );
 
@@ -471,13 +456,12 @@ function FacilityBranchLoanDetailsPage({
       },
       productFacilityAndScheme: {
         productType: form.productType,
-        productLabel: facility.label,
-        schemeName: selectedScheme?.name || "",
+        productLabel: facility?.label || "",
+        schemeName: form.schemeName,
         purpose: form.purpose,
         requestedLoanAmount,
         tenure: form.tenure,
-        loanType: selectedScheme?.loanType || "",
-        repaymentType: isTermLoan ? form.repaymentType : "",
+        repaymentType: form.repaymentType,
       },
       jewelleryItems: form.jewelleryItems,
       existingGoldLoans: [],
@@ -497,14 +481,12 @@ function FacilityBranchLoanDetailsPage({
       aggregateLoanAmount,
       cibilRequired,
       existingOutstanding,
-      facility.label,
+      facility?.label,
       form,
       homeBranch.pinCode,
       landDetailsRequired,
       requestedLoanAmount,
       selectedBranch,
-      selectedScheme,
-      isTermLoan,
       stepComplete,
     ]
   );
@@ -588,24 +570,27 @@ function FacilityBranchLoanDetailsPage({
 
   const handleCombinedConfigChange = (event) => {
     const value = event.target.value;
-    if (!value || value === "||") return;
+    if (!value || value === "||") {
+      setForm((current) => ({
+        ...current,
+        productType: "",
+        schemeName: "",
+        purpose: "",
+        tenure: "",
+        repaymentType: "",
+      }));
+      return;
+    }
 
     const [productType, schemeName, purpose] = value.split("|");
-    const targetFacility = FACILITY_OPTIONS[productType] || FACILITY_OPTIONS.Retail;
-    const targetScheme =
-      targetFacility.schemes.find((scheme) => scheme.name === schemeName) ||
-      targetFacility.schemes[0];
 
     setForm((current) => ({
       ...current,
       productType,
-      schemeName: targetScheme.name,
+      schemeName,
       purpose,
-      tenure: targetScheme.tenureOptions[0] || "",
-      repaymentType:
-        targetScheme.loanType === "TL"
-          ? targetScheme.repaymentTypes?.[0] || ""
-          : "",
+      tenure: "",
+      repaymentType: "",
     }));
   };
 
@@ -840,7 +825,7 @@ function FacilityBranchLoanDetailsPage({
               }
               onChange={handleCombinedConfigChange}
             >
-              <option value="||">Select Configuration</option>
+              <option value="||">Select Product, Scheme & Purpose</option>
 
               {Object.entries(FACILITY_OPTIONS).map(([productKey, facilityConfig]) => (
                 <optgroup label={facilityConfig.label} key={productKey}>
@@ -876,66 +861,62 @@ function FacilityBranchLoanDetailsPage({
           </label>
           <label>
             <span>Tenure *</span>
-            {selectedScheme.tenureOptions.length === 1 ? (
-              <>
-                <input value={form.tenure} readOnly />
-                <small>Auto-populated for the selected scheme</small>
-              </>
-            ) : (
-              <select
-                value={form.tenure}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    tenure: event.target.value,
-                  }))
-                }
-              >
-                {selectedScheme.tenureOptions.map((tenure) => (
-                  <option value={tenure} key={tenure}>
-                    {tenure}
-                  </option>
-                ))}
-              </select>
-            )}
+            <select
+              value={form.tenure}
+              disabled={!selectedScheme}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  tenure: event.target.value,
+                }))
+              }
+            >
+              <option value="">Select tenure</option>
+              {selectedScheme?.tenureOptions.map((tenure) => (
+                <option value={tenure} key={tenure}>
+                  {tenure}
+                </option>
+              ))}
+            </select>
           </label>
-          {isTermLoan && (
-            <label>
-              <span>Repayment type *</span>
-              <select
-                value={form.repaymentType}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    repaymentType: event.target.value,
-                  }))
-                }
-              >
-                <option value="">Select repayment type</option>
-                {selectedScheme.repaymentTypes.map((repaymentType) => (
-                  <option value={repaymentType} key={repaymentType}>
-                    {repaymentType}
-                  </option>
-                ))}
-              </select>
-              <small>Required only for TL loans</small>
-            </label>
-          )}
+          <label>
+            <span>Repayment type *</span>
+            <select
+              value={form.repaymentType}
+              disabled={!selectedScheme}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  repaymentType: event.target.value,
+                }))
+              }
+            >
+              <option value="">Select repayment type</option>
+              {selectedScheme?.repaymentTypes?.map((repaymentType) => (
+                <option value={repaymentType} key={repaymentType}>
+                  {repaymentType}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
-        <div className="fbl-selection-note">
-          <span><CheckIcon /></span>
-          <div>
-            <strong>{selectedScheme.name}</strong>
-            <p>
-              {facility.label} · {form.tenure}
-              {isTermLoan && form.repaymentType ? ` · ${form.repaymentType}` : ""}
-            </p>
+        {selectedScheme && (
+          <div className="fbl-selection-note">
+            <span><CheckIcon /></span>
+            <div>
+              <strong>{selectedScheme.name}</strong>
+              <p>
+                {facility?.label}
+                {form.tenure ? ` · ${form.tenure}` : ""}
+                {form.repaymentType ? ` · ${form.repaymentType}` : ""}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
-      {/* NEW JEWELLERY OFFERED SECTION */}
+      {/* JEWELLERY OFFERED SECTION */}
       <section className="fbl-section fbl-card">
         <SectionHeading
           icon={<JewelleryIcon />}
@@ -1113,9 +1094,7 @@ function FacilityBranchLoanDetailsPage({
                     ? "Agri land details are required"
                     : "land details are not required"
                 } in Step 3.`
-              : `Select scheme, purpose, amount and tenure${
-                  isTermLoan ? ", choose a repayment type" : ""
-                }, then add each ornament and upload its ownership proof.`}
+              : "Select scheme, purpose, amount, tenure and repayment type, then add each ornament and upload its ownership proof."}
           </p>
         </div>
       </div>

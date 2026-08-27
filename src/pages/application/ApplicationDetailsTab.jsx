@@ -467,7 +467,7 @@ const buildView = (leadDetails, lead) => {
     requiredAmount: makerSource.requiredAmount || eligibilitySource.requiredAmount || 450000,
     recommendedAmount: makerSource.recommendedAmount || eligibilitySource.recommendedAmount || 440000,
     disbursementAccount: makerSource.disbursementAccount || loan.disbursementAccount || "",
-    makerComments: makerSource.makerComments || makerSource.comments || "Recommended based on verified net weight and applicable LTV.",
+    makerComments: makerSource.makerComments || makerSource.comments || "Recommended based on verified net weight and maximum applicable LTV.",
     eSignRequired:
       makerSource.eSignRequired === undefined
         ? true
@@ -1492,7 +1492,7 @@ export default function ApplicationDetailsTab({
               <span>Verified value</span>
             </article>
             <article>
-              <small>Applicable LTV</small>
+              <small>Maximum applicable LTV</small>
               <strong>{textValue(view.eligibility.applicableLtv)}%</strong>
               <span>Policy applied</span>
             </article>

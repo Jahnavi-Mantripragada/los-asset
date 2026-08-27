@@ -1144,6 +1144,20 @@
   margin-top: 14px;
 }
 
+.nominee-savings-checkbox {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--dt-blue-050);
+  border: 1px solid var(--dt-line);
+  border-radius: 4px;
+}
+
+.nominee-savings-checkbox input {
+  flex-shrink: 0;
+}
+
 .remove-nominee {
   color: var(--dt-danger);
   border-color: #e1aaa5;

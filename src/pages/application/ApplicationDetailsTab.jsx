@@ -482,7 +482,7 @@ const buildView = (leadDetails, lead) => {
       chargesAccount: charges.chargesAccount || loan.chargesAccount || "—",
     },
     nominee: {
-      useSavingsNominee: Boolean(nominee.useSavingsNominee),
+      addToSavingsAccount: Boolean(nominee.addToSavingsAccount),
       name: nominee.name || "Anita Sharma",
       relationship: nominee.relationship || "Spouse",
       dateOfBirth: nominee.dateOfBirth || "1988-07-18",
@@ -1585,31 +1585,6 @@ export default function ApplicationDetailsTab({
         <section className="nominee-panel">
           <div className="content-heading">
             <div><h4>Nominee details</h4><p>Primary nominee for the Gold Loan account.</p></div>
-            {makerCanEdit && (
-              <label className="details-checkbox">
-                <input type="checkbox" checked={makerDraft.nominee.useSavingsNominee} onChange={(event) => {
-                  const checked = event.target.checked;
-                  const fetchedNominee = view.loan.savingsNominee || {};
-                  setMakerDraft((current) => ({
-                    ...current,
-                    nominee: {
-                      ...current.nominee,
-                      useSavingsNominee: checked,
-                      ...(checked ? {
-                        name: fetchedNominee.name || current.nominee.name,
-                        relationship: fetchedNominee.relationship || current.nominee.relationship,
-                        dateOfBirth: fetchedNominee.dateOfBirth || current.nominee.dateOfBirth,
-                        address: fetchedNominee.address || current.nominee.address,
-                        guardianName: fetchedNominee.guardianName || current.nominee.guardianName,
-                        guardianRelationship: fetchedNominee.guardianRelationship || current.nominee.guardianRelationship,
-                        guardianContact: fetchedNominee.guardianContact || current.nominee.guardianContact,
-                      } : {}),
-                    },
-                  }));
-                }} />
-                <span>Use Savings Account nominee</span>
-              </label>
-            )}
           </div>
 
           {makerCanEdit ? (
@@ -1632,6 +1607,21 @@ export default function ApplicationDetailsTab({
                 </div>
               ))}
               {makerDraft.nominees.length < 1 && <button className="add-nominee" type="button" onClick={() => setMakerDraft((current) => ({ ...current, nominees: [...current.nominees, { name: "", relationship: "" }] }))}>+ Add a second nominee</button>}
+
+              <label className="details-checkbox nominee-savings-checkbox">
+                <input
+                  type="checkbox"
+                  checked={Boolean(makerDraft.nominee.addToSavingsAccount)}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setMakerDraft((current) => ({
+                      ...current,
+                      nominee: { ...current.nominee, addToSavingsAccount: checked },
+                    }));
+                  }}
+                />
+                <span>Add Nominee to Savings Account</span>
+              </label>
             </>
           ) : (
             <>

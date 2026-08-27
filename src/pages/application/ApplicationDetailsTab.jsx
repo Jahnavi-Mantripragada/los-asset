@@ -1552,7 +1552,7 @@ export default function ApplicationDetailsTab({
                   </label>
                   <label className={!makerDraft.eSignRequired ? "is-selected" : ""}>
                     <input type="radio" name="documentExecution" checked={!makerDraft.eSignRequired} onChange={() => setMakerDraft((current) => ({ ...current, eSignRequired: false }))} />
-                    <span><strong>Physical signature</strong><small>Collect and upload the signed document after sanction.</small></span>
+                    <span><strong>Manual signature</strong><small>Collect and upload the signed document after sanction.</small></span>
                   </label>
                 </fieldset>
               </>
@@ -1561,7 +1561,7 @@ export default function ApplicationDetailsTab({
                 { label: "Customer requested amount", value: formatCurrency(view.eligibility.requiredAmount) },
                 { label: "Recommended amount", value: formatCurrency(view.eligibility.recommendedAmount) },
                 { label: "Disbursement account", value: view.eligibility.disbursementAccount || "Not applicable" },
-                { label: "Document execution", value: view.eligibility.eSignRequired ? "eSign" : "Physical signature" },
+                { label: "Document execution", value: view.eligibility.eSignRequired ? "eSign" : "Manual signature" },
                 { label: "Recommendation comments", value: view.eligibility.makerComments || "—", wide: true },
               ]} />
             )}

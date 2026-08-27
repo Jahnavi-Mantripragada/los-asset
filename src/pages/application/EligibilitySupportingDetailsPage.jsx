@@ -604,7 +604,7 @@ function EligibilitySupportingDetailsPage({
           <div className={`esd-consent-summary ${consentAvailable ? "available" : "missing"}`}>
             <span className="esd-consent-icon">{consentAvailable ? <CheckIcon /> : "!"}</span>
             <div>
-              <strong>CIC consent: {stepData.cibil.consentStatus}</strong>
+              <strong>CIC consent: Captured</strong>
               <p>
                 {consentAvailable
                   ? `Consent captured in Step 1${stepData.cibil.consentCapturedAt ? ` on ${stepData.cibil.consentCapturedAt}` : ""}${stepData.cibil.consentReference ? ` · Ref ${stepData.cibil.consentReference}` : ""}.`

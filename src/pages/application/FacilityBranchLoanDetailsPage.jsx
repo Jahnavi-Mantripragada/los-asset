@@ -111,7 +111,7 @@ const BRANCHES = [
 const FACILITY_OPTIONS = {
   Retail: {
     label: "Retail Gold Loan",
-    purposes: ["Marriage", "Medical", "Personal Needs", "Others"],
+    purposes: ["Marriage", "Medical", "Personal Needs"],
     schemes: [
       {
         name: "Term Loan",
@@ -143,7 +143,7 @@ const FACILITY_OPTIONS = {
   },
   MSME : {
     label: "MSME Gold Loan",
-    purposes: ["Working Capital", "Equipment Purchase", "Inventory Financing"],
+    purposes: ["Business Needs"],
     schemes: [
       {
         name: "Term Loan",

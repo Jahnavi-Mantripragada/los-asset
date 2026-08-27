@@ -292,8 +292,8 @@ function EligibilitySupportingDetailsPage({
 
   // AFTER: 
   // NTB = Always required, ETB = Required if exposure.cibilRequired is true (> ₹1L / ₹2.5L)
-  const cibilRequired = isNTB ? true : exposure.cibilRequired === true;
-
+ // const cibilRequired = isNTB ? true : exposure.cibilRequired === true;
+  const cibilRequired = false; // Make CIBIL optional for now, as per the latest requirements.
   const initialStep = normalizeStep({
     existing: leadDetails[SECTION_KEY],
     cibilRequired,

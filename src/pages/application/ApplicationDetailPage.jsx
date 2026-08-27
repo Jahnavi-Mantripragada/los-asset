@@ -847,6 +847,41 @@ function ApplicationDetailPage({
     );
   }
 
+  // 1. Resolve Requested Amount across all possible payload paths
+  const resolvedRequestedAmount =
+    applicationDetail.requestedAmount ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.requestedLoanAmount ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.exposure?.requestedLoanAmount ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.productFacilityAndScheme?.requestedLoanAmount ||
+    lead?.leadDetails?.applicationDetail?.details?.eligibilityRecommendation?.requiredAmount ||
+    lead?.requestedAmount ||
+    lead?.amount;
+
+  // 2. Resolve Servicing Branch across all possible payload paths
+  const resolvedServicingBranch =
+    applicationDetail.branch?.name ||
+    applicationDetail.branch?.branchName ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.selectedBranch?.branchName ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.selectedBranch?.name ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.branch?.branchName ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.branch?.name ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.branchSelection?.selectedBranch?.name ||
+    lead?.leadDetails?.facilityBranchLoanDetails?.branchSelection?.selectedBranch?.branchName ||
+    lead?.homeBranch?.branchName ||
+    lead?.homeBranch?.name ||
+    lead?.branch?.branchName ||
+    lead?.branch?.name ||
+    lead?.branchName ||
+    lead?.branch;
+
+  // 3. Resolve Relationship Type
+  const resolvedRelationshipType =
+    lead?.relationshipType ||
+    lead?.leadDetails?.relationshipType ||
+    lead?.leadDetails?.customerIdentity?.relationshipType ||
+    lead?.leadDetails?.customerIdentity?.type ||
+    "NTB";
+
   return (
     <div className="application-detail-page">
       <header className="application-topbar">
@@ -912,25 +947,23 @@ function ApplicationDetailPage({
                   {[
                     applicationDetail.facility,
                     lead?.leadDetails?.facilityBranchLoanDetails?.facilityType,
+                    lead?.leadDetails?.facilityBranchLoanDetails?.productFacilityAndScheme?.productLabel,
                     lead?.product,
-                    "Gold Loan",
-                  ].find(hasText)}
+                  ].find(hasText) || "Gold Loan"}
                   <span aria-hidden="true"> · </span>
                   {[
                     applicationDetail.scheme,
                     lead?.leadDetails?.facilityBranchLoanDetails?.scheme?.name,
                     lead?.leadDetails?.facilityBranchLoanDetails?.scheme,
                     lead?.leadDetails?.facilityBranchLoanDetails?.schemeName,
+                    lead?.leadDetails?.facilityBranchLoanDetails?.productFacilityAndScheme?.schemeName,
                     lead?.leadDetails?.applicationDetail?.details?.eligibilityRecommendation?.scheme,
-                    "Standard Term Loan",
-                  ].find(hasText)}
+                  ].find(hasText) || "Standard Term Loan"}
                 </p>
               </div>
               <div className="application-header-badges">
                 <span className="application-badge relationship">
-                  {lead?.relationshipType ||
-                    lead?.leadDetails?.relationshipType ||
-                    "NTB"}
+                  {resolvedRelationshipType}
                 </span>
                 <span className="application-badge status">
                   {applicationDetail.status || lead?.status || "In progress"}
@@ -942,29 +975,11 @@ function ApplicationDetailPage({
           <dl className="application-context-metrics">
             <div>
               <dt>Requested amount</dt>
-              <dd>
-                {formatCurrency(
-                  applicationDetail.requestedAmount ||
-                    lead?.leadDetails?.applicationDetail?.details?.eligibilityRecommendation?.requiredAmount ||
-                    lead?.leadDetails?.facilityBranchLoanDetails?.requestedLoanAmount ||
-                    lead?.leadDetails?.facilityBranchLoanDetails?.requestedAmount ||
-                    lead?.requestedAmount ||
-                    lead?.amount ||
-                    450000
-                )}
-              </dd>
+              <dd>{formatCurrency(resolvedRequestedAmount)}</dd>
             </div>
             <div>
               <dt>Servicing branch</dt>
-              <dd>
-                {applicationDetail.branch?.name ||
-                  lead?.leadDetails?.facilityBranchLoanDetails?.branch?.branchName ||
-                  lead?.leadDetails?.facilityBranchLoanDetails?.selectedBranch?.branchName ||
-                  lead?.homeBranch?.name ||
-                  lead?.homeBranch?.branchName ||
-                  lead?.branchName ||
-                  "Baner, Pune"}
-              </dd>
+              <dd>{resolvedServicingBranch || "—"}</dd>
             </div>
             <div>
               <dt>Current owner</dt>

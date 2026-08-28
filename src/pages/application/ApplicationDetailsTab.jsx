@@ -4,10 +4,12 @@ import "./ApplicationDetailsTab.css";
 const DEFAULT_LEAD_API_BASE =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
 
+const DEMO_LOAN_ACCOUNT_NUMBER = "180457749323";
+
 const WORKFLOW_USERS = {
-  "shivgaikwad@deloitte.com": { name: "Shivanjali Gaikwad", persona: "Maker" },
-  "mohikumawat@deloitte.com": { name: "Mohit Kumawat", persona: "Appraiser" },
-  "ychapa@deloitte.com": { name: "Yashwant Chapa", persona: "Checker" },
+  "shivgaikwad@deloitte.com": { name: "Saransh", persona: "Maker", displayRole: "Branch Executive" },
+  "mohikumawat@deloitte.com": { name: "Anant", persona: "Appraiser", displayRole: "Appraiser" },
+  "ychapa@deloitte.com": { name: "Yashwant", persona: "Checker", displayRole: "Checker" },
 };
 
 const SECTIONS = [
@@ -23,7 +25,7 @@ const DEMO_APPLICATION_WORKFLOWS = {
     applicationStatus: "Pending Maker Finalisation",
     appraisalStatus: "Completed",
     eligibilityStatus: "In Progress",
-    appraiserName: "Ramesh Jewellers",
+    appraiserName: "Anant",
   },
   "GL-2026-354125": {
     persona: "Checker",
@@ -31,7 +33,7 @@ const DEMO_APPLICATION_WORKFLOWS = {
     applicationStatus: "Pending Checker Review",
     appraisalStatus: "Completed",
     eligibilityStatus: "Submitted to Checker",
-    appraiserName: "Ramesh Jewellers",
+    appraiserName: "Anant",
   },
 };
 
@@ -43,7 +45,7 @@ const DEMO_LEAD_WORKFLOWS = {
     applicationStatus: "Pending Maker Finalisation",
     appraisalStatus: "Completed",
     eligibilityStatus: "In Progress",
-    appraiserName: "Mohit Kumawat",
+    appraiserName: "Anant",
   },
   "LD-1786687624527": {
     force: true,
@@ -52,7 +54,7 @@ const DEMO_LEAD_WORKFLOWS = {
     applicationStatus: "Pending Checker Review",
     appraisalStatus: "Completed",
     eligibilityStatus: "Submitted to Checker",
-    appraiserName: "Mohit Kumawat",
+    appraiserName: "Anant",
   },
 };
 
@@ -167,7 +169,7 @@ const normalizePersona = (value) => {
   const persona = String(value || "").toLowerCase();
   if (persona.includes("appraiser") || persona.includes("jeweller")) return "Appraiser";
   if (persona.includes("checker")) return "Checker";
-  if (persona.includes("maker")) return "Maker";
+  if (persona.includes("maker") || persona.includes("branch executive")) return "Maker";
   return "Viewer";
 };
 const userForEmail = (email) =>
@@ -438,7 +440,7 @@ const buildView = (leadDetails, lead) => {
         appraiserObject.name ||
         appraiserObject.appraiserName ||
         (typeof appraiserSource === "string" ? appraiserSource : "") ||
-        "Mohit Kumawat",
+        "Anant",
       email: appraiserObject.email || appraiserObject.appraiserEmail || "mohikumawat@deloitte.com",
       id: appraiserObject.id || appraiserObject.appraiserId || "APR-YES-0142",
       type: appraiserObject.type || appraiserObject.appraiserType || "Panel Jeweller",
@@ -581,12 +583,12 @@ export default function ApplicationDetailsTab({
         status: demoWorkflow.applicationStatus,
         assignedPersona: demoWorkflow.persona,
         currentOwner:
-          demoWorkflow.persona === "Checker" ? "Branch Checker" : "Branch Maker",
+          demoWorkflow.persona === "Checker" ? "Yashwant" : "Saransh",
         assignment: {
           ...(baseView.application.assignment || {}),
           persona: demoWorkflow.persona,
           currentOwner:
-            demoWorkflow.persona === "Checker" ? "Branch Checker" : "Branch Maker",
+            demoWorkflow.persona === "Checker" ? "Yashwant" : "Saransh",
         },
       },
       appraisal: {
@@ -665,6 +667,7 @@ export default function ApplicationDetailsTab({
   const [saveState, setSaveState] = useState("idle");
   const [saveError, setSaveError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
+  const [approvalProcessing, setApprovalProcessing] = useState(false);
   const initializedSectionRef = useRef(false);
   const autoSaveTimerRef = useRef(null);
   const lastAutoSaveRef = useRef("");
@@ -753,16 +756,33 @@ export default function ApplicationDetailsTab({
 
   const actor = useMemo(
     () => ({
-      name: loggedInUserName || mappedUser?.name || loggedInUserEmail.split("@")[0] || normalizedPersona,
+      name: mappedUser?.name || loggedInUserName || loggedInUserEmail.split("@")[0] || normalizedPersona,
       email: loggedInUserEmail,
       role: normalizedPersona,
+      displayRole:
+        mappedUser?.displayRole ||
+        (normalizedPersona === "Maker" ? "Branch Executive" : normalizedPersona),
     }),
-    [loggedInUserEmail, loggedInUserName, mappedUser?.name, normalizedPersona],
+    [
+      loggedInUserEmail,
+      loggedInUserName,
+      mappedUser?.displayRole,
+      mappedUser?.name,
+      normalizedPersona,
+    ],
   );
 
   const appendEvent = useCallback(
     (applicationDetail, event) => {
       const now = new Date().toISOString();
+
+      if (!event) {
+        return {
+          ...applicationDetail,
+          updatedAt: now,
+        };
+      }
+
       const currentActivity = applicationDetail.activity || {};
       const nextEvent = {
         id: `ACT-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -890,7 +910,7 @@ export default function ApplicationDetailsTab({
           const checkerNode = { ...(details.checkerDecision || application.checkerDecision || {}), ...checkerDraft, lastSavedAt: new Date().toISOString() };
           return { ...application, details: { ...details, jewelleryAppraisal: appraisalNode, eligibilityRecommendation: eligibilityNode, checkerDecision: checkerNode }, appraisal: appraisalNode, makerFinalisation: eligibilityNode, charges: makerCharges, checkerDecision: checkerNode };
         },
-        { type: "draft_autosave", title: "Application details draft saved", description: "Latest changes were saved automatically.", section: "Application Details" },
+        null,
         false,
       );
     }, 600);
@@ -1036,8 +1056,8 @@ export default function ApplicationDetailsTab({
         };
         const nextAssignment =
           action === "complete" || action === "clarification"
-            ? { ...(application.assignment || {}), persona: "Maker", currentOwner: "Branch Maker", assignedAt: now }
-            : { ...(application.assignment || {}), persona: "Appraiser", currentOwner: actor.name, assignedAt: application.assignment?.assignedAt || now };
+            ? { ...(application.assignment || {}), persona: "Maker", currentOwner: "Saransh", assignedAt: now }
+            : { ...(application.assignment || {}), persona: "Appraiser", currentOwner: "Anant", assignedAt: application.assignment?.assignedAt || now };
         return {
           ...application,
           status: applicationStatusMap[action],
@@ -1057,14 +1077,25 @@ export default function ApplicationDetailsTab({
               : application.pushback,
         };
       },
-      {
-        type: `appraisal_${action}`,
-        title: action === "complete" ? "Jewellery appraisal completed" : action === "clarification" ? "Appraisal clarification requested" : action === "start" ? "Jewellery appraisal started" : "Jewellery appraisal saved",
-        description: descriptionMap[action],
-        section: "Jewellery Appraisal",
-        toStatus: applicationStatusMap[action],
-        metadata: { itemCount: completedItems.length, totalNetWeight, totalAppraisedValue },
-      },
+      action === "save"
+        ? null
+        : {
+            type: `appraisal_${action}`,
+            title:
+              action === "complete"
+                ? "Jewellery appraisal completed"
+                : action === "clarification"
+                  ? "Appraisal clarification requested"
+                  : "Jewellery appraisal started",
+            description: descriptionMap[action],
+            section: "Jewellery Appraisal",
+            toStatus: applicationStatusMap[action],
+            metadata: {
+              itemCount: completedItems.length,
+              totalNetWeight,
+              totalAppraisedValue,
+            },
+          },
       action !== "save",
     );
     if (success && action === "complete") setValidationErrors({});
@@ -1125,7 +1156,7 @@ export default function ApplicationDetailsTab({
           lastSavedAt: now,
         };
         const assignment = submit
-          ? { ...(application.assignment || {}), persona: "Checker", currentOwner: "Branch Checker", assignedAt: now }
+          ? { ...(application.assignment || {}), persona: "Checker", currentOwner: "Yashwant", assignedAt: now }
           : application.assignment;
         return {
           ...application,
@@ -1133,7 +1164,7 @@ export default function ApplicationDetailsTab({
           stage: submit ? "CHECKER_SANCTION" : application.stage,
           assignment,
           assignedPersona: submit ? "Checker" : application.assignedPersona,
-          currentOwner: submit ? "Branch Checker" : application.currentOwner,
+          currentOwner: submit ? "Yashwant" : application.currentOwner,
           details: { ...details, eligibilityRecommendation: makerNode },
           makerFinalisation: makerNode,
           charges: makerCharges,
@@ -1141,40 +1172,51 @@ export default function ApplicationDetailsTab({
           pushback: submit ? null : application.pushback,
         };
       },
-      {
-        type: submit ? "maker_submission" : "maker_draft",
-        title: submit ? "Maker recommendation submitted" : "Maker recommendation saved",
-        description: submit
-          ? `${formatCurrency(makerDraft.recommendedAmount)} recommended to the Branch Checker.`
-          : "Eligibility and recommendation changes were saved as draft.",
-        section: "Eligibility & Recommendation",
-        toStatus: submit ? "Pending Checker Review" : view.application.status,
-      },
+      submit
+        ? {
+            type: "maker_submission",
+            title: "Loan recommendation submitted",
+            description: `${formatCurrency(makerDraft.recommendedAmount)} recommended and submitted to Yashwant for checker review.`,
+            section: "Eligibility & Recommendation",
+            toStatus: "Pending Checker Review",
+          }
+        : null,
       submit,
     );
   };
 
   const persistCheckerDecision = async (decision) => {
-    if (!checkerCanEdit) return;
+    if (!checkerCanEdit || approvalProcessing) return;
     const errors = {};
     if (!checkerDraft.comments.trim()) errors.checkerComments = "Enter decision comments.";
     if (decision === "pushback" && !checkerDraft.pushbackReason.trim()) errors.pushbackReason = "Enter the required correction or clarification.";
     if (decision === "reject" && !checkerDraft.rejectionReason.trim()) errors.rejectionReason = "Select or enter a rejection reason.";
     setValidationErrors(errors);
     if (Object.keys(errors).length) return;
+
     const now = new Date().toISOString();
     const isAppraisalPushback = normalizeSection(checkerDraft.pushbackSection) === "jewelleryAppraisal";
     const decisionConfig = {
-      approve: { status: "Sanctioned", stage: "DOCUMENTATION_DISBURSEMENT", persona: "Maker", owner: "Branch Maker" },
-      pushback: { status: "Rework Required", stage: "APPRAISAL_ELIGIBILITY", persona: isAppraisalPushback ? "Appraiser" : "Maker", owner: isAppraisalPushback ? "Assigned Appraiser" : "Branch Maker" },
+      approve: { status: "Sanctioned", stage: "DOCUMENTATION_DISBURSEMENT", persona: "Maker", owner: "Saransh" },
+      pushback: { status: "Rework Required", stage: "APPRAISAL_ELIGIBILITY", persona: isAppraisalPushback ? "Appraiser" : "Maker", owner: isAppraisalPushback ? "Anant" : "Saransh" },
       reject: { status: "Rejected", stage: "EXIT", persona: "", owner: "Closed" },
     }[decision];
-    await commitUpdate(
+
+    // For the demo, approval visibly spends ~3 seconds creating the CBS loan account.
+    // The save happens at the same time, so the loader is not just an artificial delay
+    // before persisting the Checker decision.
+    const approvalDelay =
+      decision === "approve"
+        ? new Promise((resolve) => setTimeout(resolve, 3000))
+        : null;
+    if (decision === "approve") setApprovalProcessing(true);
+
+    const success = await commitUpdate(
       (application) => {
         const details = application.details || {};
         const checkerNode = {
           ...(details.checkerDecision || application.checkerDecision || {}),
-          decision: decision === "approve" ? "Approved" : decision === "pushback" ? "Push Back" : "Rejected",
+          decision: decision === "approve" ? "Approved & Sanctioned" : decision === "pushback" ? "Push Back" : "Rejected",
           isSanctioned: decision === "approve",
           status: decisionConfig.status,
           comments: checkerDraft.comments.trim(),
@@ -1184,9 +1226,9 @@ export default function ApplicationDetailsTab({
           decidedAt: now,
           decidedBy: actor,
           cbsLoanAccountReference:
-            decision === "approve"
-              ? application.checkerDecision?.cbsLoanAccountReference || `GL-${Date.now()}`
-              : null,
+            decision === "approve" ? DEMO_LOAN_ACCOUNT_NUMBER : null,
+          loanAccountCreated: decision === "approve",
+          loanAccountCreatedAt: decision === "approve" ? now : null,
           sanction:
             decision === "approve"
               ? {
@@ -1194,6 +1236,7 @@ export default function ApplicationDetailsTab({
                   amount: application.makerFinalisation?.recommendedAmount,
                   sanctionedAt: now,
                   sanctionedBy: actor,
+                  loanAccountNumber: DEMO_LOAN_ACCOUNT_NUMBER,
                 }
               : { status: "Not Sanctioned" },
         };
@@ -1213,19 +1256,42 @@ export default function ApplicationDetailsTab({
               : null,
           documentationDisbursement:
             decision === "approve"
-              ? { ...(application.documentationDisbursement || {}), status: "Pending Document Generation", sanction: { amount: application.makerFinalisation?.recommendedAmount, sanctionedAt: now, checker: actor, cbsLoanAccountReference: checkerNode.cbsLoanAccountReference } }
+              ? {
+                  ...(application.documentationDisbursement || {}),
+                  status: "Pending Document Generation",
+                  sanction: {
+                    amount: application.makerFinalisation?.recommendedAmount,
+                    sanctionedAt: now,
+                    checker: actor,
+                    cbsLoanAccountReference: DEMO_LOAN_ACCOUNT_NUMBER,
+                    loanAccountNumber: DEMO_LOAN_ACCOUNT_NUMBER,
+                  },
+                }
               : application.documentationDisbursement,
         };
       },
       {
         type: `checker_${decision}`,
         title: decision === "approve" ? "Application approved and sanctioned" : decision === "pushback" ? "Application pushed back" : "Application rejected",
-        description: decision === "pushback" ? checkerDraft.pushbackReason.trim() : decision === "reject" ? checkerDraft.rejectionReason.trim() : checkerDraft.comments.trim(),
+        description:
+          decision === "approve"
+            ? `${checkerDraft.comments.trim()} Loan account ${DEMO_LOAN_ACCOUNT_NUMBER} created.`
+            : decision === "pushback"
+              ? checkerDraft.pushbackReason.trim()
+              : decision === "reject"
+                ? checkerDraft.rejectionReason.trim()
+                : checkerDraft.comments.trim(),
         section: "Checker Decision",
         toStatus: decisionConfig.status,
+        metadata: decision === "approve" ? { loanAccountNumber: DEMO_LOAN_ACCOUNT_NUMBER } : {},
       },
       true,
     );
+
+    if (decision === "approve") {
+      if (success && approvalDelay) await approvalDelay;
+      setApprovalProcessing(false);
+    }
   };
 
   const sectionStatus = (id) => {
@@ -1288,7 +1354,7 @@ export default function ApplicationDetailsTab({
           <span className="assignment-strip__icon"><Icon type="jewellery" /></span>
           <div>
             <small>Assigned appraiser</small>
-            <strong>Anant Deshmukh</strong>
+            <strong>Anant</strong>
             <span>{view.appraisal.appraiser.id} · {view.appraisal.appraiser.type} · {view.appraisal.appraiser.branch}</span>
           </div>
         </div>
@@ -1674,7 +1740,7 @@ export default function ApplicationDetailsTab({
         {makerCanEdit && (
           <div className="details-action-row sticky-actions">
             <button type="button" className="secondary" onClick={() => persistMaker(false)}>Save draft</button>
-            <button type="button" className="primary" onClick={() => persistMaker(true)}>Submit to Branch Checker</button>
+            <button type="button" className="primary" onClick={() => persistMaker(true)}>Submit to Checker</button>
           </div>
         )}
       </section>
@@ -1687,6 +1753,16 @@ export default function ApplicationDetailsTab({
       pushback: { label: "Send back for correction", className: "warning" },
       reject: { label: "Reject application", className: "danger" },
     }[checkerDecisionMode];
+    const approvedDecision =
+      Boolean(view.checker.isSanctioned) ||
+      /approved|sanctioned/.test(String(view.checker.decision || "").toLowerCase());
+    const recordedDecisionLabel = approvedDecision
+      ? "Approved & Sanctioned"
+      : view.checker.decision;
+    const loanAccountNumber =
+      view.checker.cbsLoanAccountReference ||
+      view.checker.sanction?.loanAccountNumber ||
+      DEMO_LOAN_ACCOUNT_NUMBER;
 
     return (
       <section className="details-section checker-section">
@@ -1718,19 +1794,57 @@ export default function ApplicationDetailsTab({
           <span className="featured"><small>Variance from request</small><strong>{formatCurrency((toNumber(view.eligibility.recommendedAmount) || 0) - (toNumber(view.loan.requestedAmount) || 0))}</strong></span>
         </div>
 
-        {view.checker.decision && (
-          <div className="existing-decision">
-            <span className="existing-decision__icon"><Icon type="decision" /></span>
+        {approvalProcessing && (
+          <div
+            className="existing-decision approval-processing"
+            role="status"
+            aria-live="polite"
+            aria-label="Creating loan account"
+          >
+            <span className="existing-decision__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.22" />
+                <path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                  <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite" />
+                </path>
+              </svg>
+            </span>
             <div>
-              <small>Recorded decision</small>
-              <strong>{view.checker.decision}</strong>
-              <p>{view.checker.comments || "No Checker comments recorded."}</p>
-              <span>{view.checker.decidedBy?.name || "Branch Checker"} · {formatDateTime(view.checker.decidedAt)}</span>
+              <small>Sanction processing</small>
+              <strong>Creating loan account…</strong>
+              <p>Finalising the sanction and creating the CBS loan account.</p>
+              <span>This usually takes only a few seconds.</span>
             </div>
           </div>
         )}
 
-        {checkerCanEdit ? (
+        {!approvalProcessing && view.checker.decision && (
+          <>
+            <div className="existing-decision">
+              <span className="existing-decision__icon"><Icon type="decision" /></span>
+              <div>
+                <small>Recorded decision</small>
+                <strong>{recordedDecisionLabel}</strong>
+                <p>{view.checker.comments || "No Checker comments recorded."}</p>
+                <span>{view.checker.decidedBy?.name || "Yashwant"} · {formatDateTime(view.checker.decidedAt)}</span>
+              </div>
+            </div>
+
+            {approvedDecision && (
+              <div className="existing-decision loan-account-created" role="status" aria-live="polite">
+                <span className="existing-decision__icon"><Icon type="check" /></span>
+                <div>
+                  <small>Loan account created</small>
+                  <strong>{loanAccountNumber}</strong>
+                  <p>CBS loan account created successfully and linked to this sanctioned application.</p>
+                  <span>Account creation complete</span>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {!approvalProcessing && (checkerCanEdit ? (
           <section className="checker-decision-form">
             <div className="content-heading">
               <div><h4>Record decision</h4><p>Select the outcome first. Only the information needed for that outcome will be requested.</p></div>
@@ -1780,8 +1894,8 @@ export default function ApplicationDetailsTab({
             </div>
           </section>
         ) : !view.checker.decision ? (
-          <div className="pending-review-note"><Icon type="info" /><div><strong>No Checker action is available yet</strong><span>The decision controls appear when the application is submitted and assigned to the Branch Checker.</span></div></div>
-        ) : null}
+          <div className="pending-review-note"><Icon type="info" /><div><strong>No Checker action is available yet</strong><span>The decision controls appear when the application is submitted and assigned to Yashwant for checker review.</span></div></div>
+        ) : null)}
       </section>
     );
   };

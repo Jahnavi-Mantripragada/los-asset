@@ -1161,12 +1161,33 @@ function CustomerIdentity({
   useEffect(() => {
     if (consentStatus !== "Sent") return undefined;
 
-    const timer = window.setInterval(() => {
+    setConsentSeconds(CONSENT_WAIT_SECONDS);
+
+    const countdownTimer = window.setInterval(() => {
       setConsentSeconds((seconds) => (seconds > 0 ? seconds - 1 : 0));
     }, 1000);
 
-    return () => window.clearInterval(timer);
-  }, [consentStatus]);
+    const captureTimer = window.setTimeout(() => {
+      setConsentSeconds(0);
+      updateNode("customerConsent", (current) => {
+        if (current.status !== "Sent") return {};
+        return {
+          status: "Captured",
+          capturedAt: getTimestamp(),
+        };
+      });
+      setNotice("Customer consent received successfully.");
+    }, CONSENT_WAIT_SECONDS * 1000);
+
+    return () => {
+      window.clearInterval(countdownTimer);
+      window.clearTimeout(captureTimer);
+    };
+  }, [
+    consentStatus,
+    consentNode.requestReference,
+    updateNode,
+  ]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -1406,17 +1427,18 @@ function CustomerIdentity({
       });
 
       updateNode("customerConsent", {
-        status: "Captured",
+        status: "Sent",
         requestReference,
         sentAt: getTimestamp(),
-        capturedAt: getTimestamp(),
+        capturedAt: "",
         expiresAt: getTimestamp(expiry),
         resendCount,
       });
+      setConsentSeconds(CONSENT_WAIT_SECONDS);
       setNotice(
         resendCount
-          ? "Consent request resent successfully on WhatsApp and marked as captured."
-          : "Consent request sent successfully on WhatsApp and marked as captured.",
+          ? "Consent request resent successfully on WhatsApp. Waiting for customer confirmation."
+          : "Consent request sent successfully on WhatsApp. Waiting for customer confirmation.",
       );
     } catch (error) {
       console.error("Unable to send WhatsApp consent request:", error);

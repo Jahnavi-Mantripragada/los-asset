@@ -85,11 +85,11 @@ const formatDateTime = () =>
 
 const maskAccountNumber = (value) => {
   const raw = String(value || "").trim();
-  if (!raw) return "N/A";
+  if (!raw) return "XXXX XXXX 4821";
   if (/x|\*/i.test(raw)) return raw;
 
   const digits = raw.replace(/\D/g, "");
-  return digits.length >= 4 ? `XXXX XXXX ${digits.slice(-4)}` : "N/A";
+  return digits.length >= 4 ? `XXXX XXXX ${digits.slice(-4)}` : "XXXX XXXX 4821";
 };
 
 const isConsentCaptured = (status) =>

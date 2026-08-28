@@ -167,7 +167,7 @@ const createDefaultWorkflow = () => ({
     method: "",
     status: "not_started",
     consentConfirmed: false,
-    manualDocument: null,
+    manualDocuments: [],
     esignDocuments: [],
   },
   preDisbursement: {
@@ -193,7 +193,6 @@ export default function DocumentationDisbursementTab({
   const [activeDocument, setActiveDocument] = useState(null);
   const [showDisbursementConfirm, setShowDisbursementConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadPreviewUrl, setUploadPreviewUrl] = useState("");
   const [selectedDisbursementAccount, setSelectedDisbursementAccount] = useState("");
   const fileInputRef = useRef(null);
   const esignFileInputRef = useRef(null);
@@ -205,9 +204,11 @@ export default function DocumentationDisbursementTab({
   const savedWorkflow =
     leadDetails.applicationDetail?.documentationDisbursement || {};
   const savedEsignDecision =
-    leadDetails.applicationDetail?.makerFinalisation?.eSignRequired ??
+    leadDetails.applicationDetail?.eligibility?.eSignRequired ??
+    leadDetails.applicationDetail?.details?.eligibility?.eSignRequired ??
     leadDetails.applicationDetail?.details?.eligibilityRecommendation?.eSignRequired;
   const eSignRequired = savedEsignDecision !== false;
+  const executionMethod = eSignRequired ? "esign" : "manual";
   const [workflow, setWorkflow] = useState(() => ({
     ...createDefaultWorkflow(),
     ...savedWorkflow,
@@ -218,6 +219,12 @@ export default function DocumentationDisbursementTab({
     execution: {
       ...createDefaultWorkflow().execution,
       ...(savedWorkflow.execution || {}),
+      method: executionMethod,
+      manualDocuments:
+        savedWorkflow.execution?.manualDocuments ||
+        (savedWorkflow.execution?.manualDocument
+          ? [savedWorkflow.execution.manualDocument]
+          : []),
     },
     preDisbursement: {
       ...createDefaultWorkflow().preDisbursement,
@@ -235,7 +242,16 @@ export default function DocumentationDisbursementTab({
       ...defaults,
       ...savedWorkflow,
       documents: { ...defaults.documents, ...(savedWorkflow.documents || {}) },
-      execution: { ...defaults.execution, ...(savedWorkflow.execution || {}) },
+      execution: {
+        ...defaults.execution,
+        ...(savedWorkflow.execution || {}),
+        method: executionMethod,
+        manualDocuments:
+          savedWorkflow.execution?.manualDocuments ||
+          (savedWorkflow.execution?.manualDocument
+            ? [savedWorkflow.execution.manualDocument]
+            : []),
+      },
       preDisbursement: {
         ...defaults.preDisbursement,
         ...(savedWorkflow.preDisbursement || {}),
@@ -245,14 +261,7 @@ export default function DocumentationDisbursementTab({
         ...(savedWorkflow.disbursement || {}),
       },
     });
-  }, [savedWorkflow.lastUpdatedAt]);
-
-  useEffect(
-    () => () => {
-      if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
-    },
-    [uploadPreviewUrl]
-  );
+  }, [savedWorkflow.lastUpdatedAt, executionMethod]);
 
   const context = useMemo(
     () => getDemoContext(leadDetails, lead),
@@ -419,19 +428,6 @@ export default function DocumentationDisbursementTab({
     setIsProcessing(false);
   };
 
-  const setExecutionMethod = async (method) => {
-    if (!canManageDocuments || !documentsGenerated) return;
-    const nextExecution = {
-      ...workflow.execution,
-      method,
-      status: "not_started",
-      consentConfirmed: false,
-      manualDocument: method === "manual" ? workflow.execution.manualDocument : null,
-      neslReference: method === "esign" ? workflow.execution.neslReference : "",
-    };
-    await persistWorkflow({ ...workflow, execution: nextExecution });
-  };
-
   const sendEsignRequest = async () => {
     if (!workflow.execution.consentConfirmed || isProcessing) return;
     setIsProcessing(true);
@@ -548,52 +544,95 @@ export default function DocumentationDisbursementTab({
   };
 
   const handleManualUpload = async (event) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files || []);
     event.target.value = "";
-    if (!file) return;
+    if (!files.length) return;
+
     const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-    if (!allowedTypes.includes(file.type)) {
+    const invalid = files.find((file) => !allowedTypes.includes(file.type));
+    const oversized = files.find((file) => file.size > 10 * 1024 * 1024);
+
+    if (invalid) {
       setSaveState("error");
-      setSaveError("Upload a PDF, JPG or PNG file.");
+      setSaveError("Only PDF, JPG or PNG files are allowed.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+
+    if (oversized) {
       setSaveState("error");
-      setSaveError("The signed document must be 10 MB or smaller.");
+      setSaveError("Each signed document must be 10 MB or smaller.");
       return;
     }
-    if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
-    setUploadPreviewUrl(URL.createObjectURL(file));
+
     const now = new Date().toISOString();
+    const newDocuments = files.map((file) => ({
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      uploadedAt: now,
+      reference: createReference("UPLOAD"),
+      uploaded: true,
+      url: "/doc.pdf",
+    }));
+
+    const nextManualDocuments = [
+      ...(workflow.execution.manualDocuments || []),
+      ...newDocuments,
+    ];
+
     const nextExecution = {
       ...workflow.execution,
       method: "manual",
       status: "completed",
       completedAt: now,
-      manualDocument: {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        uploadedAt: now,
-        reference: createReference("UPLOAD"),
-        uploaded: true,
-        url: "/doc.pdf",
-      },
+      manualDocuments: nextManualDocuments,
+      manualDocument: undefined,
     };
+
     await persistWorkflow(
       {
         ...workflow,
         execution: nextExecution,
         status: "PRE_DISBURSEMENT_CHECKS_PENDING",
       },
-      {
-        type: "manual_document_uploaded",
-        title: "Manually signed stamp paper uploaded",
-        section: "Document Execution",
-        toStatus: "Executed",
-        metadata: { fileName: file.name },
-      }
+      newDocuments.length === 1
+        ? {
+            type: "manual_document_uploaded",
+            title: `Signed document uploaded: ${newDocuments[0].name}`,
+            section: "Document Execution",
+            toStatus: "Executed",
+            metadata: { fileName: newDocuments[0].name },
+          }
+        : {
+            type: "manual_documents_uploaded",
+            title: `${newDocuments.length} signed documents uploaded`,
+            section: "Document Execution",
+            toStatus: "Executed",
+            metadata: { fileCount: newDocuments.length },
+          }
     );
+  };
+
+  const removeManualDocument = async (indexToRemove) => {
+    const nextManualDocuments = (workflow.execution.manualDocuments || []).filter(
+      (_, index) => index !== indexToRemove
+    );
+    const hasManualDocuments = nextManualDocuments.length > 0;
+
+    await persistWorkflow({
+      ...workflow,
+      execution: {
+        ...workflow.execution,
+        method: "manual",
+        manualDocuments: nextManualDocuments,
+        manualDocument: undefined,
+        status: hasManualDocuments ? "completed" : "not_started",
+        completedAt: hasManualDocuments ? workflow.execution.completedAt : undefined,
+      },
+      status: hasManualDocuments
+        ? "PRE_DISBURSEMENT_CHECKS_PENDING"
+        : "EXECUTION_PENDING",
+    });
   };
 
   const toggleChecklist = async (field) => {
@@ -712,19 +751,21 @@ export default function DocumentationDisbursementTab({
       <div className={`documentation-tab__workflow-section${!documentsGenerated ? " is-disabled" : ""}`}>
         <div className="documentation-tab__section-heading"><div><h3>{eSignRequired ? "Customer eSign" : "Signed document upload"}</h3><p>{eSignRequired ? "Send and track the customer’s eSign request." : "Upload the customer-signed physical document."}</p></div>{executionComplete && <span className="documentation-tab__complete-label"><Icon name="check" />Completed</span>}</div>
 
-        <fieldset className="documentation-tab__execution" disabled={!canManageDocuments || !documentsGenerated || executionComplete}>
-          <legend className="sr-only">Select document execution method</legend>
-          <label className={workflow.execution.method === "esign" ? "selected" : ""}>
-            <input checked={workflow.execution.method === "esign"} name="executionMethod" onChange={() => setExecutionMethod("esign")} type="radio" />
-            <span className="documentation-tab__choice-icon"><Icon name="send" /></span>
-            <span><strong>Yes, send for e-sign</strong><small>Send through NeSL to the registered mobile and email.</small></span>
-          </label>
-          <label className={workflow.execution.method === "manual" ? "selected" : ""}>
-            <input checked={workflow.execution.method === "manual"} name="executionMethod" onChange={() => setExecutionMethod("manual")} type="radio" />
-            <span className="documentation-tab__choice-icon"><Icon name="upload" /></span>
-            <span><strong>No, collect manual signature</strong><small>Upload the signed and stamped document as PDF, JPG or PNG.</small></span>
-          </label>
-        </fieldset>
+        <div className="documentation-tab__execution">
+          <div className="selected">
+            <span className="documentation-tab__choice-icon">
+              <Icon name={eSignRequired ? "send" : "upload"} />
+            </span>
+            <span>
+              <strong>{eSignRequired ? "eSign required" : "Manual signature required"}</strong>
+              <small>
+                {eSignRequired
+                  ? "Execution method is automatically determined from eligibility. Send through NeSL to the registered mobile and email."
+                  : "Execution method is automatically determined from eligibility. Upload the customer-signed physical documents."}
+              </small>
+            </span>
+          </div>
+        </div>
 
         {eSignRequired && (
           <div className="documentation-tab__execution-panel">
@@ -861,15 +902,85 @@ export default function DocumentationDisbursementTab({
 
         {!eSignRequired && (
           <div className="documentation-tab__execution-panel">
-            <input accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={handleManualUpload} ref={fileInputRef} type="file" />
-            {workflow.execution.manualDocument ? (
-              <div className="documentation-tab__uploaded-file">
-                <div><Icon name="file" /><span><strong>{workflow.execution.manualDocument.name}</strong><small>Document marked as uploaded · {formatDateTime(workflow.execution.manualDocument.uploadedAt)}</small></span></div>
-                <div><a className="documentation-tab__text-button" href={workflow.execution.manualDocument.url || "/doc.pdf"} rel="noreferrer" target="_blank">View</a><button className="documentation-tab__text-button" disabled={!canManageDocuments} onClick={() => fileInputRef.current?.click()} type="button">Replace</button></div>
+            <input
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="sr-only"
+              multiple
+              onChange={handleManualUpload}
+              ref={fileInputRef}
+              type="file"
+            />
+
+            <div className="documentation-tab__esign-uploads">
+              <div className="documentation-tab__esign-uploads-header">
+                <span className="documentation-tab__esign-uploads-label">
+                  Signed documents
+                  {(workflow.execution.manualDocuments || []).length > 0 && (
+                    <span className="documentation-tab__esign-uploads-count">
+                      {(workflow.execution.manualDocuments || []).length}
+                    </span>
+                  )}
+                </span>
+                <button
+                  className="documentation-tab__button secondary"
+                  disabled={!canManageDocuments}
+                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                >
+                  <Icon name="upload" size={16} />
+                  Upload files
+                </button>
               </div>
-            ) : (
-              <button className="documentation-tab__upload" disabled={!canManageDocuments} onClick={() => fileInputRef.current?.click()} type="button"><Icon name="upload" size={24} /><strong>Upload signed stamp paper</strong><span>PDF, JPG or PNG · Maximum 10 MB</span></button>
-            )}
+
+              {(workflow.execution.manualDocuments || []).length === 0 ? (
+                <button
+                  className="documentation-tab__upload documentation-tab__upload--compact"
+                  disabled={!canManageDocuments}
+                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                >
+                  <Icon name="upload" size={20} />
+                  <strong>Upload customer-signed documents</strong>
+                  <span>PDF, JPG or PNG · Max 10 MB each · Multiple allowed</span>
+                </button>
+              ) : (
+                <ul className="documentation-tab__esign-file-list" role="list">
+                  {(workflow.execution.manualDocuments || []).map((doc, index) => (
+                    <li className="documentation-tab__esign-file-item" key={`${doc.reference}-${index}`}>
+                      <span className="documentation-tab__esign-file-icon">
+                        <Icon name="file" size={16} />
+                      </span>
+                      <span className="documentation-tab__esign-file-info">
+                        <strong>{doc.name}</strong>
+                        <small>Uploaded {formatDateTime(doc.uploadedAt)}</small>
+                      </span>
+                      <div className="documentation-tab__esign-file-actions">
+                        <a
+                          className="documentation-tab__text-button"
+                          href={doc.url || "/doc.pdf"}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          <Icon name="eye" size={14} />
+                          View
+                        </a>
+                        {canManageDocuments && (
+                          <button
+                            aria-label={`Remove ${doc.name}`}
+                            className="documentation-tab__text-button documentation-tab__text-button--danger"
+                            onClick={() => removeManualDocument(index)}
+                            type="button"
+                          >
+                            <Icon name="close" size={14} />
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
       </div>

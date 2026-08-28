@@ -210,6 +210,22 @@ const applicableLtvFor = (appraisedValue) => {
   if (value <= 500000) return 80;
   return 75;
 };
+const calculateCharges = (recommendedAmount, chargesAccount = "—") => {
+  const amount = toNumber(recommendedAmount) || 0;
+  const processingCharge = Number((amount * 0.005).toFixed(2));
+  const appraiserCharge = 500;
+  const gst = Number(((processingCharge + appraiserCharge) * 0.18).toFixed(2));
+  const totalCharges = Number((processingCharge + appraiserCharge + gst).toFixed(2));
+
+  return {
+    processingCharge,
+    appraiserCharge,
+    gst,
+    otherCharges: 0,
+    totalCharges,
+    chargesAccount,
+  };
+};
 const emptyAppraisal = () => ({
   defectPresent: "No",
   defectDescription: "",
@@ -453,6 +469,13 @@ const buildView = (leadDetails, lead) => {
     totalAppraisedValue,
     availableExposureLimit,
   );
+  const recommendedAmount = hasValue(makerSource.recommendedAmount)
+    ? makerSource.recommendedAmount
+    : "";
+  const calculatedCharges = calculateCharges(
+    recommendedAmount,
+    charges.chargesAccount || loan.chargesAccount || "—",
+  );
   const eligibility = {
     ibjaGoldRate: eligibilitySource.ibjaGoldRate || eligibilitySource.ibjaRate || 6950,
     schemePercentage: applicableLtv,
@@ -465,7 +488,7 @@ const buildView = (leadDetails, lead) => {
     maximumEligibleAmount,
     controllingLimit: eligibilitySource.controllingLimit || "Minimum of LTV value, appraised value and available exposure",
     requiredAmount: makerSource.requiredAmount || eligibilitySource.requiredAmount || 450000,
-    recommendedAmount: makerSource.recommendedAmount || eligibilitySource.recommendedAmount || 440000,
+    recommendedAmount,
     disbursementAccount: makerSource.disbursementAccount || loan.disbursementAccount || "",
     makerComments: makerSource.makerComments || makerSource.comments || "Recommended based on verified net weight and maximum applicable LTV.",
     eSignRequired:
@@ -473,14 +496,7 @@ const buildView = (leadDetails, lead) => {
         ? true
         : Boolean(makerSource.eSignRequired),
     status: makerSource.status || "Pending",
-    charges: {
-      processingCharge: charges.processingCharge || 2200,
-      appraiserCharge: charges.appraiserCharge || 500,
-      gst: charges.gst || 486,
-      otherCharges: charges.otherCharges || 0,
-      totalCharges: charges.totalCharges || 3186,
-      chargesAccount: charges.chargesAccount || loan.chargesAccount || "—",
-    },
+    charges: calculatedCharges,
     nominee: {
       addToSavingsAccount: Boolean(nominee.addToSavingsAccount),
       name: nominee.name || "Anita Sharma",
@@ -723,6 +739,14 @@ export default function ApplicationDetailsTab({
     (/checker|sanction/.test(statusText) ||
       (/submitted/.test(eligibilityStatusText) && assignmentMatches("Checker"))) &&
     !/sanctioned|rejected/.test(statusText);
+  const makerCharges = useMemo(
+    () => calculateCharges(
+      makerDraft.recommendedAmount,
+      view.eligibility.charges.chargesAccount,
+    ),
+    [makerDraft.recommendedAmount, view.eligibility.charges.chargesAccount],
+  );
+  const displayedCharges = makerCanEdit ? makerCharges : view.eligibility.charges;
   // Every workflow section remains visible. Edit controls are independently
   // gated above so only the assigned role can change its active work item.
   const visibleSections = SECTIONS;
@@ -862,16 +886,16 @@ export default function ApplicationDetailsTab({
             totalAppraisedValue: appraisalItems.reduce((sum, item) => sum + appraisedValueFor(item), 0),
             lastSavedAt: new Date().toISOString(),
           };
-          const eligibilityNode = { ...(details.eligibilityRecommendation || application.makerFinalisation || {}), ...makerDraft, lastSavedAt: new Date().toISOString() };
+          const eligibilityNode = { ...(details.eligibilityRecommendation || application.makerFinalisation || {}), ...makerDraft, charges: makerCharges, lastSavedAt: new Date().toISOString() };
           const checkerNode = { ...(details.checkerDecision || application.checkerDecision || {}), ...checkerDraft, lastSavedAt: new Date().toISOString() };
-          return { ...application, details: { ...details, jewelleryAppraisal: appraisalNode, eligibilityRecommendation: eligibilityNode, checkerDecision: checkerNode }, appraisal: appraisalNode, makerFinalisation: eligibilityNode, checkerDecision: checkerNode };
+          return { ...application, details: { ...details, jewelleryAppraisal: appraisalNode, eligibilityRecommendation: eligibilityNode, checkerDecision: checkerNode }, appraisal: appraisalNode, makerFinalisation: eligibilityNode, charges: makerCharges, checkerDecision: checkerNode };
         },
         { type: "draft_autosave", title: "Application details draft saved", description: "Latest changes were saved automatically.", section: "Application Details" },
         false,
       );
     }, 600);
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
-  }, [appraisalItems, makerDraft, checkerDraft, commitUpdate]);
+  }, [appraisalItems, makerDraft, makerCharges, checkerDraft, commitUpdate]);
 
   const handleReplacementImage = (itemId, file) => {
     if (!file) return;
@@ -1093,6 +1117,7 @@ export default function ApplicationDetailsTab({
           ...makerDraft,
           requiredAmount: toNumber(makerDraft.requiredAmount),
           recommendedAmount: toNumber(makerDraft.recommendedAmount),
+          charges: makerCharges,
           nominee: { ...makerDraft.nominee, isMinor },
           status,
           submittedAt: submit ? now : null,
@@ -1111,6 +1136,7 @@ export default function ApplicationDetailsTab({
           currentOwner: submit ? "Branch Checker" : application.currentOwner,
           details: { ...details, eligibilityRecommendation: makerNode },
           makerFinalisation: makerNode,
+          charges: makerCharges,
           checklist: { ...(application.checklist || {}), makerRecommendation: submit ? "Completed" : "In progress" },
           pushback: submit ? null : application.pushback,
         };
@@ -1232,7 +1258,7 @@ export default function ApplicationDetailsTab({
     return (
       <section className="details-section appraisal-section">
         <SectionHeading
-          eyebrow="Step 1 of 3 · Collateral assessment"
+          eyebrow="Collateral assessment"
           title="Jewellery appraisal"
           description="Verify each ornament against the supplied image, record deductions and confirm its lendable value."
           status={view.appraisal.status}
@@ -1469,7 +1495,7 @@ export default function ApplicationDetailsTab({
     return (
       <section className="details-section eligibility-section">
         <SectionHeading
-          eyebrow="Step 2 of 3 · Maker finalisation"
+          eyebrow="Maker finalisation"
           title="Loan recommendation"
           description="Review the calculated lending limit, confirm the customer request and prepare the recommendation for Checker review."
           status={view.eligibility.status}
@@ -1572,12 +1598,12 @@ export default function ApplicationDetailsTab({
               <div><h4>Charges</h4><p>Calculated by the system.</p></div>
             </div>
             <dl className="charge-list">
-              <div><dt>Processing charge</dt><dd>{formatCurrency(view.eligibility.charges.processingCharge)}</dd></div>
-              <div><dt>Appraiser charge</dt><dd>{formatCurrency(view.eligibility.charges.appraiserCharge)}</dd></div>
-              <div><dt>GST</dt><dd>{formatCurrency(view.eligibility.charges.gst)}</dd></div>
-              {toNumber(view.eligibility.charges.otherCharges) > 0 && <div><dt>Other charges</dt><dd>{formatCurrency(view.eligibility.charges.otherCharges)}</dd></div>}
-              <div className="charge-total"><dt>Total charges</dt><dd>{formatCurrency(view.eligibility.charges.totalCharges)}</dd></div>
-              <div><dt>Deduction account</dt><dd>{textValue(view.eligibility.charges.chargesAccount)}</dd></div>
+              <div><dt>Processing charge</dt><dd>{formatCurrency(displayedCharges.processingCharge)}</dd></div>
+              <div><dt>Appraiser charge</dt><dd>{formatCurrency(displayedCharges.appraiserCharge)}</dd></div>
+              <div><dt>GST</dt><dd>{formatCurrency(displayedCharges.gst)}</dd></div>
+              {toNumber(displayedCharges.otherCharges) > 0 && <div><dt>Other charges</dt><dd>{formatCurrency(displayedCharges.otherCharges)}</dd></div>}
+              <div className="charge-total"><dt>Total charges</dt><dd>{formatCurrency(displayedCharges.totalCharges)}</dd></div>
+              <div><dt>Deduction account</dt><dd>{textValue(displayedCharges.chargesAccount)}</dd></div>
             </dl>
           </aside>
         </div>
@@ -1665,7 +1691,7 @@ export default function ApplicationDetailsTab({
     return (
       <section className="details-section checker-section">
         <SectionHeading
-          eyebrow="Step 3 of 3 · Independent review"
+          eyebrow="Independent review"
           title="Checker decision"
           description="Confirm that appraisal and recommendation are complete, then record one clear sanction decision."
           status={view.checker.status || view.checker.decision || "Pending"}
@@ -1788,7 +1814,7 @@ export default function ApplicationDetailsTab({
                 <button type="button" className={activeSection === section.id ? "is-active" : ""} onClick={() => setActiveSection(section.id)} aria-current={activeSection === section.id ? "step" : undefined}>
                   <span className="section-nav-step">{section.number}</span>
                   <span className="section-nav-icon"><Icon type={section.icon} /></span>
-                  <span className="section-nav-copy"><small>Step {section.number}</small><strong>{section.label}</strong></span>
+                  <span className="section-nav-copy"><strong>{section.label}</strong></span>
                   <Status value={sectionStatus(section.id)} />
                 </button>
               </li>

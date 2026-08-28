@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchAuthSession } from "aws-amplify/auth";
 import "./DashboardPage.css";
 
 /* Inline SVG Icons */
@@ -167,6 +168,38 @@ const listViews = [
 
 const FIXED_LEAD_SOURCE = "Branch Walk-in";
 
+const USER_DISPLAY_MAP = {
+  "shivgaikwad@deloitte.com": {
+    label: "Saransh (Branch Executive)",
+    initials: "SA",
+  },
+  "mohikumwat@deloiite.com": {
+    label: "Anant (Appraiser)",
+    initials: "AN",
+  },
+  // Keep the correctly-spelled domain too, in case Cognito stores this version.
+  "mohikumwat@deloitte.com": {
+    label: "Anant (Appraiser)",
+    initials: "AN",
+  },
+  "ychapa@deloitte.com": {
+    label: "Yashwant",
+    initials: "YA",
+  },
+};
+
+const DEFAULT_LOGGED_IN_USER = {
+  label: "Branch Executive",
+  initials: "BE",
+};
+
+const getLoggedInUserDisplay = (email) => {
+  if (!email) return DEFAULT_LOGGED_IN_USER;
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  return USER_DISPLAY_MAP[normalizedEmail] || DEFAULT_LOGGED_IN_USER;
+};
+
 const emptyLeadForm = {
   firstName: "",
   lastName: "",
@@ -241,6 +274,23 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
   const [todayLeadsError, setTodayLeadsError] = useState("");
   const [isCreatingLead, setIsCreatingLead] = useState(false);
   const [createLeadError, setCreateLeadError] = useState("");
+  const [loggedInUser, setLoggedInUser] = useState(DEFAULT_LOGGED_IN_USER);
+
+  useEffect(() => {
+    const loadLoggedInUser = async () => {
+      try {
+        const session = await fetchAuthSession();
+        const email = session.tokens?.idToken?.payload?.email;
+
+        setLoggedInUser(getLoggedInUserDisplay(email));
+      } catch (error) {
+        console.error("Unable to read Cognito user session:", error);
+        setLoggedInUser(DEFAULT_LOGGED_IN_USER);
+      }
+    };
+
+    loadLoggedInUser();
+  }, []);
 
   useEffect(() => {
     const fetchTodayLeads = async () => {
@@ -459,12 +509,15 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
         </div>
 
         <div className="sidebar-footer">
-          <div className="sidebar-footer-avatar" title="Sales User">
-            SU
+          <div
+            className="sidebar-footer-avatar"
+            title={loggedInUser.label}
+          >
+            {loggedInUser.initials}
           </div>
           <div className="sidebar-footer-info">
             <p>Logged in as</p>
-            <strong>Sales User</strong>
+            <strong>{loggedInUser.label}</strong>
           </div>
         </div>
       </aside>

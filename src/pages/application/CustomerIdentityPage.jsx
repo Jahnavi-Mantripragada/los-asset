@@ -5,7 +5,7 @@ import {
   sendWhatsAppMessage,
 } from "../../services/whatsAppService";
 
-const CONSENT_WAIT_SECONDS = 6;
+const CONSENT_WAIT_SECONDS = 12;
 const DEFAULT_LEAD_API_BASE =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
 const PAN_CARD_PATH = "/docs/PanCard.jpg";

@@ -63,18 +63,241 @@ const STAGES = [
   },
 ];
 
-const DEFAULT_CHECKLIST = [
-  { id: "customerConsent", label: "Customer & consent" },
-  { id: "jewelleryAppraisal", label: "Jewellery appraisal" },
-  { id: "eligibility", label: "Eligibility calculation" },
-  { id: "cibil", label: "CIBIL / CIC" },
-  { id: "landDetails", label: "Land details" },
-  { id: "makerRecommendation", label: "Maker recommendation" },
-  { id: "checkerSanction", label: "Checker sanction" },
-  { id: "documentExecution", label: "Document execution" },
-  { id: "chargeDeduction", label: "Charge deduction" },
-  { id: "disbursement", label: "Disbursement" },
-];
+const DEMO_ACTORS = {
+  Maker: { name: "Saransh", displayRole: "Branch Executive" },
+  Appraiser: { name: "Anant", displayRole: "Appraiser" },
+  Checker: { name: "Yashwant", displayRole: "Checker" },
+};
+
+const getDemoActor = (persona, fallbackName = "System") => {
+  const normalized = normalizePersona(persona);
+  const mapped = DEMO_ACTORS[normalized];
+  return {
+    name: mapped?.name || fallbackName,
+    role: normalized === "Read only" ? "System" : normalized,
+    displayRole: mapped?.displayRole || (normalized === "Read only" ? "System" : normalized),
+  };
+};
+
+const displayOwnerName = (value) => {
+  const owner = String(value || "").trim();
+  const normalized = owner.toLowerCase();
+  if (!owner) return "—";
+  if (normalized.includes("appraiser") || normalized.includes("jeweller")) return "Anant";
+  if (normalized.includes("checker")) return "Yashwant";
+  if (normalized.includes("maker") || normalized.includes("branch executive")) return "Saransh";
+  return owner;
+};
+
+const asValidDate = (...values) => {
+  for (const value of values) {
+    if (!value) continue;
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return null;
+};
+
+const offsetIso = (base, minutes) => {
+  const start = asValidDate(base) || new Date();
+  return new Date(start.getTime() + minutes * 60 * 1000).toISOString();
+};
+
+const isMeaningfulActivity = (event) => {
+  const type = String(event?.type || "").toLowerCase();
+  const title = String(event?.title || "").toLowerCase();
+  if (/autosave|draft/.test(type)) return false;
+  if (/application details draft saved|application details updated/.test(title)) return false;
+  if (/\bsaved\b/.test(title) && !/submitted|completed|approved|sanctioned/.test(title)) return false;
+  return true;
+};
+
+const normalizeActivityActor = (event) => {
+  const persona = normalizePersona(
+    event?.actor?.role ||
+      event?.actor?.persona ||
+      event?.metadata?.persona ||
+      "",
+  );
+  const fallbackName =
+    event?.actor?.name ||
+    event?.actor?.email ||
+    event?.createdBy?.name ||
+    "System";
+  const mapped = getDemoActor(persona, fallbackName);
+
+  return {
+    ...event,
+    actor: {
+      ...(event?.actor || {}),
+      name: mapped.name,
+      role: persona === "Read only" ? event?.actor?.role || "System" : persona,
+      displayRole: mapped.displayRole,
+    },
+  };
+};
+
+const buildDemoActivityTimeline = (applicationDetail, lead, currentStageIndex) => {
+  const storedEvents = Array.isArray(applicationDetail?.activity?.events)
+    ? applicationDetail.activity.events
+        .filter(isMeaningfulActivity)
+        .map(normalizeActivityActor)
+    : [];
+
+  const hasEvent = (...patterns) =>
+    storedEvents.some((event) => {
+      const haystack = `${event.type || ""} ${event.title || ""}`.toLowerCase();
+      return patterns.some((pattern) => haystack.includes(pattern));
+    });
+
+  const createdAt =
+    asValidDate(
+      applicationDetail?.createdAt,
+      lead?.leadDetails?.createdAt,
+      lead?.createdAt,
+    ) || new Date();
+
+  const appraisalNode =
+    applicationDetail?.details?.jewelleryAppraisal ||
+    applicationDetail?.appraisal ||
+    {};
+  const makerNode =
+    applicationDetail?.details?.eligibilityRecommendation ||
+    applicationDetail?.makerFinalisation ||
+    {};
+  const checkerNode =
+    applicationDetail?.details?.checkerDecision ||
+    applicationDetail?.checkerDecision ||
+    {};
+
+  const statusText = String(applicationDetail?.status || "").toLowerCase();
+  const appraisalStatus = String(appraisalNode?.status || "").toLowerCase();
+  const makerStatus = String(makerNode?.status || "").toLowerCase();
+  const checkerDecision = String(
+    checkerNode?.decision || checkerNode?.status || "",
+  ).toLowerCase();
+  const assignedPersona = normalizePersona(
+    applicationDetail?.assignment?.persona ||
+      applicationDetail?.assignedPersona ||
+      "",
+  );
+
+  const appraisalCompleted =
+    /complete/.test(appraisalStatus) ||
+    assignedPersona === "Maker" ||
+    assignedPersona === "Checker" ||
+    /maker|checker|sanction|document|disbursement/.test(statusText) ||
+    currentStageIndex >= 2;
+
+  const makerSubmitted =
+    /submitted/.test(makerStatus) ||
+    assignedPersona === "Checker" ||
+    /checker|sanction|document|disbursement/.test(statusText) ||
+    Boolean(checkerNode?.decision) ||
+    currentStageIndex >= 2;
+
+  const checkerApproved =
+    /approved|sanctioned/.test(checkerDecision) ||
+    /sanctioned|document|disbursement/.test(statusText) ||
+    currentStageIndex >= 2;
+
+  const synthetic = [];
+
+  if (!hasEvent("application created", "application_created")) {
+    synthetic.push({
+      id: "DEMO-APPLICATION-CREATED",
+      type: "application_created",
+      title: "Application created",
+      description: "Customer identity, consent and loan request were captured and the application was created.",
+      stage: "Application Creation",
+      actor: getDemoActor("Maker"),
+      createdAt: offsetIso(createdAt, 0),
+    });
+  }
+
+  if (!hasEvent("appraiser assigned", "appraisal assigned", "appraiser_assignment")) {
+    synthetic.push({
+      id: "DEMO-APPRAISER-ASSIGNED",
+      type: "appraiser_assignment",
+      title: "Appraisal assigned",
+      description: "Jewellery appraisal was assigned to Anant for verification and valuation.",
+      stage: "Appraisal",
+      actor: getDemoActor("Maker"),
+      createdAt: offsetIso(createdAt, 4),
+    });
+  }
+
+  if (appraisalCompleted && !hasEvent("appraisal_complete", "appraisal completed")) {
+    const itemCount = Array.isArray(appraisalNode?.items)
+      ? appraisalNode.items.length
+      : 0;
+    const totalValue =
+      appraisalNode?.totalAppraisedValue ||
+      applicationDetail?.eligibility?.schemeLendingValue;
+    const detailParts = [
+      itemCount ? `${itemCount} jewellery item${itemCount === 1 ? "" : "s"} verified` : "Jewellery verified",
+      Number(totalValue) > 0 ? `appraised value ${formatCurrency(totalValue)}` : "",
+    ].filter(Boolean);
+
+    synthetic.push({
+      id: "DEMO-APPRAISAL-COMPLETED",
+      type: "appraisal_complete",
+      title: "Jewellery appraisal completed",
+      description: `${detailParts.join(" · ")}.`,
+      stage: "Appraisal",
+      actor: getDemoActor("Appraiser"),
+      createdAt:
+        appraisalNode?.completedAt ||
+        appraisalNode?.appraisedAt ||
+        offsetIso(createdAt, 14),
+    });
+  }
+
+  if (makerSubmitted && !hasEvent("maker_submission", "recommendation submitted")) {
+    const recommendedAmount =
+      makerNode?.recommendedAmount ||
+      applicationDetail?.makerFinalisation?.recommendedAmount;
+    synthetic.push({
+      id: "DEMO-MAKER-SUBMITTED",
+      type: "maker_submission",
+      title: "Loan recommendation submitted",
+      description: recommendedAmount
+        ? `${formatCurrency(recommendedAmount)} recommended and submitted to Yashwant for checker review.`
+        : "Eligibility and loan recommendation were reviewed and submitted to Yashwant for checker review.",
+      stage: "Appraisal",
+      actor: getDemoActor("Maker"),
+      createdAt:
+        makerNode?.submittedAt ||
+        offsetIso(createdAt, 22),
+    });
+  }
+
+  if (checkerApproved && !hasEvent("checker_approve", "approved and sanctioned", "application approved")) {
+    const sanctionedAmount =
+      checkerNode?.sanction?.amount ||
+      makerNode?.recommendedAmount;
+    synthetic.push({
+      id: "DEMO-CHECKER-APPROVED",
+      type: "checker_approve",
+      title: "Application approved and sanctioned",
+      description: sanctionedAmount
+        ? `${formatCurrency(sanctionedAmount)} sanctioned. Application moved to documentation and disbursement.`
+        : "Checker approval completed. Application moved to documentation and disbursement.",
+      stage: "Checker Decision",
+      actor: getDemoActor("Checker"),
+      createdAt:
+        checkerNode?.decidedAt ||
+        checkerNode?.sanction?.sanctionedAt ||
+        offsetIso(createdAt, 28),
+    });
+  }
+
+  return [...storedEvents, ...synthetic].sort((a, b) => {
+    const right = asValidDate(b?.createdAt)?.getTime() || 0;
+    const left = asValidDate(a?.createdAt)?.getTime() || 0;
+    return right - left;
+  });
+};
 
 const parseLeadDetails = (value) => {
   if (!value) return {};
@@ -182,7 +405,9 @@ const normalizePersona = (value) => {
     return "Appraiser";
   }
   if (normalized.includes("checker")) return "Checker";
-  if (normalized.includes("maker")) return "Maker";
+  if (normalized.includes("maker") || normalized.includes("branch executive")) {
+    return "Maker";
+  }
   return "Read only";
 };
 
@@ -195,7 +420,7 @@ const createDefaultApplicationDetail = (applicationNumber, lead) => ({
   applicationNumber: applicationNumber || "",
   stage: "APPRAISAL",
   status: "Awaiting Appraisal",
-  currentOwner: "Assigned Appraiser",
+  currentOwner: "Anant",
   assignedPersona: "Appraiser",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -557,8 +782,10 @@ function ApplicationDetailPage({
         const applicationDetail = currentDetails.applicationDetail || {};
         const currentActivity = applicationDetail.activity || {};
         const now = new Date().toISOString();
-        const actorName =
-          loggedInUserName || loggedInUserEmail.split("@")[0] || persona;
+        const demoActor = getDemoActor(
+          persona,
+          loggedInUserName || loggedInUserEmail.split("@")[0] || persona,
+        );
 
         const nextEvent = {
           id:
@@ -572,9 +799,10 @@ function ApplicationDetailPage({
           fromStatus: event?.fromStatus || "",
           toStatus: event?.toStatus || applicationDetail.status || "",
           actor: {
-            name: actorName,
+            name: demoActor.name,
             email: loggedInUserEmail,
             role: persona,
+            displayRole: demoActor.displayRole,
           },
           comments: event?.comments || "",
           createdAt: event?.createdAt || now,
@@ -763,23 +991,15 @@ function ApplicationDetailPage({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead]); // Only run once when lead first loads — persona and currentAction are stable at this point
 
-  const activityEvents = Array.isArray(applicationDetail?.activity?.events)
-    ? applicationDetail.activity.events
-    : [];
+  const activityEvents = useMemo(
+    () => buildDemoActivityTimeline(applicationDetail, lead, currentStageIndex),
+    [applicationDetail, currentStageIndex, lead],
+  );
   const visibleActivity = activityExpanded
     ? activityEvents
-    : activityEvents.slice(0, 8);
+    : activityEvents.slice(0, 6);
 
   const documentationUnlocked = currentStageIndex === 2;
-
-  const checklist = DEFAULT_CHECKLIST.map((item) => {
-    const saved = applicationDetail?.checklist?.[item.id];
-    const value =
-      typeof saved === "string"
-        ? saved
-        : saved?.status || (saved === true ? "Completed" : "Pending");
-    return { ...item, status: value };
-  });
 
   const openAction = () => {
     setActiveTab(currentAction.tab);
@@ -984,10 +1204,12 @@ function ApplicationDetailPage({
             <div>
               <dt>Current owner</dt>
               <dd>
-                {applicationDetail.assignment?.currentOwner ||
-                  applicationDetail.currentOwner ||
-                  lead?.owner ||
-                  "Branch Maker"}
+                {displayOwnerName(
+                  applicationDetail.assignment?.currentOwner ||
+                    applicationDetail.currentOwner ||
+                    lead?.owner ||
+                    "Saransh",
+                )}
               </dd>
             </div>
           </dl>
@@ -1101,81 +1323,6 @@ function ApplicationDetailPage({
               </button>
             </section>
 
-            <section className="application-side-card">
-              <div className="application-side-card__heading">
-                <div>
-                  <span>WORKFLOW CONTEXT</span>
-                  <h2>Assignment</h2>
-                </div>
-              </div>
-              <dl className="application-assignment-list">
-                <div>
-                  <dt>Current owner</dt>
-                  <dd>
-                    {applicationDetail.assignment?.currentOwner ||
-                      applicationDetail.currentOwner ||
-                      lead?.owner ||
-                      "—"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Assigned persona</dt>
-                  <dd>
-                    {applicationDetail.assignment?.persona ||
-                      applicationDetail.assignedPersona ||
-                      "—"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Servicing branch</dt>
-                  <dd>
-                    {applicationDetail.branch?.name ||
-                      lead?.homeBranch?.name ||
-                      lead?.homeBranch?.branchName ||
-                      "—"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Last updated</dt>
-                  <dd>
-                    {formatDateTime(
-                      applicationDetail.updatedAt ||
-                        lead?.leadDetails?.updatedAt,
-                    )}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="application-side-card">
-              <div className="application-side-card__heading">
-                <div>
-                  <span>PROGRESS</span>
-                  <h2>Workflow checklist</h2>
-                </div>
-              </div>
-              <ul className="application-checklist">
-                {checklist.map((item) => {
-                  const statusClass = String(item.status)
-                    .toLowerCase()
-                    .replace(/\s+/g, "-");
-                  return (
-                    <li key={item.id}>
-                      <span className={`check-state is-${statusClass}`}>
-                        {String(item.status).toLowerCase() === "completed" ? (
-                          <CheckIcon />
-                        ) : (
-                          <span />
-                        )}
-                      </span>
-                      <span>{item.label}</span>
-                      <small>{item.status}</small>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-
             <section className="application-side-card application-activity-card">
               <button
                 type="button"
@@ -1193,25 +1340,39 @@ function ApplicationDetailPage({
               <div className="application-activity-content">
                 {visibleActivity.length ? (
                   <ol className="application-activity-list">
-                    {visibleActivity.map((event) => (
-                      <li key={event.id || `${event.title}-${event.createdAt}`}>
-                        <span className="activity-icon">
-                          <ClockIcon />
-                        </span>
-                        <div>
-                          <strong>{event.title || "Application updated"}</strong>
-                          {event.description && <p>{event.description}</p>}
-                          <span>
-                            {event.actor?.name ||
-                              event.actor?.role ||
-                              "System"}
-                            {event.createdAt
-                              ? ` · ${formatDateTime(event.createdAt)}`
-                              : ""}
+                    {visibleActivity.map((event) => {
+                      const statusChanged =
+                        event.fromStatus &&
+                        event.toStatus &&
+                        event.fromStatus !== event.toStatus;
+                      return (
+                        <li key={event.id || `${event.title}-${event.createdAt}`}>
+                          <span className="activity-icon">
+                            <ClockIcon />
                           </span>
-                        </div>
-                      </li>
-                    ))}
+                          <div>
+                            <strong>{event.title || "Application updated"}</strong>
+                            {event.description && <p>{event.description}</p>}
+                            {statusChanged && (
+                              <p>
+                                Status changed from {event.fromStatus} to {event.toStatus}.
+                              </p>
+                            )}
+                            <span>
+                              {event.actor?.name || "System"}
+                              {event.actor?.displayRole
+                                ? ` · ${event.actor.displayRole}`
+                                : event.actor?.role
+                                  ? ` · ${event.actor.role}`
+                                  : ""}
+                              {event.createdAt
+                                ? ` · ${formatDateTime(event.createdAt)}`
+                                : ""}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ol>
                 ) : (
                   <div className="application-empty-activity">
@@ -1221,7 +1382,7 @@ function ApplicationDetailPage({
                   </div>
                 )}
 
-                {activityEvents.length > 8 && (
+                {activityEvents.length > 6 && (
                   <button
                     type="button"
                     className="application-show-activity"

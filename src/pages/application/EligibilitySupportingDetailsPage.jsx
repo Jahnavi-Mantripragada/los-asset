@@ -140,6 +140,7 @@ const normalizeStep = ({ existing = {}, cibilRequired, landRequired, leadDetails
     identity.consentStatus || existing.cibil?.consentStatus || "Not Captured";
   
   const accountValue =
+    identity.matchedCustomer?.casaNumber ||
     facility.accountDetails?.chargesDeductionAccountMasked ||
     facility.accountDetails?.casaAccountMasked ||
     facility.accounts?.chargesDeductionAccount?.maskedAccountNumber ||
@@ -160,7 +161,10 @@ const normalizeStep = ({ existing = {}, cibilRequired, landRequired, leadDetails
     consentCapturedAt:
       identity.consentCapturedAt || existing.cibil?.consentCapturedAt || "",
     chargesAccountMasked:
-      existing.cibil?.chargesAccountMasked || maskAccountNumber(accountValue),
+      existing.cibil?.chargesAccountMasked &&
+      existing.cibil.chargesAccountMasked !== "N/A"
+        ? existing.cibil.chargesAccountMasked
+        : maskAccountNumber(accountValue),
     chargeAmount: Number(existing.cibil?.chargeAmount ?? 35),
     chargeConfirmationStatus:
       existing.cibil?.chargeConfirmationStatus || "Not Confirmed",

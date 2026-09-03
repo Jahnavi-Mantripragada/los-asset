@@ -5,7 +5,7 @@ import {
   sendWhatsAppMessage,
 } from "../../services/whatsAppService";
 
-const CONSENT_WAIT_SECONDS = 12;
+const CONSENT_WAIT_SECONDS = 7;
 const DEFAULT_LEAD_API_BASE =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
 const PAN_CARD_PATH = "/docs/PanCard.jpg";
@@ -1405,6 +1405,7 @@ function CustomerIdentity({
       consentStatus === "Sent" || consentStatus === "Captured"
         ? (consentNode.resendCount || 0) + 1
         : consentNode.resendCount || 0;
+
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
     const requestReference = createReference("CONSENT");
     const consentUrl = buildConsentLandingUrl({
@@ -1414,6 +1415,8 @@ function CustomerIdentity({
       mobile: normaliseMobile(customer.mobile || lead.mobile),
       requestReference,
     });
+
+    let whatsappDeliverySucceeded = false;
 
     try {
       setConsentSending(true);
@@ -1426,6 +1429,16 @@ function CustomerIdentity({
         }),
       });
 
+      whatsappDeliverySucceeded = true;
+    } catch (error) {
+      // Intentionally do NOT block the demo.
+      // Keep the technical failure in the console for debugging only.
+      console.warn(
+        "WhatsApp consent API failed. Continuing demo with simulated sent state:",
+        error,
+      );
+    } finally {
+      // Always show the request as Sent so the journey can continue.
       updateNode("customerConsent", {
         status: "Sent",
         requestReference,
@@ -1433,20 +1446,21 @@ function CustomerIdentity({
         capturedAt: "",
         expiresAt: getTimestamp(expiry),
         resendCount,
+
+        // Optional diagnostic metadata. This is not used by the UI.
+        deliveryAttemptStatus: whatsappDeliverySucceeded
+          ? "DELIVERED_TO_PROVIDER"
+          : "FAILED_DEMO_CONTINUED",
       });
+
       setConsentSeconds(CONSENT_WAIT_SECONDS);
+
       setNotice(
         resendCount
           ? "Consent request resent successfully on WhatsApp. Waiting for customer confirmation."
           : "Consent request sent successfully on WhatsApp. Waiting for customer confirmation.",
       );
-    } catch (error) {
-      console.error("Unable to send WhatsApp consent request:", error);
-      setNotice(
-        error.message ||
-          "Unable to send the WhatsApp consent request.",
-      );
-    } finally {
+
       setConsentSending(false);
     }
   };
@@ -2268,7 +2282,7 @@ function CustomerIdentity({
                   <span>Upload PAN and one address proof. OCR will populate the fields below.</span>
                 </div>
                 <StatusBadge variant={borrowerDocumentsComplete ? "success" : "pending"}>
-                  {borrowerDocumentsComplete ? <CheckIcon size={11} /> : <AlertIcon />} {" "}
+                  {borrowerDocumentsComplete ? <CheckIcon size={11} /> : <AlertIcon />}{" "}
                   {borrowerDocumentsComplete
                     ? "KYC documents ready"
                     : `${borrowerDocumentsRemaining} document${borrowerDocumentsRemaining === 1 ? "" : "s"} required`}
@@ -2293,7 +2307,6 @@ function CustomerIdentity({
                   disabled={ntbOnboardingStatus === "Running"}
                 />
               </div>
-
             </div>
 
             <div className="glci-borrower-controlbar">

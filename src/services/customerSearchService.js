@@ -1,6 +1,6 @@
 const CUSTOMER_SEARCH_API_URL = "https://10.89.202.203:7012/FCAPIService/AdvanceCustomerSearchService/processRequest";
 
-export async function searchCustomer({ customerID }) {
+async function postCustomerSearch(args1) {
   const response = await fetch(CUSTOMER_SEARCH_API_URL, {
     method: "POST",
     headers: {
@@ -15,9 +15,7 @@ export async function searchCustomer({ customerID }) {
         userId: "TKP",
         externalReferenceNo: Date.now()
       },
-      args1: {
-        customerID: customerID
-      }
+      args1
     })
   });
 
@@ -28,4 +26,12 @@ export async function searchCustomer({ customerID }) {
   }
 
   return data;
+}
+
+export async function searchCustomer({ customerID }) {
+  return postCustomerSearch({ customerID });
+}
+
+export async function searchCustomerByMobile({ mobileNumber, shortName }) {
+  return postCustomerSearch({ mobileNumber, shortName });
 }

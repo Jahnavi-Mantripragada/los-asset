@@ -13,10 +13,10 @@ export async function searchCustomer({ customerID }) {
         transactionBranch: 9999,
         bankCode: 999,
         userId: "TKP",
-        externalReferenceNo: `CustomerSearch${Date.now()}`
+        externalReferenceNo: Date.now()
       },
-      arg1: {
-        customerID
+      args1: {
+        customerID: customerID
       }
     })
   });

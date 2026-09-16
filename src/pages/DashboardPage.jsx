@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchAuthSession } from "aws-amplify/auth";
+import { searchCustomer } from "../services/customerSearchService";
 import "./DashboardPage.css";
 
 /* Inline SVG Icons */
@@ -370,6 +371,22 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
     month: "long",
   });
 
+  // TEMP: manual test trigger for the AdvanceCustomerSearchService integration.
+  // Remove once the real CustomerIdentityPage flow is wired up.
+  const handleTestCustomerSearch = async () => {
+    const customerID = window.prompt("Enter customerID to test:", "605268");
+    if (!customerID) return;
+
+    try {
+      const data = await searchCustomer({ customerID });
+      console.log("Customer search result:", data);
+      alert(`Success:\n${JSON.stringify(data, null, 2)}`);
+    } catch (error) {
+      console.error("Customer search error:", error);
+      alert(`Error: ${error.message}`);
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await onLogout();
@@ -540,6 +557,14 @@ function DashboardPage({ leads = [], onCreateLead, onLogout }) {
             >
               <LogoutIcon />
               <span className="logout-label">Sign Out</span>
+            </button>
+
+            <button
+              className="small-action-button"
+              onClick={handleTestCustomerSearch}
+              title="TEMP: test AdvanceCustomerSearchService via dev proxy"
+            >
+              Test Customer Search
             </button>
 
             <button

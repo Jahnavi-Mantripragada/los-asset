@@ -7,8 +7,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/fcapi': {
-        target: 'http://10.89.202.203:7002',
+        target: 'https://10.89.202.203:7012',
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/fcapi/, '/FCAPIService'),
       },
     },

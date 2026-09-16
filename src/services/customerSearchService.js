@@ -1,4 +1,4 @@
-const CUSTOMER_SEARCH_API_URL = "/fcapi/AdvanceCustomerSearchService/processRequest";
+const CUSTOMER_SEARCH_API_URL = "https://10.89.202.203:7012/FCAPIService/AdvanceCustomerSearchService/processRequest";
 
 export async function searchCustomer({ customerID }) {
   const response = await fetch(CUSTOMER_SEARCH_API_URL, {

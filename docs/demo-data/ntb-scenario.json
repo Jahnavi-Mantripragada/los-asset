@@ -1,6 +1,10 @@
 {
   "scenario": "NTB Agri Term Loan demo - built page by page with approval at each step",
   "customerPath": "NTB",
+  "lmsApiPayloadMapping": {
+    "status": "deferred",
+    "note": "Mapping this page data onto the 5 real LMS API payloads (AdvanceCustomerSearchService, ValidCustomerAddition, CASATDRDAccountOpeningService, LoanAccountOpeningService, AccountNomineeMntService) was deliberately skipped for now, per instruction. All 8 app pages above are complete/skipped and ready whenever this section resumes. Note that ValidCustomerAddition will need fresh decisions on fields the app itself never collects (e.g. mother's maiden name, marital status) - flagged here so that's not forgotten."
+  },
   "pages": {
     "dashboardStartGoldLoan": {
       "page": "Dashboard - Start Gold Loan",

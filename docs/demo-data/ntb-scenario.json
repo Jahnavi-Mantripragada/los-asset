@@ -48,6 +48,28 @@
         "src/pages/application/CustomerIdentityPage.jsx: added NTB_OCR_PAN_MOCK constant and branched handleDocumentUpload's PAN-doc mock OCR on customerType so NTB gets a distinct PAN (CIJPG1213N) while ETB behavior is unchanged."
       ],
       "approvedAt": "2026-09-17"
+    },
+    "facilityBranchLoanDetails": {
+      "page": "Facility, Branch, Loan & Jewellery Details",
+      "component": "src/pages/application/FacilityBranchLoanDetailsPage.jsx",
+      "fields": {
+        "branchType": { "value": "Home", "source": "APP DEFAULT" },
+        "homeBranch": {
+          "value": { "name": "Pune - Deccan Gymkhana", "code": "YESB0000123", "address": "Bhandarkar Road, Deccan Gymkhana, Pune, Maharashtra 411004", "pinCode": "411004", "dpCode": "DP-0123" },
+          "source": "COMPUTED",
+          "note": "lead.homeBranch is never set by the Dashboard's quick lead-creation form, so normalizeBranch() falls back to BRANCHES[0] - the first entry in src/data/branches.js. Confirmed and accepted as the real default rather than overriding it. This is now the branch used everywhere downstream (Packet Selection, appraiser assignment, etc.)."
+        },
+        "residentialVsServicingBranchNote": {
+          "value": "Customer's residential address (Hadapsar, pincode 411028, from Page 2's address-proof OCR) differs from the servicing branch (Pune - Deccan Gymkhana, pincode 411004).",
+          "source": "OBSERVATION",
+          "note": "Not a bug - a customer's home address doesn't have to match their servicing branch's area. Flagging so it isn't mistaken for an inconsistency later."
+        }
+      },
+      "codeChanges": [
+        "src/services/packetService.js: re-pointed the mock packets' branch from 'Pune - Hadapsar' to 'Pune - Deccan Gymkhana' (the real resolved home branch for this lead), keeping the Mumbai - Andheri East Large packet as-is."
+      ],
+      "approvedAt": "2026-09-17",
+      "status": "partial - branch resolved and approved; scheme, purpose, tenure, repayment type and jewellery items still pending"
     }
   }
 }

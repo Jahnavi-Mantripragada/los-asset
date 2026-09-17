@@ -16,10 +16,10 @@ const MOCK_REQUEST_DELAY_MS = 900;
 // packets, change branches/sizes, or flip status to "Allocated" to make a
 // packet unavailable for testing.
 const mockPackets = [
-  { packetId: "PKT-00125", branch: "Pune - Hadapsar", packetSize: "Small", ornamentCount: 2, packetWeight: 25.4, status: "Available" },
-  { packetId: "PKT-00126", branch: "Pune - Hadapsar", packetSize: "Medium", ornamentCount: 3, packetWeight: 42.5, status: "Available" },
+  { packetId: "PKT-00125", branch: "Pune - Deccan Gymkhana", packetSize: "Small", ornamentCount: 2, packetWeight: 25.4, status: "Available" },
+  { packetId: "PKT-00126", branch: "Pune - Deccan Gymkhana", packetSize: "Medium", ornamentCount: 3, packetWeight: 42.5, status: "Available" },
   { packetId: "PKT-00127", branch: "Mumbai - Andheri East", packetSize: "Large", ornamentCount: 5, packetWeight: 78.2, status: "Available" },
-  { packetId: "PKT-00128", branch: "Pune - Hadapsar", packetSize: "Medium", ornamentCount: 4, packetWeight: 55.0, status: "Allocated" },
+  { packetId: "PKT-00128", branch: "Pune - Deccan Gymkhana", packetSize: "Medium", ornamentCount: 4, packetWeight: 55.0, status: "Allocated" },
 ];
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

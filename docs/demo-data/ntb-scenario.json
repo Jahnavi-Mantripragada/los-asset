@@ -1,0 +1,23 @@
+{
+  "scenario": "NTB Agri Term Loan demo - built page by page with approval at each step",
+  "customerPath": "NTB",
+  "pages": {
+    "dashboardStartGoldLoan": {
+      "page": "Dashboard - Start Gold Loan",
+      "component": "src/pages/DashboardPage.jsx",
+      "fields": {
+        "firstName": { "value": "Shivanjali", "source": "ENTERED" },
+        "lastName": { "value": "Gaikwad", "source": "ENTERED" },
+        "mobile": {
+          "value": "8712700209",
+          "source": "ENTERED",
+          "note": "Confirmed distinct from both existing mock customers (8552051111, 9876543210) - CBS search will return NO_MATCH, so this proceeds as NTB."
+        },
+        "email": { "value": null, "source": "NOT ENTERED", "note": "Optional field, left blank." },
+        "product": { "value": "Gold Loan", "source": "FIXED_IN_CODE" },
+        "source": { "value": "Branch Walk-in", "source": "FIXED_IN_CODE" }
+      },
+      "approvedAt": "2026-09-17"
+    }
+  }
+}

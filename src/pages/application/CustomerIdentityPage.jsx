@@ -36,6 +36,11 @@ const OCR_MOCKS = {
   },
 };
 
+// Same mock PAN-card OCR result as the ETB customer above, but with a
+// different PAN number - an NTB applicant must not come out of this demo
+// sharing a PAN with the existing ETB mock customer.
+const NTB_OCR_PAN_MOCK = { ...OCR_MOCKS.pan, pan: "CIJPG1213N" };
+
 const MOCK_CUSTOMERS = [
   {
     firstName: "Shivanjali",
@@ -1491,6 +1496,7 @@ function CustomerIdentity({
       setNotice("Document uploaded. OCR scan started.");
       const timer = window.setTimeout(() => {
         updateNode("borrowerInformation", (current) => {
+          const panMock = customerType === "NTB" ? NTB_OCR_PAN_MOCK : OCR_MOCKS.pan;
           const extractedDetails =
             key === "pan"
               ? {
@@ -1498,7 +1504,7 @@ function CustomerIdentity({
                   firstName: "Shivanjali",
                   lastName: "Gaikwad",
                   dateOfBirth: "1996-11-01",
-                  pan: OCR_MOCKS.pan.pan,
+                  pan: panMock.pan,
                 }
               : {
                   ...current.details,
@@ -1516,7 +1522,7 @@ function CustomerIdentity({
                 ...current.documents[key],
                 status: "Uploaded",
                 scanning: false,
-                ocr: OCR_MOCKS[key],
+                ocr: key === "pan" ? panMock : OCR_MOCKS[key],
                 verifiedAt: "",
                 verificationReference: "",
               },

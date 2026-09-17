@@ -18,6 +18,36 @@
         "source": { "value": "Branch Walk-in", "source": "FIXED_IN_CODE" }
       },
       "approvedAt": "2026-09-17"
+    },
+    "customerIdentityConsent": {
+      "page": "Customer Identity & Consent",
+      "component": "src/pages/application/CustomerIdentityPage.jsx",
+      "fields": {
+        "cbsSearchResult": { "value": "NO_MATCH", "source": "COMPUTED", "note": "Mobile 8712700209 matches neither mock ETB customer." },
+        "customerType": { "value": "NTB", "source": "COMPUTED" },
+        "consentStatus": { "value": "Sent -> Captured", "source": "APP MOCK", "note": "Auto-captures ~7s after sending, in this build." },
+        "panCardOcr": {
+          "value": { "name": "Shivanjali Gaikwad", "dateOfBirth": "1996-11-01", "pan": "CIJPG1213N" },
+          "source": "APP MOCK",
+          "note": "Code change made this turn: added NTB_OCR_PAN_MOCK, identical to the existing ETB OCR mock except for the PAN number, so this NTB customer doesn't end up sharing a PAN with the ETB mock customer (CIJPG1212N). ETB path is untouched."
+        },
+        "addressProofOcr": {
+          "value": { "addressLine1": "D-303, Fortune Estate, Hadapsar", "addressLine2": "Near Magarpatta Road", "pincode": "411028", "city": "Pune", "state": "Maharashtra" },
+          "source": "APP MOCK",
+          "note": "Unchanged, same as the ETB mock."
+        },
+        "gender": { "value": "Female", "source": "ENTERED" },
+        "email": { "value": null, "source": "NOT ENTERED" },
+        "aadhaarNumber": {
+          "value": "560219873445",
+          "source": "FABRICATED FOR NTB DEMO",
+          "note": "Distinct from both mock ETB customers' Aadhaar numbers. App only retains the last 4 digits + a reference number after 'securing' it - the full number is not kept after this step."
+        }
+      },
+      "codeChanges": [
+        "src/pages/application/CustomerIdentityPage.jsx: added NTB_OCR_PAN_MOCK constant and branched handleDocumentUpload's PAN-doc mock OCR on customerType so NTB gets a distinct PAN (CIJPG1213N) while ETB behavior is unchanged."
+      ],
+      "approvedAt": "2026-09-17"
     }
   }
 }

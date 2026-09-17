@@ -202,6 +202,13 @@
       },
       "approvedAt": "2026-09-17",
       "status": "complete"
+    },
+    "checkerDecision": {
+      "page": "Checker Decision",
+      "component": "src/pages/application/ApplicationDetailsTab.jsx",
+      "persona": "Checker",
+      "status": "skipped",
+      "note": "Deliberately not filled in for this pass. No LMS/CBS API exists for this step anyway - purely an internal app decision, so skipping it doesn't leave a gap in the LMS-facing mapping."
     }
   }
 }

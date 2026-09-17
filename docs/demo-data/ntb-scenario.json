@@ -63,13 +63,32 @@
           "value": "Customer's residential address (Hadapsar, pincode 411028, from Page 2's address-proof OCR) differs from the servicing branch (Pune - Deccan Gymkhana, pincode 411004).",
           "source": "OBSERVATION",
           "note": "Not a bug - a customer's home address doesn't have to match their servicing branch's area. Flagging so it isn't mistaken for an inconsistency later."
+        },
+        "facility": { "value": "Agri (Agri Gold Loan)", "source": "ENTERED" },
+        "purpose": { "value": "Land Development", "source": "ENTERED" },
+        "scheme": { "value": "Term Loan", "source": "ENTERED" },
+        "tenure": { "value": "12 Months", "source": "ENTERED" },
+        "repaymentType": { "value": "EMI", "source": "ENTERED" },
+        "requestedLoanAmount": { "value": 450000, "source": "ENTERED" },
+        "jewelleryItem1": { "type": "Gold Necklace", "numberOfItems": 1, "source": "ENTERED" },
+        "jewelleryItem2": {
+          "type": "Gold Earrings",
+          "numberOfItems": 2,
+          "source": "ENTERED",
+          "note": "1 pair = 2 individual ornaments."
+        },
+        "ownershipDeclaration": { "value": "Declared by customer", "source": "APP MOCK default" },
+        "disbursementAccount": {
+          "value": null,
+          "source": "PENDING",
+          "note": "No CASA account exists yet for this NTB customer - filled in once the real CASATDRDAccountOpeningService call returns one."
         }
       },
       "codeChanges": [
         "src/services/packetService.js: re-pointed the mock packets' branch from 'Pune - Hadapsar' to 'Pune - Deccan Gymkhana' (the real resolved home branch for this lead), keeping the Mumbai - Andheri East Large packet as-is."
       ],
       "approvedAt": "2026-09-17",
-      "status": "partial - branch resolved and approved; scheme, purpose, tenure, repayment type and jewellery items still pending"
+      "status": "complete"
     }
   }
 }

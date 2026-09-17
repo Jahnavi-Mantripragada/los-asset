@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./ApplicationDetailsTab.css";
+import { validatePacket, fetchAvailablePacket } from "../../services/packetService";
 
 const DEFAULT_LEAD_API_BASE =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
@@ -58,6 +59,9 @@ const DEMO_LEAD_WORKFLOWS = {
   },
 };
 
+const PACKET_SIZES = ["Small", "Medium", "Large"];
+// Used only when the application has no home branch on file yet.
+const MOCK_BRANCHES = ["Bangalore Main Branch", "Hyderabad Main Branch", "Pune Main Branch"];
 const PURITY_OPTIONS = ["24K / 999", "22K / 916", "18K / 750"];
 const LENDING_RATE_BY_PURITY = {
   "24K / 999": 15528,
@@ -447,6 +451,7 @@ const buildView = (leadDetails, lead) => {
       branch: appraiserObject.branch || appraiserObject.assignedBranch || loan.branch.name,
     },
     clarificationComment: selectValue(leadDetails, ["applicationDetail.details.jewelleryAppraisal.clarificationComment", "applicationDetail.appraisal.clarificationComment"], ""),
+    packetSelection: selectValue(leadDetails, ["applicationDetail.details.jewelleryAppraisal.packetSelection", "applicationDetail.appraisal.packetSelection"], null),
   };
   const eligibilitySource = application.eligibility || details.eligibilityRecommendation || support.eligibility || {};
   const makerSource = application.makerFinalisation || details.eligibilityRecommendation || {};
@@ -643,6 +648,15 @@ export default function ApplicationDetailsTab({
   const [expandedItemId, setExpandedItemId] = useState("");
   const [appraisalItems, setAppraisalItems] = useState(view.appraisal.items);
   const [clarificationComment, setClarificationComment] = useState(view.appraisal.clarificationComment);
+  const [confirmedPacket, setConfirmedPacket] = useState(view.appraisal.packetSelection);
+  const [packetBranch, setPacketBranch] = useState(
+    () => view.appraisal.packetSelection?.branch || (view.loan.branch.name !== "—" ? view.loan.branch.name : MOCK_BRANCHES[0]),
+  );
+  const [packetSize, setPacketSize] = useState(() => view.appraisal.packetSelection?.packetSize || "");
+  const [packetMode, setPacketMode] = useState("manual");
+  const [manualPacketId, setManualPacketId] = useState("");
+  const [packetRequestState, setPacketRequestState] = useState("idle");
+  const [packetRequestError, setPacketRequestError] = useState("");
   const [makerDraft, setMakerDraft] = useState({
     requiredAmount: view.eligibility.requiredAmount,
     recommendedAmount: view.eligibility.recommendedAmount,
@@ -676,8 +690,9 @@ export default function ApplicationDetailsTab({
   useEffect(() => {
     setAppraisalItems(view.appraisal.items);
     setClarificationComment(view.appraisal.clarificationComment);
+    setConfirmedPacket(view.appraisal.packetSelection);
     if (!expandedItemId && view.appraisal.items.length) setExpandedItemId(view.appraisal.items[0].id);
-  }, [view.appraisal.items, view.appraisal.clarificationComment]);
+  }, [view.appraisal.items, view.appraisal.clarificationComment, view.appraisal.packetSelection]);
 
   useEffect(() => {
     setMakerDraft({
@@ -885,7 +900,7 @@ export default function ApplicationDetailsTab({
   };
 
   useEffect(() => {
-    const draftKey = JSON.stringify({ appraisalItems, makerDraft, checkerDraft });
+    const draftKey = JSON.stringify({ appraisalItems, makerDraft, checkerDraft, confirmedPacket });
     // The initial values are loaded from leadDetails. Never PATCH that first
     // render back as a draft, as it can overwrite a just-completed appraisal.
     if (!autoSaveReadyRef.current) {
@@ -904,6 +919,7 @@ export default function ApplicationDetailsTab({
             ...(details.jewelleryAppraisal || application.appraisal || {}),
             items: appraisalItems.map((item) => ({ ...item, appraisal: { ...item.appraisal, netWeight: netWeightFor(item), lendingRatePerGram: lendingRateFor(item), appraisedValue: appraisedValueFor(item) } })),
             totalAppraisedValue: appraisalItems.reduce((sum, item) => sum + appraisedValueFor(item), 0),
+            packetSelection: confirmedPacket,
             lastSavedAt: new Date().toISOString(),
           };
           const eligibilityNode = { ...(details.eligibilityRecommendation || application.makerFinalisation || {}), ...makerDraft, charges: makerCharges, lastSavedAt: new Date().toISOString() };
@@ -915,7 +931,7 @@ export default function ApplicationDetailsTab({
       );
     }, 600);
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
-  }, [appraisalItems, makerDraft, makerCharges, checkerDraft, commitUpdate]);
+  }, [appraisalItems, makerDraft, makerCharges, checkerDraft, confirmedPacket, commitUpdate]);
 
   const handleReplacementImage = (itemId, file) => {
     if (!file) return;
@@ -945,6 +961,74 @@ export default function ApplicationDetailsTab({
       }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const branchOptions = useMemo(() => {
+    const homeBranch = view.loan.branch.name;
+    const options = [...MOCK_BRANCHES];
+    if (homeBranch && homeBranch !== "—" && !options.includes(homeBranch)) options.unshift(homeBranch);
+    return options;
+  }, [view.loan.branch.name]);
+
+  const packetOrnamentCount = appraisalItems.reduce((sum, item) => sum + (toNumber(item.itemCount) || 0), 0);
+  const packetWeightTotal = Number(
+    appraisalItems.reduce((sum, item) => sum + (toNumber(item.appraisal.grossWeight) || 0), 0).toFixed(2),
+  );
+
+  const resetPacketRequest = () => {
+    setPacketRequestState("idle");
+    setPacketRequestError("");
+  };
+
+  const handleValidatePacket = async () => {
+    if (packetRequestState === "loading") return;
+    const errors = {};
+    if (!packetSize) errors.packetSize = "Select a packet size.";
+    if (!manualPacketId.trim()) errors.manualPacketId = "Enter a Packet ID.";
+    if (Object.keys(errors).length) {
+      setValidationErrors((current) => ({ ...current, ...errors }));
+      return;
+    }
+    setPacketRequestState("loading");
+    setPacketRequestError("");
+    try {
+      const result = await validatePacket({ packetId: manualPacketId.trim(), branch: packetBranch, packetSize });
+      if (!result.available) {
+        setPacketRequestState("error");
+        setPacketRequestError(result.message || "This Packet ID is not available.");
+        return;
+      }
+      setConfirmedPacket({ ...result.packet, source: "manual" });
+      setPacketRequestState("success");
+      setManualPacketId("");
+    } catch (error) {
+      setPacketRequestState("error");
+      setPacketRequestError(error.message || "Unable to validate the packet right now.");
+    }
+  };
+
+  const handleFetchPacket = async () => {
+    if (packetRequestState === "loading") return;
+    if (!packetSize) {
+      setValidationErrors((current) => ({ ...current, packetSize: "Select a packet size." }));
+      return;
+    }
+    setPacketRequestState("loading");
+    setPacketRequestError("");
+    try {
+      const packet = await fetchAvailablePacket({ branch: packetBranch, packetSize });
+      setConfirmedPacket({ ...packet, source: "lms" });
+      setPacketRequestState("success");
+    } catch (error) {
+      setPacketRequestState("error");
+      setPacketRequestError(error.message || "No available packet could be fetched right now.");
+    }
+  };
+
+  const handleChangePacket = () => {
+    setConfirmedPacket(null);
+    setManualPacketId("");
+    resetPacketRequest();
   };
 
   const weightSummary = useMemo(() => {
@@ -1049,6 +1133,7 @@ export default function ApplicationDetailsTab({
           weightSummary,
           weightPolicyStatus: weightSummary.some((item) => item.exceeded) ? "Exceeded" : "Within limit",
           clarificationComment: action === "clarification" ? clarificationComment.trim() : "",
+          packetSelection: confirmedPacket,
           appraiser: actor,
           startedAt: action === "start" ? now : details.jewelleryAppraisal?.startedAt || application.appraisal?.startedAt,
           completedAt: action === "complete" ? now : null,
@@ -1528,6 +1613,114 @@ export default function ApplicationDetailsTab({
             );
           })}
         </div>
+
+        <section className="details-section packet-panel">
+          <div className="content-heading">
+            <div>
+              <h4>Packet selection</h4>
+              <p>Select the branch and packet used to secure these ornaments.</p>
+            </div>
+          </div>
+
+          {confirmedPacket ? (
+            <>
+              <div className="details-validation-banner is-success">
+                <Icon type="check" />
+                {confirmedPacket.source === "manual"
+                  ? `Packet ID validated and available. Selected packet: ${confirmedPacket.packetId}.`
+                  : `Allocated packet: ${confirmedPacket.packetId}.`}
+              </div>
+              <ReadOnlyGrid columns={3} fields={[
+                { label: "Packet ID", value: confirmedPacket.packetId },
+                { label: "Packet size", value: confirmedPacket.packetSize },
+                { label: "Branch", value: confirmedPacket.branch },
+                { label: "Ornament count", value: packetOrnamentCount || confirmedPacket.ornamentCount },
+                { label: "Packet weight", value: formatWeight(packetWeightTotal || confirmedPacket.packetWeight) },
+              ]} />
+              {appraiserCanEdit && (
+                <div className="details-action-row">
+                  <button type="button" className="secondary" onClick={handleChangePacket}>Change packet</button>
+                </div>
+              )}
+            </>
+          ) : appraiserCanEdit ? (
+            <>
+              <div className="details-form-grid columns-2">
+                <Field label="Branch" required>
+                  <select value={packetBranch} onChange={(event) => setPacketBranch(event.target.value)}>
+                    {branchOptions.map((branch) => <option key={branch}>{branch}</option>)}
+                  </select>
+                </Field>
+                <Field label="Packet size" required error={validationErrors.packetSize}>
+                  <select
+                    value={packetSize}
+                    onChange={(event) => {
+                      setPacketSize(event.target.value);
+                      setValidationErrors((current) => ({ ...current, packetSize: "" }));
+                    }}
+                  >
+                    <option value="">Select packet size</option>
+                    {PACKET_SIZES.map((size) => <option key={size}>{size}</option>)}
+                  </select>
+                </Field>
+              </div>
+
+              <div className="packet-mode-toggle" role="radiogroup" aria-label="Packet ID selection method">
+                <label>
+                  <input
+                    type="radio"
+                    name="packetMode"
+                    checked={packetMode === "manual"}
+                    onChange={() => { setPacketMode("manual"); resetPacketRequest(); }}
+                  />
+                  Enter Packet ID manually
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="packetMode"
+                    checked={packetMode === "lms"}
+                    onChange={() => { setPacketMode("lms"); resetPacketRequest(); }}
+                  />
+                  Fetch available packet from LMS
+                </label>
+              </div>
+
+              {packetMode === "manual" ? (
+                <div className="details-form-grid columns-2">
+                  <Field label="Packet ID" required error={validationErrors.manualPacketId}>
+                    <input
+                      value={manualPacketId}
+                      onChange={(event) => {
+                        setManualPacketId(event.target.value);
+                        setValidationErrors((current) => ({ ...current, manualPacketId: "" }));
+                      }}
+                      placeholder="e.g. PKT-00125"
+                      disabled={packetRequestState === "loading"}
+                    />
+                  </Field>
+                  <div className="details-action-row">
+                    <button type="button" className="secondary" onClick={handleValidatePacket} disabled={packetRequestState === "loading"}>
+                      {packetRequestState === "loading" ? "Validating…" : "Check availability / Validate packet"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="details-action-row">
+                  <button type="button" className="secondary" onClick={handleFetchPacket} disabled={packetRequestState === "loading"}>
+                    {packetRequestState === "loading" ? "Fetching available packet…" : "Fetch available packet from LMS"}
+                  </button>
+                </div>
+              )}
+
+              {packetRequestState === "error" && (
+                <div className="details-validation-banner"><Icon type="alert" />{packetRequestError}</div>
+              )}
+            </>
+          ) : (
+            <p className="packet-empty-note">No packet has been selected yet.</p>
+          )}
+        </section>
 
         {appraiserCanEdit && (
           <div className="action-panel">

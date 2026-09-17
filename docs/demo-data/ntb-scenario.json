@@ -172,6 +172,36 @@
       },
       "approvedAt": "2026-09-17",
       "status": "complete"
+    },
+    "loanRecommendationChargesNominee": {
+      "page": "Loan Recommendation, Charges & Nominee",
+      "component": "src/pages/application/ApplicationDetailsTab.jsx",
+      "persona": "Maker (2nd pass)",
+      "fields": {
+        "totalAppraisedValue": { "value": 640080, "source": "COMPUTED", "note": "Carried from Page 5." },
+        "applicableLtv": { "value": "75%", "source": "COMPUTED", "note": "App rule: appraised value > Rs 5,00,000 -> 75% tier." },
+        "ltvBasedValue": { "value": 480060, "source": "COMPUTED", "note": "6,40,080 x 75%." },
+        "availableExposureLimit": { "value": 3500000, "source": "APP MOCK", "note": "Default fallback - no existing exposure for this NTB customer." },
+        "maximumEligibleAmount": { "value": 480060, "source": "COMPUTED", "note": "Min of LTV value, appraised value, exposure limit." },
+        "requiredAmount": { "value": 450000, "source": "ENTERED", "note": "Carried from Page 3." },
+        "recommendedAmount": { "value": 450000, "source": "ENTERED (Maker's judgement)", "note": "Within max eligible - recommending the full requested amount." },
+        "disbursementAccount": { "value": null, "source": "PENDING", "note": "Filled once CASATDRDAccountOpeningService actually returns a new account number." },
+        "processingCharge": { "value": 2250, "source": "COMPUTED", "note": "0.5% of Rs 4,50,000." },
+        "appraiserCharge": { "value": 500, "source": "APP MOCK", "note": "Fixed in calculateCharges()." },
+        "gst": { "value": 495, "source": "COMPUTED", "note": "18% of (2,250 + 500)." },
+        "totalCharges": { "value": 3245, "source": "COMPUTED" },
+        "eSignRequired": { "value": true, "source": "APP MOCK default" },
+        "makerComments": { "value": "Recommended based on verified net weight and maximum applicable LTV.", "source": "APP MOCK default" },
+        "nominee": {
+          "addToSavingsAccount": { "value": true, "source": "ENTERED", "note": "This is what triggers AccountNomineeMntService later." },
+          "name": { "value": "Anita Sharma", "source": "APP MOCK" },
+          "relationship": { "value": "Spouse", "source": "APP MOCK" },
+          "dateOfBirth": { "value": "1988-07-18", "source": "APP MOCK" },
+          "address": { "value": "Baner Road, Pune, Maharashtra 411045", "source": "APP MOCK", "note": "Different area from the customer's own address - not linked, just the pre-existing mock nominee reused." }
+        }
+      },
+      "approvedAt": "2026-09-17",
+      "status": "complete"
     }
   }
 }

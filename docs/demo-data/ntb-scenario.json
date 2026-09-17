@@ -118,6 +118,45 @@
       },
       "approvedAt": "2026-09-17",
       "status": "complete"
+    },
+    "jewelleryAppraisal": {
+      "page": "Jewellery Appraisal",
+      "component": "src/pages/application/ApplicationDetailsTab.jsx",
+      "persona": "Appraiser",
+      "fields": {
+        "necklace": {
+          "purity": { "value": "22K / 916", "source": "ENTERED" },
+          "grossWeight": { "value": 40, "unit": "g", "source": "ENTERED" },
+          "stoneDeduction": { "value": 15, "unit": "g", "source": "ENTERED" },
+          "otherDeductions": { "value": 0, "source": "ENTERED (default)" },
+          "netWeight": { "value": 25, "unit": "g", "source": "COMPUTED", "note": "40 - 15." },
+          "lendingRate": { "value": 14224, "unit": "Rs/g", "source": "APP MOCK" },
+          "appraisedValue": { "value": 355600, "source": "COMPUTED", "note": "25 x 14,224." }
+        },
+        "earrings": {
+          "purity": { "value": "22K / 916", "source": "ENTERED" },
+          "grossWeight": { "value": 25, "unit": "g", "source": "ENTERED" },
+          "stoneDeduction": { "value": 5, "unit": "g", "source": "ENTERED" },
+          "otherDeductions": { "value": 0, "source": "ENTERED (default)" },
+          "netWeight": { "value": 20, "unit": "g", "source": "COMPUTED", "note": "25 - 5." },
+          "lendingRate": { "value": 14224, "unit": "Rs/g", "source": "APP MOCK" },
+          "appraisedValue": { "value": 284480, "source": "COMPUTED", "note": "20 x 14,224." }
+        },
+        "totals": {
+          "totalNetWeight": { "value": 45, "unit": "g", "source": "COMPUTED", "note": "For LTV/eligibility calc - not the same as packet weight." },
+          "totalGrossWeight": { "value": 65, "unit": "g", "source": "COMPUTED", "note": "Feeds Packet Weight on the next page." },
+          "totalAppraisedValue": { "value": 640080, "source": "COMPUTED" },
+          "weightPolicyCheck": { "value": "Within limit (45g of 1000g gold-ornament cap)", "source": "COMPUTED" }
+        },
+        "jewelleryImageUpload": {
+          "value": "Appraiser uploads a placeholder photo per item and ticks 'jewellery matches image'",
+          "source": "PROCEDURAL",
+          "note": "Required to complete appraisal; image content itself is irrelevant for this demo."
+        },
+        "assignedAppraiser": { "value": "Anant (APR-YES-0142, Panel Jeweller)", "source": "APP MOCK" }
+      },
+      "approvedAt": "2026-09-17",
+      "status": "complete"
     }
   }
 }

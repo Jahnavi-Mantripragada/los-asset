@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./FacilityBranchLoanDetailsPage.css";
+import { BRANCHES } from "../../data/branches";
 
 const LEAD_DETAILS_API_BASE =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
@@ -48,65 +49,6 @@ const UploadIcon = () => (
     <path d="M5 14v5h14v-5" />
   </svg>
 );
-
-const BRANCHES = [
-  {
-    code: "YESB0000123",
-    name: "Pune - Deccan Gymkhana",
-    address: "Bhandarkar Road, Deccan Gymkhana, Pune, Maharashtra 411004",
-    pinCode: "411004",
-    dpCode: "DP-0123",
-  },
-  {
-    code: "YESB0000226",
-    name: "Pune - Camp",
-    address: "Moledina Road, Camp, Pune, Maharashtra 411001",
-    pinCode: "411001",
-    dpCode: "DP-0226",
-  },
-  {
-    code: "YESB0000187",
-    name: "Pune - Baner",
-    address: "Baner Road, Pune, Maharashtra 411045",
-    pinCode: "411045",
-    dpCode: "DP-0187",
-  },
-  {
-    code: "YESB0000418",
-    name: "Pune - Hadapsar",
-    address: "Solapur Road, Hadapsar, Pune, Maharashtra 411028",
-    pinCode: "411028",
-    dpCode: "DP-0418",
-  },
-  {
-    code: "YESB0000472",
-    name: "Pune - Magarpatta",
-    address: "Magarpatta Road, Hadapsar, Pune, Maharashtra 411028",
-    pinCode: "411028",
-    dpCode: "DP-0472",
-  },
-  {
-    code: "YESB0000631",
-    name: "Visakhapatnam - MVP Colony",
-    address: "Sector 5, MVP Colony, Visakhapatnam, Andhra Pradesh 530017",
-    pinCode: "530017",
-    dpCode: "DP-0631",
-  },
-  {
-    code: "YESB0000694",
-    name: "Visakhapatnam - Siripuram",
-    address: "Siripuram Junction, Visakhapatnam, Andhra Pradesh 530017",
-    pinCode: "530017",
-    dpCode: "DP-0694",
-  },
-  {
-    code: "YESB0000314",
-    name: "Mumbai - Andheri East",
-    address: "Mahakali Caves Road, Mumbai, Maharashtra 400093",
-    pinCode: "400093",
-    dpCode: "DP-0314",
-  },
-];
 
 const FACILITY_OPTIONS = {
   Retail: {

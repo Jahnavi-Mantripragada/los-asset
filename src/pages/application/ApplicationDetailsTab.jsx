@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./ApplicationDetailsTab.css";
 import { validatePacket, fetchAvailablePacket } from "../../services/packetService";
+import { BRANCHES } from "../../data/branches";
 
 const DEFAULT_LEAD_API_BASE =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
@@ -60,8 +61,7 @@ const DEMO_LEAD_WORKFLOWS = {
 };
 
 const PACKET_SIZES = ["Small", "Medium", "Large"];
-// Used only when the application has no home branch on file yet.
-const MOCK_BRANCHES = ["Bangalore Main Branch", "Hyderabad Main Branch", "Pune Main Branch"];
+const BRANCH_NAMES = BRANCHES.map((branch) => branch.name);
 const PURITY_OPTIONS = ["24K / 999", "22K / 916", "18K / 750"];
 const LENDING_RATE_BY_PURITY = {
   "24K / 999": 15528,
@@ -650,7 +650,7 @@ export default function ApplicationDetailsTab({
   const [clarificationComment, setClarificationComment] = useState(view.appraisal.clarificationComment);
   const [confirmedPacket, setConfirmedPacket] = useState(view.appraisal.packetSelection);
   const [packetBranch, setPacketBranch] = useState(
-    () => view.appraisal.packetSelection?.branch || (view.loan.branch.name !== "—" ? view.loan.branch.name : MOCK_BRANCHES[0]),
+    () => view.appraisal.packetSelection?.branch || (view.loan.branch.name !== "—" ? view.loan.branch.name : BRANCH_NAMES[0]),
   );
   const [packetSize, setPacketSize] = useState(() => view.appraisal.packetSelection?.packetSize || "");
   const [packetMode, setPacketMode] = useState("manual");
@@ -965,7 +965,7 @@ export default function ApplicationDetailsTab({
 
   const branchOptions = useMemo(() => {
     const homeBranch = view.loan.branch.name;
-    const options = [...MOCK_BRANCHES];
+    const options = [...BRANCH_NAMES];
     if (homeBranch && homeBranch !== "—" && !options.includes(homeBranch)) options.unshift(homeBranch);
     return options;
   }, [view.loan.branch.name]);

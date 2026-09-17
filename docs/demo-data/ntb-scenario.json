@@ -89,6 +89,35 @@
       ],
       "approvedAt": "2026-09-17",
       "status": "complete"
+    },
+    "eligibilitySupportingDetails": {
+      "page": "Eligibility & Supporting Details",
+      "component": "src/pages/application/EligibilitySupportingDetailsPage.jsx",
+      "fields": {
+        "cibilRequired": {
+          "value": false,
+          "source": "APP MOCK (hardcoded)",
+          "note": "Line 287: 'Set CIBIL requirement flag to false (Optional)'. Never blocks completion."
+        },
+        "cibilPulled": { "value": false, "source": "ENTERED", "note": "Skipped for this demo pass." },
+        "landDetailsRequired": {
+          "value": true,
+          "source": "COMPUTED",
+          "note": "Carried from Page 3: Agri + Rs 4,50,000 >= Rs 1,00,000 trigger."
+        },
+        "landDetails": {
+          "value": {
+            "state": "Maharashtra", "district": "Pune", "village": "Mulshi",
+            "surveyNumber": "114/2A", "season": "Kharif", "crop": "Soybean",
+            "extentAcres": "2.4", "estimatedCostPerAcre": "38000",
+            "isLandOwner": "Yes", "recordType": "Record of Rights"
+          },
+          "source": "APP MOCK",
+          "note": "INITIAL_LAND_DETAILS, already in the code - reused verbatim, no fabrication."
+        }
+      },
+      "approvedAt": "2026-09-17",
+      "status": "complete"
     }
   }
 }

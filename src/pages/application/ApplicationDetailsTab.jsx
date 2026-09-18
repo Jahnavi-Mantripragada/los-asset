@@ -140,6 +140,16 @@ const formatWeight = (value) => {
     ? "—"
     : `${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(weight)} g`;
 };
+// Same convention as EligibilitySupportingDetailsPage.jsx's
+// maskAccountNumber() - used to display an account number without
+// unmasking it, even though the underlying stored value stays real.
+const maskAccountNumber = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "XXXX XXXX 4821";
+  if (/x|\*/i.test(raw)) return raw;
+  const digits = raw.replace(/\D/g, "");
+  return digits.length >= 4 ? `XXXX XXXX ${digits.slice(-4)}` : "XXXX XXXX 4821";
+};
 const formatDate = (value) => {
   if (!value) return "—";
   const date = new Date(value);
@@ -365,10 +375,14 @@ const buildView = (leadDetails, lead) => {
     identity.customerType === "ETB"
       ? identity.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO?.xfaceCasaAccountDTO || []
       : [];
+  // Same masking convention as EligibilitySupportingDetailsPage.jsx's
+  // maskAccountNumber() - the underlying accountNumber stays real/unmasked
+  // (it's what actually gets selected/stored), only the displayed label
+  // is masked.
   const realAccounts = casaAccountsFromMatchedCustomer.length
     ? casaAccountsFromMatchedCustomer.map((casa) => ({
         accountNumber: casa.accountId,
-        maskedAccountNumber: casa.accountId,
+        maskedAccountNumber: `XXXX XXXX ${String(casa.accountId).replace(/\D/g, "").slice(-4)}`,
         status: "Active",
       }))
     : null;
@@ -1864,7 +1878,7 @@ export default function ApplicationDetailsTab({
               <ReadOnlyGrid columns={2} fields={[
                 { label: "Customer requested amount", value: formatCurrency(view.eligibility.requiredAmount) },
                 { label: "Recommended amount", value: formatCurrency(view.eligibility.recommendedAmount) },
-                { label: "Disbursement account", value: view.eligibility.disbursementAccount || "Not applicable" },
+                { label: "Disbursement account", value: view.eligibility.disbursementAccount ? maskAccountNumber(view.eligibility.disbursementAccount) : "Not applicable" },
                 { label: "Document execution", value: view.eligibility.eSignRequired ? "eSign" : "Manual signature" },
                 { label: "Recommendation comments", value: view.eligibility.makerComments || "—", wide: true },
               ]} />

@@ -616,6 +616,10 @@ function FacilityBranchLoanDetailsPage({
     setForm((current) => ({ ...current, topUpAccountId: "" }));
   };
 
+  const reconsiderTopUp = () => {
+    setTopUpPromptDismissed(false);
+  };
+
   const handleBranchTypeChange = (branchType) => {
     setForm((current) => ({
       ...current,
@@ -950,6 +954,17 @@ function FacilityBranchLoanDetailsPage({
               <button type="button" className="fbl-topup-decline" onClick={declineTopUp}>No, new facility</button>
               <button type="button" className="fbl-topup-accept" onClick={acceptTopUp}>Top up this account</button>
             </div>
+          </div>
+        )}
+
+        {matchingTopUpAccount && !form.topUpAccountId && topUpPromptDismissed && (
+          <div className="fbl-selection-note">
+            <span><CheckIcon /></span>
+            <div>
+              <strong>Proceeding as a new facility</strong>
+              <p>Not topping up account {matchingTopUpAccount.accountId.trim()}.</p>
+            </div>
+            <button type="button" className="fbl-topup-change" onClick={reconsiderTopUp}>Top up instead</button>
           </div>
         )}
 

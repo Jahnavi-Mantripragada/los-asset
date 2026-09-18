@@ -120,7 +120,7 @@ const MOCK_CUSTOMERS = [
     gender: "Male",
     maritalStatus: "",
     occupation: "",
-    pan: "",
+    pan: "DPDEV1234K", // fabricated - not in the sample
     addressLine1: "Fort Kochi",
     addressLine2: "Ernakulam",
     city: "Ernakulam",

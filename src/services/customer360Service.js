@@ -66,7 +66,7 @@ const CUSTOMER_360_BY_MOBILE = {
     xfaceCustomerAccountDetailsDTO: {
       xfaceAccountDetailsforCustomerDTO: [
         {
-          accountId: "1015100318762",
+          accountId: "1018100428531", // fabricated - distinct from Deepak's real account numbers
           amtDisbursed: 250000,
           amtSanction: 250000,
           branchCode: "YESB0000418",

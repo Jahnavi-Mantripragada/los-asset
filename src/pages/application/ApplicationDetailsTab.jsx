@@ -365,7 +365,7 @@ const buildView = (leadDetails, lead) => {
     tenure: selectValue(leadDetails, ["facilityBranchLoanDetails.tenure", "facilityBranchLoanDetails.loan.tenure"], "—"),
     repaymentType: selectValue(leadDetails, ["facilityBranchLoanDetails.repaymentType", "facilityBranchLoanDetails.loan.repaymentType"], "—"),
     requestedAmount: selectValue(leadDetails, ["facilityBranchLoanDetails.requestedLoanAmount", "facilityBranchLoanDetails.requestedAmount", "applicationDetail.requestedAmount"], 450000),
-    existingExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.existingGoldLoanExposure", "facilityBranchLoanDetails.exposure.existingExposure"], 0),
+    existingExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.existingGoldLoanExposure", "facilityBranchLoanDetails.exposure.existingExposure", "facilityBranchLoanDetails.exposure.existingOutstandingAmount"], 0),
     aggregateExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.aggregateGoldLoanExposure", "facilityBranchLoanDetails.exposure.aggregateExposure"], 0),
     chargesAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.chargesAccount", "facilityBranchLoanDetails.accounts.chargesAccount"], "XXXXXX4821"),
     disbursementAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.disbursementAccount", "applicationDetail.makerFinalisation.disbursementAccount"], "XXXXXX4821"),
@@ -469,8 +469,13 @@ const buildView = (leadDetails, lead) => {
     calculatedAppraisedValue || toNumber(eligibilitySource.schemeLendingValue) || 0;
   const applicableLtv = applicableLtvFor(totalAppraisedValue);
   const ltvBasedValue = Math.round((totalAppraisedValue * applicableLtv) / 100);
-  const availableExposureLimit =
+  // ETB Step 4: "Available exposure" is meant to be what's still available
+  // against this customer's overall limit right now, not the total ceiling
+  // ever sanctioned - so existing exposure (0 for NTB, unchanged) is netted
+  // out here rather than left for the UI to subtract separately.
+  const totalExposureLimit =
     toNumber(eligibilitySource.availableExposureLimit) || 3500000;
+  const availableExposureLimit = Math.max(0, totalExposureLimit - loan.existingExposure);
   const maximumEligibleAmount = Math.min(
     ltvBasedValue,
     totalAppraisedValue,

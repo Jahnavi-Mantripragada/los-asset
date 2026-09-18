@@ -2017,55 +2017,34 @@ function CustomerIdentity({
                 <span className="glci-eas-source">Customer360</span>
               </header>
 
-              {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceAccountDetailsforCustomerDTO.map((account) => (
-                <div className="glci-eas-list" key={account.accountId}>
-                  <div className="glci-eas-row">
-                    <span>Account</span>
-                    <strong>{account.productName}</strong>
+              <div className="glci-eas-rows">
+                {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceAccountDetailsforCustomerDTO.map((account) => (
+                  <div className="glci-eas-account-row" key={account.accountId}>
+                    <div className="glci-eas-account-info">
+                      <span className="glci-eas-account-product">{account.productName}</span>
+                      <span className="glci-eas-account-id">{account.accountId.trim()} · {account.branchName}</span>
+                    </div>
+                    <div className="glci-eas-account-stats">
+                      <div><span>Outstanding</span><strong>{formatINR(account.currentBalance)}</strong></div>
+                      <div><span>Sanctioned</span><strong>{formatINR(account.amtSanction)}</strong></div>
+                      <div><span>Max DPD</span><strong>{account.maxDPD}</strong></div>
+                    </div>
+                    <span className="glci-eas-status-badge">{account.currentStatusDescription}</span>
                   </div>
-                  <div className="glci-eas-row">
-                    <span>Account ID</span>
-                    <strong>{account.accountId.trim()}</strong>
-                  </div>
-                  <div className="glci-eas-row">
-                    <span>Branch</span>
-                    <strong>{account.branchName}</strong>
-                  </div>
-                  <div className="glci-eas-row">
-                    <span>Outstanding</span>
-                    <strong>{formatINR(account.currentBalance)}</strong>
-                  </div>
-                  <div className="glci-eas-row">
-                    <span>Sanctioned</span>
-                    <strong>{formatINR(account.amtSanction)}</strong>
-                  </div>
-                  <div className="glci-eas-row">
-                    <span>Max DPD</span>
-                    <strong>{account.maxDPD}</strong>
-                  </div>
-                  <div className="glci-eas-row">
-                    <span>Status</span>
-                    <strong>{account.currentStatusDescription}</strong>
-                  </div>
-                </div>
-              ))}
+                ))}
 
-              {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceCasaAccountDTO.map((casa) => (
-                <div className="glci-eas-list" key={casa.accountId}>
-                  <div className="glci-eas-row">
-                    <span>Account</span>
-                    <strong>{casa.productName}</strong>
+                {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceCasaAccountDTO.map((casa) => (
+                  <div className="glci-eas-account-row" key={casa.accountId}>
+                    <div className="glci-eas-account-info">
+                      <span className="glci-eas-account-product">{casa.productName}</span>
+                      <span className="glci-eas-account-id">{casa.accountId}</span>
+                    </div>
+                    <div className="glci-eas-account-stats glci-eas-account-stats-single">
+                      <div><span>Balance</span><strong>{formatINR(casa.currentBalance)}</strong></div>
+                    </div>
                   </div>
-                  <div className="glci-eas-row">
-                    <span>Account ID</span>
-                    <strong>{casa.accountId}</strong>
-                  </div>
-                  <div className="glci-eas-row">
-                    <span>Balance</span>
-                    <strong>{formatINR(casa.currentBalance)}</strong>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </section>
           )}
 

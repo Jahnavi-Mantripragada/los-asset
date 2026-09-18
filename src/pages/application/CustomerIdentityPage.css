@@ -458,46 +458,106 @@
   letter-spacing: 0.04em;
 }
 
-.glci-eas-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 20px;
+/* Compact one-row-per-account layout (a customer can have several
+   accounts - Shivanjali has 2, Deepak has 6 - so this needs to scale
+   without turning into a page of stacked label/value pairs). Layout
+   borrowed from LoanRequirementPage.jsx's .lr-loan-row, colors kept
+   consistent with this card's own palette above. */
+.glci-eas-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.glci-eas-list + .glci-eas-list {
-  margin-top: 16px;
-}
-
-.glci-eas-row {
+.glci-eas-account-row {
   min-width: 0;
-  padding: 11px 8px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid #f1f5f9;
+  gap: 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  flex-wrap: wrap;
 }
 
-.glci-eas-row:last-child {
-  border-bottom: none;
+.glci-eas-account-info {
+  flex: 0 0 auto;
+  min-width: 150px;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.glci-eas-row > span {
+.glci-eas-account-product {
+  color: #1e293b;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.glci-eas-account-id {
   color: #64748b;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
+}
+
+.glci-eas-account-stats {
+  flex: 1;
+  min-width: 200px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 12px;
+}
+
+.glci-eas-account-stats.glci-eas-account-stats-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.glci-eas-account-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.glci-eas-account-stats span {
+  color: #64748b;
+  font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
+  letter-spacing: 0.03em;
 }
 
-.glci-eas-row > strong {
-  overflow-wrap: anywhere;
+.glci-eas-account-stats strong {
   color: #1e293b;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-align: right;
-  line-height: 1.4;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.glci-eas-status-badge {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  color: #00518f;
+  background: #f0f6fa;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .glci-eas-account-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .glci-eas-account-info {
+    max-width: none;
+  }
+
+  .glci-eas-account-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .glci-no-match-card {

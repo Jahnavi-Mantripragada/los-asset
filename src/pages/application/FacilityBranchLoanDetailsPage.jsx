@@ -361,7 +361,20 @@ function FacilityBranchLoanDetailsPage({
     ? facility.schemes.find((scheme) => scheme.name === form.schemeName) || null
     : null;
 
-  const existingOutstanding = 0;
+  // ETB Step 3: real existing exposure, from the matched customer's live
+  // gold-loan accounts (Customer360 mock). NTB, or an ETB match with no
+  // customer360 data yet, both fall through to 0 - unchanged from before.
+  const leadDetailsForExposure = parseLeadDetails(lead?.leadDetails ?? lead?.lead_details);
+  const identityForExposure = leadDetailsForExposure.customerIdentity || {};
+  const existingLoanAccounts =
+    identityForExposure.customerType === "ETB"
+      ? identityForExposure.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO
+          ?.xfaceAccountDetailsforCustomerDTO || []
+      : [];
+  const existingOutstanding = existingLoanAccounts.reduce(
+    (sum, account) => sum + (Number(account.currentBalance) || 0),
+    0,
+  );
   const requestedLoanAmount = Number(form.requestedLoanAmount || 0);
   const aggregateLoanAmount = existingOutstanding + requestedLoanAmount;
   const relationshipType = lead?.relationship?.type || lead?.customerIdentity?.type || "";

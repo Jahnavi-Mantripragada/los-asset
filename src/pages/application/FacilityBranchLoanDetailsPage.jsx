@@ -395,18 +395,22 @@ function FacilityBranchLoanDetailsPage({
   const cibilRequired = isNTB ? true : requestedLoanAmount > 100000;
   const landDetailsRequired =
     form.productType === "Agri" && aggregateLoanAmount >= 100000;
-  // ETB Step 8 (part 1): does the chosen product match an existing
-  // account's productType? Only offer a top-up when it does - picking
-  // Agri when the customer's existing loan is Retail should not surface
-  // anything.
-  // ETB Step 8 (part 1): does the chosen product match an existing
-  // account's productType? Only offer a top-up when it does - picking
-  // Agri when the customer's existing loan is Retail should not surface
-  // anything.
+  // ETB Step 8 (part 1): does the chosen product match an existing GOLD
+  // LOAN account's productType? A customer can have several "Retail"
+  // products (MSME loans, vehicle loans, etc.) that share the same
+  // productType as a gold loan without being one - matching on
+  // productType alone would wrongly offer to "top up" an unrelated
+  // product, so this also requires the account to actually be a gold
+  // loan (by product name, since there's no clean product-code
+  // convention across products in the data we have).
   const matchingTopUpAccount = useMemo(
     () =>
       form.productType
-        ? existingLoanAccounts.find((account) => account.productType === form.productType) || null
+        ? existingLoanAccounts.find(
+            (account) =>
+              account.productType === form.productType &&
+              /gold/i.test(account.productName || ""),
+          ) || null
         : null,
     [existingLoanAccounts, form.productType],
   );

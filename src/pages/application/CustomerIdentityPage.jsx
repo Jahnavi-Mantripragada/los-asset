@@ -4,6 +4,7 @@ import {
   normaliseIndianWhatsAppNumber,
   sendWhatsAppMessage,
 } from "../../services/whatsAppService";
+import { getCustomer360 } from "../../services/customer360Service";
 
 const CONSENT_WAIT_SECONDS = 7;
 const DEFAULT_LEAD_API_BASE =
@@ -69,75 +70,6 @@ const MOCK_CUSTOMERS = [
     kycUpdatedAt: "12 Mar 2025",
     ckycNumber: "XXXXXXXX4812",
     riskCategory: "Low",
-    // Mock Customer360 (service A221) response, nested exactly like the real
-    // API so this block can be swapped for a live call later without
-    // touching anything that reads it. Existing flat fields above (pan,
-    // kycStatus, etc.) are untouched - this is purely additive.
-    customer360: {
-      customerResponse: {
-        xfaceCustomerBasicInquiryDTO: {
-          flgBlacklisted: "N",
-          flgBlocked: "N",
-          flgDeceased: "N",
-          flgSuspended: "N",
-          flgRestrictedCust: "N",
-          flgROIConcession: "N",
-          kycStatus: "C",
-          npaCategory: 1001,
-        },
-      },
-      xfaceCustomerAccountDetailsDTO: {
-        xfaceAccountDetailsforCustomerDTO: [
-          {
-            accountId: "1015100318762",
-            productCode: 6745,
-            productName: "6745-Long Tenure High Value General Gold",
-            productType: "Retail",
-            moduleCode: "L",
-            branchCode: "YESB0000418",
-            branchName: "Pune - Hadapsar",
-            amtSanction: 250000,
-            amtDisbursed: 250000,
-            currentBalance: 185000,
-            currentStatusDescription: "ACCOUNT OPEN REGULAR",
-            customerRelationship: "SOW",
-            datAcctOpen: "20240612",
-            datSanction: "20240612",
-            datMaturity: "20260612",
-            dateDPD: "19500101",
-            dateLastPartialRelease: "18000101",
-            dateLastRenewal: "18000101",
-            dateLastTopup: "18000101",
-            flgCPN: "N",
-            flgMaturity: "N",
-            lineNumber: "",
-            maxDPD: 0,
-            npaAcctCategory: 1001,
-            packetId: "P0418G0007",
-            ratInt: 9.49,
-            rollOverNumber: 0,
-            tenure: "24",
-          },
-        ],
-        xfaceCasaAccountDTO: [
-          {
-            accountId: "102345678901",
-            acctTitle: "SHIVANJALI GAIKWAD",
-            branchCode: "YESB0000418",
-            currentBalance: 42500,
-            netBalance: 42500,
-            datAcctOpen: "20240612",
-            moduleCode: "CA",
-            productCode: "2",
-            productName: "Savings Account",
-            relation: "SOW",
-          },
-        ],
-        xfaceGoldCollateralsDTO: [],
-        xfaceODDetailsDTO: [],
-        xfaceODGoldCollateralsDTO: [],
-      },
-    },
   },
   {
     firstName: "Aarav",
@@ -166,6 +98,40 @@ const MOCK_CUSTOMERS = [
     kycUpdatedAt: "05 Feb 2026",
     ckycNumber: "XXXXXXXX7364",
     riskCategory: "Low",
+  },
+  {
+    // Identity fields sourced from the real Customer360 (A221) sample
+    // wherever it gave one. Fields the sample doesn't cover at all
+    // (fatherName, maritalStatus, occupation, PAN, ckycNumber,
+    // riskCategory, aadhaarNumber, kycUpdatedAt) are fabricated - left
+    // blank where a blank is honest, filled with a placeholder only where
+    // this app's own schema needs a value to function.
+    firstName: "Deepak",
+    lastName: "Dev",
+    fullName: "Deepak Dev",
+    customerId: "YESC00606414", // app-facing id, derived from the real numeric CBS id (606414)
+    aadhaarNumber: "594827160374", // fabricated - not in the sample
+    accountNumber: "1015020006291", // his real CASA account, from the sample
+    mobileNumber: "8787878787",
+    mobile: "+91 87878 78787",
+    email: "deepak@gmail.com",
+    dateOfBirth: "12 May 1981",
+    fatherName: "",
+    gender: "Male",
+    maritalStatus: "",
+    occupation: "",
+    pan: "",
+    addressLine1: "Fort Kochi",
+    addressLine2: "Ernakulam",
+    city: "Ernakulam",
+    state: "Kerala",
+    address: "Fort Kochi, Ernakulam, Kerala - 686662",
+    pincode: "686662",
+    homeBranch: "Mumbai-Corporate Office", // from his own account data's branchName, not fabricated
+    kycStatus: "Current",
+    kycUpdatedAt: "04 Oct 2025", // fabricated - not in the sample
+    ckycNumber: "XXXXXXXX6414", // fabricated - not in the sample
+    riskCategory: "Low", // fabricated - not in the sample
   },
 ];
 
@@ -1154,6 +1120,26 @@ function CustomerIdentity({
       };
     });
   }, []);
+
+  // Real Customer360 (A221) call - covers both ways a customer becomes
+  // ETB: the manual "Search CBS" flow above, and the auto-match-on-mobile
+  // path (ensureLeadDetailsNodes, on initial load) which can't itself
+  // await a fetch since it runs synchronously in a useState initializer.
+  // Runs whenever there's an ETB match missing customer360, regardless of
+  // which path produced it.
+  useEffect(() => {
+    if (customerType !== "ETB" || identityNode.matchedCustomer?.customer360) return;
+    let cancelled = false;
+    getCustomer360(customer.customerId, normaliseMobile(customer.mobile)).then((customer360) => {
+      if (cancelled || !customer360) return;
+      updateNode("customerIdentity", (current) => ({
+        matchedCustomer: { ...current.matchedCustomer, customer360 },
+      }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [customerType, identityNode.matchedCustomer, customer.customerId, customer.mobile, updateNode]);
 
   useEffect(() => {
     const initialisedDetails = ensureLeadDetailsNodes(

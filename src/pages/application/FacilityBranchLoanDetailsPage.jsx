@@ -609,6 +609,13 @@ function FacilityBranchLoanDetailsPage({
     setTopUpPromptDismissed(true);
   };
 
+  // "Change" (from the confirmed state) should let the Maker reconsider -
+  // it must NOT set topUpPromptDismissed, or the original prompt would stay
+  // hidden and nothing would show at all.
+  const changeTopUp = () => {
+    setForm((current) => ({ ...current, topUpAccountId: "" }));
+  };
+
   const handleBranchTypeChange = (branchType) => {
     setForm((current) => ({
       ...current,
@@ -953,7 +960,7 @@ function FacilityBranchLoanDetailsPage({
               <strong>Topping up account {form.topUpAccountId}</strong>
               <p>The requested amount adds to this existing facility, not a new one.</p>
             </div>
-            <button type="button" className="fbl-topup-change" onClick={declineTopUp}>Change</button>
+            <button type="button" className="fbl-topup-change" onClick={changeTopUp}>Change</button>
           </div>
         )}
       </section>

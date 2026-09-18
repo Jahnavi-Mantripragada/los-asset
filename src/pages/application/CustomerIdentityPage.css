@@ -505,16 +505,13 @@
 .glci-eas-account-stats {
   flex: 1;
   min-width: 200px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px 12px;
-}
-
-.glci-eas-account-stats.glci-eas-account-stats-single {
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
 }
 
 .glci-eas-account-stats > div {
+  min-width: 70px;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -556,7 +553,7 @@
   }
 
   .glci-eas-account-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 20px;
   }
 }
 

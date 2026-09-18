@@ -2039,7 +2039,7 @@ function CustomerIdentity({
                       <span className="glci-eas-account-product">{casa.productName}</span>
                       <span className="glci-eas-account-id">{casa.accountId}</span>
                     </div>
-                    <div className="glci-eas-account-stats glci-eas-account-stats-single">
+                    <div className="glci-eas-account-stats">
                       <div><span>Balance</span><strong>{formatINR(casa.currentBalance)}</strong></div>
                     </div>
                   </div>

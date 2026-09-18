@@ -225,6 +225,13 @@ const normalizeBranch = (branch, fallback) => ({
   dpCode: branch?.dpCode || fallback.dpCode,
 });
 
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+
 const getStoredStepNode = (lead, stepData, sectionKey) => {
   const leadDetails = parseLeadDetails(lead?.leadDetails ?? lead?.lead_details);
   return leadDetails?.[sectionKey] || stepData?.[sectionKey] || stepData || {};
@@ -271,6 +278,10 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
     tenure,
     repaymentType,
     jewelleryItems: storedItems,
+    // ETB Step 8 (part 1): which existing account, if any, this facility is
+    // topping up. Empty means "new facility" - the default, unchanged
+    // behavior for everyone until explicitly chosen otherwise.
+    topUpAccountId: stored.topUp?.accountId || "",
   };
 };
 
@@ -310,6 +321,7 @@ function FacilityBranchLoanDetailsPage({
     })
   );
   const [uploadErrors, setUploadErrors] = useState({});
+  const [topUpPromptDismissed, setTopUpPromptDismissed] = useState(false);
   const hydratedLeadRef = useRef(leadIdentity);
   const latestLeadRef = useRef(lead);
   const lastPersistedNodeRef = useRef("");
@@ -364,13 +376,14 @@ function FacilityBranchLoanDetailsPage({
   // ETB Step 3: real existing exposure, from the matched customer's live
   // gold-loan accounts (Customer360 mock). NTB, or an ETB match with no
   // customer360 data yet, both fall through to 0 - unchanged from before.
-  const leadDetailsForExposure = parseLeadDetails(lead?.leadDetails ?? lead?.lead_details);
-  const identityForExposure = leadDetailsForExposure.customerIdentity || {};
-  const existingLoanAccounts =
-    identityForExposure.customerType === "ETB"
+  const existingLoanAccounts = useMemo(() => {
+    const leadDetailsForExposure = parseLeadDetails(lead?.leadDetails ?? lead?.lead_details);
+    const identityForExposure = leadDetailsForExposure.customerIdentity || {};
+    return identityForExposure.customerType === "ETB"
       ? identityForExposure.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO
           ?.xfaceAccountDetailsforCustomerDTO || []
       : [];
+  }, [lead?.leadDetails, lead?.lead_details]);
   const existingOutstanding = existingLoanAccounts.reduce(
     (sum, account) => sum + (Number(account.currentBalance) || 0),
     0,
@@ -382,6 +395,21 @@ function FacilityBranchLoanDetailsPage({
   const cibilRequired = isNTB ? true : requestedLoanAmount > 100000;
   const landDetailsRequired =
     form.productType === "Agri" && aggregateLoanAmount >= 100000;
+  // ETB Step 8 (part 1): does the chosen product match an existing
+  // account's productType? Only offer a top-up when it does - picking
+  // Agri when the customer's existing loan is Retail should not surface
+  // anything.
+  // ETB Step 8 (part 1): does the chosen product match an existing
+  // account's productType? Only offer a top-up when it does - picking
+  // Agri when the customer's existing loan is Retail should not surface
+  // anything.
+  const matchingTopUpAccount = useMemo(
+    () =>
+      form.productType
+        ? existingLoanAccounts.find((account) => account.productType === form.productType) || null
+        : null,
+    [existingLoanAccounts, form.productType],
+  );
 
   const branchComplete = Boolean(
     selectedBranch?.code &&
@@ -443,6 +471,9 @@ function FacilityBranchLoanDetailsPage({
         cibilRequired,
         landDetailsRequired,
       },
+      // ETB Step 8 (part 1): null unless the Maker explicitly accepted a
+      // top-up prompt for a matching existing account.
+      topUp: form.topUpAccountId ? { accountId: form.topUpAccountId } : null,
       stepMeta: {
         status: stepComplete ? "Completed" : "In Progress",
         isComplete: stepComplete,
@@ -541,6 +572,7 @@ function FacilityBranchLoanDetailsPage({
 
   const handleCombinedConfigChange = (event) => {
     const value = event.target.value;
+    setTopUpPromptDismissed(false);
     if (!value || value === "||") {
       setForm((current) => ({
         ...current,
@@ -549,6 +581,7 @@ function FacilityBranchLoanDetailsPage({
         purpose: "",
         tenure: "",
         repaymentType: "",
+        topUpAccountId: "",
       }));
       return;
     }
@@ -562,7 +595,18 @@ function FacilityBranchLoanDetailsPage({
       purpose,
       tenure: "",
       repaymentType: "",
+      topUpAccountId: "",
     }));
+  };
+
+  const acceptTopUp = () => {
+    if (!matchingTopUpAccount) return;
+    setForm((current) => ({ ...current, topUpAccountId: matchingTopUpAccount.accountId }));
+  };
+
+  const declineTopUp = () => {
+    setForm((current) => ({ ...current, topUpAccountId: "" }));
+    setTopUpPromptDismissed(true);
   };
 
   const handleBranchTypeChange = (branchType) => {
@@ -883,6 +927,33 @@ function FacilityBranchLoanDetailsPage({
                 {form.repaymentType ? ` · ${form.repaymentType}` : ""}
               </p>
             </div>
+          </div>
+        )}
+
+        {matchingTopUpAccount && !form.topUpAccountId && !topUpPromptDismissed && (
+          <div className="fbl-topup-prompt">
+            <div>
+              <strong>Existing {facility?.label} found</strong>
+              <p>
+                This customer already has account {matchingTopUpAccount.accountId.trim()} (outstanding{" "}
+                {formatCurrency(matchingTopUpAccount.currentBalance)}). Top this up instead of opening a new facility?
+              </p>
+            </div>
+            <div className="fbl-topup-actions">
+              <button type="button" className="fbl-topup-decline" onClick={declineTopUp}>No, new facility</button>
+              <button type="button" className="fbl-topup-accept" onClick={acceptTopUp}>Top up this account</button>
+            </div>
+          </div>
+        )}
+
+        {form.topUpAccountId && (
+          <div className="fbl-selection-note">
+            <span><CheckIcon /></span>
+            <div>
+              <strong>Topping up account {form.topUpAccountId}</strong>
+              <p>The requested amount adds to this existing facility, not a new one.</p>
+            </div>
+            <button type="button" className="fbl-topup-change" onClick={declineTopUp}>Change</button>
           </div>
         )}
       </section>

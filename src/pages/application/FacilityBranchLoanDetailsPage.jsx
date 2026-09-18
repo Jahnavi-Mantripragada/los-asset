@@ -409,18 +409,34 @@ function FacilityBranchLoanDetailsPage({
   // productType alone would wrongly offer to "top up" an unrelated
   // product, so this also requires the account to actually be a gold
   // loan (by product name, since there's no clean product-code
-  // convention across products in the data we have).
+  // convention across products in the data we have). A CLOSED account
+  // (e.g. Deepak's old gold loan) is also excluded - there's nothing to
+  // top up once an account is closed and its collateral released.
   const matchingTopUpAccount = useMemo(
     () =>
       form.productType
         ? existingLoanAccounts.find(
             (account) =>
               account.productType === form.productType &&
-              /gold/i.test(account.productName || ""),
+              /gold/i.test(account.productName || "") &&
+              !/closed/i.test(account.currentStatusDescription || ""),
           ) || null
         : null,
     [existingLoanAccounts, form.productType],
   );
+
+  // ETB Step 8 (part 2): a top-up isn't opened at a branch of the
+  // Maker's choosing - it has to be the branch that already holds the
+  // account being topped up. Resolved against our own BRANCHES demo
+  // list; if the account's own branch code isn't one of our demo
+  // branches, there's nothing concrete to lock the selector to, so
+  // branch selection is left as a free choice.
+  const topUpBranch = useMemo(() => {
+    if (!matchingTopUpAccount) return null;
+    return BRANCHES.find((branch) => branch.code === matchingTopUpAccount.branchCode) || null;
+  }, [matchingTopUpAccount]);
+
+  const branchLockedForTopUp = Boolean(form.topUpAccountId && topUpBranch);
 
   const branchComplete = Boolean(
     selectedBranch?.code &&
@@ -612,7 +628,15 @@ function FacilityBranchLoanDetailsPage({
 
   const acceptTopUp = () => {
     if (!matchingTopUpAccount) return;
-    setForm((current) => ({ ...current, topUpAccountId: matchingTopUpAccount.accountId }));
+    setForm((current) => ({
+      ...current,
+      topUpAccountId: matchingTopUpAccount.accountId,
+      ...(topUpBranch
+        ? topUpBranch.code === homeBranch.code
+          ? { branchType: "Home", pinCode: homeBranch.pinCode, selectedBranchCode: homeBranch.code }
+          : { branchType: "Other", pinCode: topUpBranch.pinCode, selectedBranchCode: topUpBranch.code }
+        : {}),
+    }));
   };
 
   const declineTopUp = () => {
@@ -784,6 +808,16 @@ function FacilityBranchLoanDetailsPage({
           badge={<span className={`fbl-badge ${branchComplete ? "success" : ""}`}>{branchComplete ? "Branch selected" : "Selection required"}</span>}
         />
 
+        {branchLockedForTopUp && (
+          <div className="fbl-selection-note">
+            <span><CheckIcon /></span>
+            <div>
+              <strong>Branch locked to {topUpBranch.name}</strong>
+              <p>This matches the branch that already holds account {form.topUpAccountId}.</p>
+            </div>
+          </div>
+        )}
+
         <div className="fbl-branch-choice" role="radiogroup" aria-label="Branch selection type">
           <button
             type="button"
@@ -791,6 +825,7 @@ function FacilityBranchLoanDetailsPage({
             aria-checked={form.branchType === "Home"}
             className={`fbl-branch-option ${form.branchType === "Home" ? "selected" : ""}`}
             onClick={() => handleBranchTypeChange("Home")}
+            disabled={branchLockedForTopUp}
           >
             <span className="fbl-branch-option-mark">{form.branchType === "Home" && <CheckIcon />}</span>
             <span><strong>Home branch</strong><small>Use the CBS-mapped servicing branch</small></span>
@@ -801,6 +836,7 @@ function FacilityBranchLoanDetailsPage({
             aria-checked={form.branchType === "Other"}
             className={`fbl-branch-option ${form.branchType === "Other" ? "selected" : ""}`}
             onClick={() => handleBranchTypeChange("Other")}
+            disabled={branchLockedForTopUp}
           >
             <span className="fbl-branch-option-mark">{form.branchType === "Other" && <CheckIcon />}</span>
             <span><strong>Choose another branch</strong><small>Search available branches using the PIN code</small></span>
@@ -817,14 +853,18 @@ function FacilityBranchLoanDetailsPage({
           <div className="fbl-branch-search">
             <label className="fbl-pin-field">
               <span>Branch PIN code *</span>
-              <input value={form.pinCode} inputMode="numeric" maxLength="6" placeholder="Enter 6-digit PIN" onChange={handleBranchPinChange} />
+              <input value={form.pinCode} inputMode="numeric" maxLength="6" placeholder="Enter 6-digit PIN" onChange={handleBranchPinChange} disabled={branchLockedForTopUp} />
               <small>Demo branches are available for 411028 and 530017.</small>
             </label>
             {form.pinCode.length === 6 && (
               availableBranches.length ? (
                 <label className="fbl-branch-select-field">
                   <span>Available branches *</span>
-                  <select value={form.selectedBranchCode} onChange={(event) => setForm((current) => ({ ...current, selectedBranchCode: event.target.value }))}>
+                  <select
+                    value={form.selectedBranchCode}
+                    onChange={(event) => setForm((current) => ({ ...current, selectedBranchCode: event.target.value }))}
+                    disabled={branchLockedForTopUp}
+                  >
                     <option value="">Select a branch</option>
                     {availableBranches.map((branch) => <option value={branch.code} key={branch.code}>{branch.name} · {branch.code}</option>)}
                   </select>

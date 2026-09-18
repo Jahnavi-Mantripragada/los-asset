@@ -341,6 +341,7 @@ const toPersistableCustomer = (customer) =>
         kycUpdatedAt: customer.kycUpdatedAt,
         ckycNumber: customer.ckycNumber,
         riskCategory: customer.riskCategory,
+        customer360: customer.customer360,
       }
     : null;
 
@@ -2021,48 +2022,65 @@ function CustomerIdentity({
           ) : null}
 
           {customerType === "ETB" && customer.customer360?.xfaceCustomerAccountDetailsDTO && (
-            <div className="glci-card glci-existing-accounts-card">
-              <div className="glci-existing-accounts-head">
-                <strong>Existing accounts</strong>
-                <span>Customer360</span>
-              </div>
+            <section className="glci-eas-card">
+              <header className="glci-eas-header">
+                <div>
+                  <span>EXISTING ACCOUNTS</span>
+                  <h3>Existing gold loan &amp; CASA accounts</h3>
+                </div>
+                <span className="glci-eas-source">Customer360</span>
+              </header>
+
               {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceAccountDetailsforCustomerDTO.map((account) => (
-                <div className="glci-existing-account-row" key={account.accountId}>
-                  <div className="glci-existing-account-title">
+                <div className="glci-eas-list" key={account.accountId}>
+                  <div className="glci-eas-row">
+                    <span>Account</span>
                     <strong>{account.productName}</strong>
-                    <span>{account.accountId.trim()} · {account.branchName}</span>
                   </div>
-                  <div className="glci-match-grid">
-                    <span>
-                      <small>Outstanding</small>
-                      <strong>{formatINR(account.currentBalance)}</strong>
-                    </span>
-                    <span>
-                      <small>Max DPD</small>
-                      <strong>{account.maxDPD}</strong>
-                    </span>
-                    <span>
-                      <small>Status</small>
-                      <strong>{account.currentStatusDescription}</strong>
-                    </span>
+                  <div className="glci-eas-row">
+                    <span>Account ID</span>
+                    <strong>{account.accountId.trim()}</strong>
+                  </div>
+                  <div className="glci-eas-row">
+                    <span>Branch</span>
+                    <strong>{account.branchName}</strong>
+                  </div>
+                  <div className="glci-eas-row">
+                    <span>Outstanding</span>
+                    <strong>{formatINR(account.currentBalance)}</strong>
+                  </div>
+                  <div className="glci-eas-row">
+                    <span>Sanctioned</span>
+                    <strong>{formatINR(account.amtSanction)}</strong>
+                  </div>
+                  <div className="glci-eas-row">
+                    <span>Max DPD</span>
+                    <strong>{account.maxDPD}</strong>
+                  </div>
+                  <div className="glci-eas-row">
+                    <span>Status</span>
+                    <strong>{account.currentStatusDescription}</strong>
                   </div>
                 </div>
               ))}
+
               {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceCasaAccountDTO.map((casa) => (
-                <div className="glci-existing-account-row" key={casa.accountId}>
-                  <div className="glci-existing-account-title">
+                <div className="glci-eas-list" key={casa.accountId}>
+                  <div className="glci-eas-row">
+                    <span>Account</span>
                     <strong>{casa.productName}</strong>
-                    <span>{casa.accountId}</span>
                   </div>
-                  <div className="glci-match-grid">
-                    <span>
-                      <small>Balance</small>
-                      <strong>{formatINR(casa.currentBalance)}</strong>
-                    </span>
+                  <div className="glci-eas-row">
+                    <span>Account ID</span>
+                    <strong>{casa.accountId}</strong>
+                  </div>
+                  <div className="glci-eas-row">
+                    <span>Balance</span>
+                    <strong>{formatINR(casa.currentBalance)}</strong>
                   </div>
                 </div>
               ))}
-            </div>
+            </section>
           )}
 
           {customerType !== "ETB" && (

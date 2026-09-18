@@ -407,57 +407,97 @@
   letter-spacing: 0.03em;
 }
 
-.glci-existing-accounts-card {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/*
+ * "Existing accounts" (glci-eas-*) intentionally does NOT use this file's
+ * own --glci-* tokens. Per instruction, it mirrors the Customer/Loan detail
+ * summary cards in ApplicationSummaryTab.jsx exactly - values below are
+ * copied verbatim from ApplicationSummaryTab.css's .summary-section /
+ * .summary-section-header / .summary-details-list / .summary-detail rules,
+ * not derived from this page's own design tokens.
+ */
+.glci-eas-card {
+  margin-top: 16px;
+  padding: 28px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
 }
 
-.glci-existing-accounts-head {
+.glci-eas-header {
+  margin-bottom: 20px;
+  padding-bottom: 14px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #00518f;
 }
 
-.glci-existing-accounts-head strong {
-  color: var(--glci-text);
-  font-size: 11px;
-}
-
-.glci-existing-accounts-head span {
-  color: var(--glci-soft);
-  font-size: 8px;
-  font-weight: 650;
+.glci-eas-header > div > span {
+  color: #00518f;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
-.glci-existing-account-row {
-  padding-top: 8px;
-  border-top: 1px solid var(--glci-border-soft);
+.glci-eas-header h3 {
+  margin: 2px 0 0;
+  color: #052f52;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
-.glci-existing-account-row:first-of-type {
-  padding-top: 0;
-  border-top: 0;
+.glci-eas-source {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.glci-existing-account-title {
+.glci-eas-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+.glci-eas-list + .glci-eas-list {
+  margin-top: 16px;
+}
+
+.glci-eas-row {
+  min-width: 0;
+  padding: 11px 8px;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.glci-existing-account-title strong {
-  color: var(--glci-text);
-  font-size: 10.5px;
+.glci-eas-row:last-child {
+  border-bottom: none;
 }
 
-.glci-existing-account-title span {
-  color: var(--glci-muted);
-  font-size: 8.5px;
+.glci-eas-row > span {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.glci-eas-row > strong {
+  overflow-wrap: anywhere;
+  color: #1e293b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: right;
+  line-height: 1.4;
 }
 
 .glci-no-match-card {

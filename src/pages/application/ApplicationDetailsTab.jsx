@@ -368,23 +368,21 @@ const buildView = (leadDetails, lead) => {
   const selectedBranch = facility.branch || facility.selectedBranch || application.branch || {};
   const existingLoansValue = selectValue(leadDetails, ["facilityBranchLoanDetails.existingGoldLoans", "facilityBranchLoanDetails.exposure.existingLoans", "applicationDetail.details.loanBranch.existingGoldLoans"], []);
   const accountsValue = selectValue(leadDetails, ["facilityBranchLoanDetails.activeCasaAccounts", "facilityBranchLoanDetails.accounts", "customerIdentity.activeCasaAccounts"], []);
-  // ETB Step 5: real CASA account (Step 1's customer360 mock), unmasked -
-  // NTB, or an ETB match with no customer360 data yet, both fall through
-  // to the existing fake placeholder below, unchanged.
-  const casaAccountsFromMatchedCustomer =
-    identity.customerType === "ETB"
-      ? identity.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO?.xfaceCasaAccountDTO || []
-      : [];
-  // Same masking convention as EligibilitySupportingDetailsPage.jsx's
-  // maskAccountNumber() - the underlying accountNumber stays real/unmasked
-  // (it's what actually gets selected/stored), only the displayed label
-  // is masked.
-  const realAccounts = casaAccountsFromMatchedCustomer.length
-    ? casaAccountsFromMatchedCustomer.map((casa) => ({
-        accountNumber: casa.accountId,
-        maskedAccountNumber: `XXXX XXXX ${String(casa.accountId).replace(/\D/g, "").slice(-4)}`,
+  // ETB Step 5: real CASA account, from matchedCustomer.casaNumber - which
+  // is populated two ways: ETB match (CustomerIdentityPage.jsx's
+  // toPersistableCustomer, from the CBS mock's own accountNumber) or NTB
+  // once completeNtbOnboarding() has run (its own freshly generated
+  // generateCasaNumber()). Either way this is one real account number, not
+  // ETB-specific - an NTB applicant still mid-onboarding, with no
+  // casaNumber yet, falls through to the existing fake placeholder below,
+  // unchanged.
+  const realCasaNumber = identity.matchedCustomer?.casaNumber || "";
+  const realAccounts = realCasaNumber
+    ? [{
+        accountNumber: realCasaNumber,
+        maskedAccountNumber: maskAccountNumber(realCasaNumber),
         status: "Active",
-      }))
+      }]
     : null;
   const loan = {
     facilityType: selectValue(leadDetails, ["facilityBranchLoanDetails.facilityType", "facilityBranchLoanDetails.facility", "applicationDetail.facility"], lead?.product || "Gold Loan"),

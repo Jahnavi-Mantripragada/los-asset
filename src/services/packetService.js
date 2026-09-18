@@ -20,6 +20,9 @@ const mockPackets = [
   { packetId: "PKT-00126", branch: "Pune - Deccan Gymkhana", packetSize: "Medium", ornamentCount: 3, packetWeight: 42.5, status: "Available" },
   { packetId: "PKT-00127", branch: "Mumbai - Andheri East", packetSize: "Large", ornamentCount: 5, packetWeight: 78.2, status: "Available" },
   { packetId: "PKT-00128", branch: "Pune - Deccan Gymkhana", packetSize: "Medium", ornamentCount: 4, packetWeight: 55.0, status: "Allocated" },
+  // Added for the ETB top-up demo pass (Shivanjali, docs/demo-data/etb-scenario.csv) -
+  // none of the packets above cover Pune - Hadapsar, her own account's branch.
+  { packetId: "PKT-00129", branch: "Pune - Hadapsar", packetSize: "Small", ornamentCount: 2, packetWeight: 21.0, status: "Available" },
 ];
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

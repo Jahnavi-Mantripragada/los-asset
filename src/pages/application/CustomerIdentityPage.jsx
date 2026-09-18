@@ -488,7 +488,13 @@ const buildOcrMocksForCustomer = (customer) => ({
   addressProof: {
     documentType: "Voter ID",
     name: customer.fullName,
-    address: customer.address,
+    // customer.address (a single combined string) doesn't survive
+    // toPersistableCustomer()'s whitelist - only the separate line1/
+    // line2/city/state fields do - so it has to be rebuilt from those,
+    // not read directly.
+    address: [customer.addressLine1, customer.addressLine2, customer.city, customer.state]
+      .filter(Boolean)
+      .join(", "),
     pincode: customer.pincode,
     confidence: "97.9%",
   },

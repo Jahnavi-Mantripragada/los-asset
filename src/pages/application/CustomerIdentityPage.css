@@ -469,22 +469,34 @@
   gap: 8px;
 }
 
+/* Fixed column template shared by the header row and every data row -
+   this is what makes columns actually line up like a table, instead of
+   floating based on how long each row's product name happens to be. */
 .glci-eas-account-row {
   min-width: 0;
-  padding: 10px 12px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(150px, 2.2fr) minmax(70px, 1fr) minmax(70px, 1fr) minmax(55px, 0.7fr) minmax(110px, 1fr);
   align-items: center;
-  gap: 14px;
+  column-gap: 16px;
+  padding: 10px 12px;
   background: #f8fafc;
   border: 1px solid #f1f5f9;
   border-radius: 6px;
-  flex-wrap: wrap;
+}
+
+.glci-eas-account-row-head {
+  padding: 0 12px 6px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.6rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .glci-eas-account-info {
-  flex: 0 0 auto;
-  min-width: 150px;
-  max-width: 220px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -502,37 +514,14 @@
   font-size: 0.62rem;
 }
 
-.glci-eas-account-stats {
-  flex: 1;
-  min-width: 200px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 28px;
-}
-
-.glci-eas-account-stats > div {
-  min-width: 70px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.glci-eas-account-stats span {
-  color: #64748b;
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.glci-eas-account-stats strong {
+.glci-eas-stat-value {
   color: #1e293b;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 
 .glci-eas-status-badge {
-  flex: 0 0 auto;
+  justify-self: start;
   padding: 3px 9px;
   color: #00518f;
   background: #f0f6fa;
@@ -542,18 +531,18 @@
   white-space: nowrap;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
+  .glci-eas-account-row-head {
+    display: none;
+  }
+
   .glci-eas-account-row {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 4px;
   }
 
   .glci-eas-account-info {
-    max-width: none;
-  }
-
-  .glci-eas-account-stats {
-    gap: 4px 20px;
+    grid-column: 1 / -1;
   }
 }
 

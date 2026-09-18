@@ -2018,17 +2018,23 @@ function CustomerIdentity({
               </header>
 
               <div className="glci-eas-rows">
+                <div className="glci-eas-account-row glci-eas-account-row-head" aria-hidden="true">
+                  <span>Account</span>
+                  <span>Outstanding</span>
+                  <span>Sanctioned</span>
+                  <span>Max DPD</span>
+                  <span>Status</span>
+                </div>
+
                 {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceAccountDetailsforCustomerDTO.map((account) => (
                   <div className="glci-eas-account-row" key={account.accountId}>
                     <div className="glci-eas-account-info">
                       <span className="glci-eas-account-product">{account.productName}</span>
                       <span className="glci-eas-account-id">{account.accountId.trim()} · {account.branchName}</span>
                     </div>
-                    <div className="glci-eas-account-stats">
-                      <div><span>Outstanding</span><strong>{formatINR(account.currentBalance)}</strong></div>
-                      <div><span>Sanctioned</span><strong>{formatINR(account.amtSanction)}</strong></div>
-                      <div><span>Max DPD</span><strong>{account.maxDPD}</strong></div>
-                    </div>
+                    <strong className="glci-eas-stat-value">{formatINR(account.currentBalance)}</strong>
+                    <strong className="glci-eas-stat-value">{formatINR(account.amtSanction)}</strong>
+                    <strong className="glci-eas-stat-value">{account.maxDPD}</strong>
                     <span className="glci-eas-status-badge">{account.currentStatusDescription}</span>
                   </div>
                 ))}
@@ -2039,9 +2045,7 @@ function CustomerIdentity({
                       <span className="glci-eas-account-product">{casa.productName}</span>
                       <span className="glci-eas-account-id">{casa.accountId}</span>
                     </div>
-                    <div className="glci-eas-account-stats">
-                      <div><span>Balance</span><strong>{formatINR(casa.currentBalance)}</strong></div>
-                    </div>
+                    <strong className="glci-eas-stat-value">{formatINR(casa.currentBalance)}</strong>
                   </div>
                 ))}
               </div>

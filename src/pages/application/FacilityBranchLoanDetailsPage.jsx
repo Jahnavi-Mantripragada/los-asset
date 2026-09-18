@@ -376,18 +376,25 @@ function FacilityBranchLoanDetailsPage({
   // ETB Step 3: real existing exposure, from the matched customer's live
   // gold-loan accounts (Customer360 mock). NTB, or an ETB match with no
   // customer360 data yet, both fall through to 0 - unchanged from before.
-  const existingLoanAccounts = useMemo(() => {
+  // existingOdAccounts is kept separate from existingLoanAccounts (used
+  // for Step 8's top-up matching, which doesn't apply to an OD account),
+  // but computed alongside it in one memo - its balance is real existing
+  // exposure too, and was missing from the sum entirely.
+  const { existingLoanAccounts, existingOdAccounts } = useMemo(() => {
     const leadDetailsForExposure = parseLeadDetails(lead?.leadDetails ?? lead?.lead_details);
     const identityForExposure = leadDetailsForExposure.customerIdentity || {};
-    return identityForExposure.customerType === "ETB"
-      ? identityForExposure.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO
-          ?.xfaceAccountDetailsforCustomerDTO || []
-      : [];
+    const accountsDto =
+      identityForExposure.customerType === "ETB"
+        ? identityForExposure.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO
+        : null;
+    return {
+      existingLoanAccounts: accountsDto?.xfaceAccountDetailsforCustomerDTO || [],
+      existingOdAccounts: accountsDto?.xfaceODDetailsDTO || [],
+    };
   }, [lead?.leadDetails, lead?.lead_details]);
-  const existingOutstanding = existingLoanAccounts.reduce(
-    (sum, account) => sum + (Number(account.currentBalance) || 0),
-    0,
-  );
+  const existingOutstanding =
+    existingLoanAccounts.reduce((sum, account) => sum + (Number(account.currentBalance) || 0), 0) +
+    existingOdAccounts.reduce((sum, account) => sum + (Number(account.currentBalance) || 0), 0);
   const requestedLoanAmount = Number(form.requestedLoanAmount || 0);
   const aggregateLoanAmount = existingOutstanding + requestedLoanAmount;
   const relationshipType = lead?.relationship?.type || lead?.customerIdentity?.type || "";

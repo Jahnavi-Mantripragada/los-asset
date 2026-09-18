@@ -2066,6 +2066,18 @@ function CustomerIdentity({
                     <strong className="glci-eas-stat-value">{formatINR(casa.currentBalance)}</strong>
                   </div>
                 ))}
+
+                {(customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceODDetailsDTO || []).map((od) => (
+                  <div className="glci-eas-account-row" key={od.accountId}>
+                    <div className="glci-eas-account-info">
+                      <span className="glci-eas-account-product">{od.productName}</span>
+                      <span className="glci-eas-account-id">{od.accountId.trim()}</span>
+                    </div>
+                    <strong className="glci-eas-stat-value">{formatINR(od.currentBalance)}</strong>
+                    <strong className="glci-eas-stat-value">{formatINR(od.limitAmount)}</strong>
+                    <strong className="glci-eas-stat-value">{od.maxDPD}</strong>
+                  </div>
+                ))}
               </div>
             </section>
           )}

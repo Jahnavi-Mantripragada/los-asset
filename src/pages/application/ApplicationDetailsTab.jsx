@@ -358,6 +358,20 @@ const buildView = (leadDetails, lead) => {
   const selectedBranch = facility.branch || facility.selectedBranch || application.branch || {};
   const existingLoansValue = selectValue(leadDetails, ["facilityBranchLoanDetails.existingGoldLoans", "facilityBranchLoanDetails.exposure.existingLoans", "applicationDetail.details.loanBranch.existingGoldLoans"], []);
   const accountsValue = selectValue(leadDetails, ["facilityBranchLoanDetails.activeCasaAccounts", "facilityBranchLoanDetails.accounts", "customerIdentity.activeCasaAccounts"], []);
+  // ETB Step 5: real CASA account (Step 1's customer360 mock), unmasked -
+  // NTB, or an ETB match with no customer360 data yet, both fall through
+  // to the existing fake placeholder below, unchanged.
+  const casaAccountsFromMatchedCustomer =
+    identity.customerType === "ETB"
+      ? identity.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO?.xfaceCasaAccountDTO || []
+      : [];
+  const realAccounts = casaAccountsFromMatchedCustomer.length
+    ? casaAccountsFromMatchedCustomer.map((casa) => ({
+        accountNumber: casa.accountId,
+        maskedAccountNumber: casa.accountId,
+        status: "Active",
+      }))
+    : null;
   const loan = {
     facilityType: selectValue(leadDetails, ["facilityBranchLoanDetails.facilityType", "facilityBranchLoanDetails.facility", "applicationDetail.facility"], lead?.product || "Gold Loan"),
     scheme: selectValue(leadDetails, ["facilityBranchLoanDetails.scheme.name", "facilityBranchLoanDetails.scheme", "facilityBranchLoanDetails.schemeName", "applicationDetail.scheme"], "—"),
@@ -367,12 +381,12 @@ const buildView = (leadDetails, lead) => {
     requestedAmount: selectValue(leadDetails, ["facilityBranchLoanDetails.requestedLoanAmount", "facilityBranchLoanDetails.requestedAmount", "applicationDetail.requestedAmount"], 450000),
     existingExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.existingGoldLoanExposure", "facilityBranchLoanDetails.exposure.existingExposure", "facilityBranchLoanDetails.exposure.existingOutstandingAmount"], 0),
     aggregateExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.aggregateGoldLoanExposure", "facilityBranchLoanDetails.exposure.aggregateExposure"], 0),
-    chargesAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.chargesAccount", "facilityBranchLoanDetails.accounts.chargesAccount"], "XXXXXX4821"),
-    disbursementAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.disbursementAccount", "applicationDetail.makerFinalisation.disbursementAccount"], "XXXXXX4821"),
+    chargesAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.chargesAccount", "facilityBranchLoanDetails.accounts.chargesAccount"], realAccounts?.[0]?.accountNumber || "XXXXXX4821"),
+    disbursementAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.disbursementAccount", "applicationDetail.makerFinalisation.disbursementAccount"], realAccounts?.[0]?.accountNumber || "XXXXXX4821"),
     existingLoans: Array.isArray(existingLoansValue) ? existingLoansValue : [],
     accounts: Array.isArray(accountsValue) && accountsValue.length
       ? accountsValue
-      : [{ accountNumber: "XXXXXX4821", maskedAccountNumber: "XXXXXX4821", status: "Active" }],
+      : realAccounts || [{ accountNumber: "XXXXXX4821", maskedAccountNumber: "XXXXXX4821", status: "Active" }],
     savingsNominee: selectValue(leadDetails, [
       "facilityBranchLoanDetails.savingsNominee",
       "customerIdentity.savingsNominee",

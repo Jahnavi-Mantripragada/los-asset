@@ -471,7 +471,30 @@ const buildBorrowerDetails = (customer, lead) => ({
   pincode: customer.pincode || lead.pincode || "",
 });
 
-const buildBorrowerDocuments = (customerType) =>
+// Derives OCR-shaped mock data from whichever customer actually matched,
+// instead of always showing Shivanjali's fixed OCR_MOCKS regardless of who
+// matched. Note: the preview image/PDF (PAN_CARD_PATH/ADDRESS_PROOF_PATH)
+// stays a fixed stock asset either way - there's no real scanned document
+// image for Aarav or Deepak, only text data to derive from their record.
+const buildOcrMocksForCustomer = (customer) => ({
+  pan: {
+    documentType: "PAN Card",
+    pan: customer.pan,
+    name: customer.fullName,
+    dateOfBirth: customer.dateOfBirth,
+    fatherName: customer.fatherName || "—",
+    confidence: "98.7%",
+  },
+  addressProof: {
+    documentType: "Voter ID",
+    name: customer.fullName,
+    address: customer.address,
+    pincode: customer.pincode,
+    confidence: "97.9%",
+  },
+});
+
+const buildBorrowerDocuments = (customerType, customer) =>
   customerType === "ETB"
     ? {
         pan: {
@@ -481,7 +504,7 @@ const buildBorrowerDocuments = (customerType) =>
           source: "CBS KYC",
           verifiedAt: "",
           scanning: false,
-          ocr: OCR_MOCKS.pan,
+          ocr: buildOcrMocksForCustomer(customer).pan,
         },
         addressProof: {
           name: "Voter Id_1550.pdf",
@@ -489,7 +512,7 @@ const buildBorrowerDocuments = (customerType) =>
           status: "Uploaded",
           source: "CBS KYC",
           scanning: false,
-          ocr: OCR_MOCKS.addressProof,
+          ocr: buildOcrMocksForCustomer(customer).addressProof,
         },
       }
     : {
@@ -508,7 +531,7 @@ const buildBorrowerInformation = (customerType, customer, lead) => ({
   status: customerType === "ETB" ? "Saved" : "Draft",
   savedAt: customerType === "ETB" ? "CBS record" : "",
   details: buildBorrowerDetails(customer, lead),
-  documents: buildBorrowerDocuments(customerType),
+  documents: buildBorrowerDocuments(customerType, customer),
   aadhaar: {
     status: customerType === "ETB" ? "Reference generated" : "Pending",
     last4: customer.aadhaarLast4 || digitsOnly(customer.aadhaarNumber).slice(-4),
@@ -1559,24 +1582,19 @@ function CustomerIdentity({
       setNotice("Document uploaded. OCR scan started.");
       const timer = window.setTimeout(() => {
         updateNode("borrowerInformation", (current) => {
-          const panMock = customerType === "NTB" ? NTB_OCR_PAN_MOCK : OCR_MOCKS.pan;
+          // NTB keeps the ETB mock's own name/DOB/address on purpose (only
+          // the PAN number differs, per the earlier decision to avoid a
+          // duplicate PAN) - but for an actual ETB match, this should
+          // reflect whichever customer matched, not always Shivanjali.
+          const panMock = customerType === "NTB" ? NTB_OCR_PAN_MOCK : buildOcrMocksForCustomer(customer).pan;
           const extractedDetails =
             key === "pan"
-              ? {
-                  ...current.details,
-                  firstName: "Shivanjali",
-                  lastName: "Gaikwad",
-                  dateOfBirth: "1996-11-01",
-                  pan: panMock.pan,
-                }
-              : {
-                  ...current.details,
-                  addressLine1: "D-303, Fortune Estate, Hadapsar",
-                  addressLine2: "Near Magarpatta Road",
-                  pincode: "411028",
-                  city: "Pune",
-                  state: "Maharashtra",
-                };
+              ? customerType === "NTB"
+                ? { ...current.details, firstName: "Shivanjali", lastName: "Gaikwad", dateOfBirth: "1996-11-01", pan: panMock.pan }
+                : { ...current.details, firstName: customer.firstName, lastName: customer.lastName, dateOfBirth: toDateInputValue(customer.dateOfBirth), pan: panMock.pan }
+              : customerType === "NTB"
+                ? { ...current.details, addressLine1: "D-303, Fortune Estate, Hadapsar", addressLine2: "Near Magarpatta Road", pincode: "411028", city: "Pune", state: "Maharashtra" }
+                : { ...current.details, addressLine1: customer.addressLine1, addressLine2: customer.addressLine2, pincode: customer.pincode, city: customer.city, state: customer.state };
           return {
             details: extractedDetails,
             documents: {

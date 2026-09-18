@@ -5,6 +5,7 @@ import {
   sendWhatsAppMessage,
 } from "../../services/whatsAppService";
 import { getCustomer360 } from "../../services/customer360Service";
+import { getAccountCollateral } from "../../services/account360Service";
 
 const CONSENT_WAIT_SECONDS = 7;
 const DEFAULT_LEAD_API_BASE =
@@ -1088,6 +1089,8 @@ function CustomerIdentity({
         .status !== "Saved",
   );
   const [isAddressIdentityEditing, setIsAddressIdentityEditing] = useState(false);
+  const [expandedCollateralAccountId, setExpandedCollateralAccountId] = useState(null);
+  const [collateralByAccountId, setCollateralByAccountId] = useState({});
   const uploadTimers = useRef([]);
   const aadhaarTimer = useRef(null);
   const patchQueueRef = useRef(Promise.resolve());
@@ -1343,6 +1346,17 @@ function CustomerIdentity({
     sectionKey,
     stepComplete,
   ]);
+
+  const toggleCollateral = (accountId) => {
+    setExpandedCollateralAccountId((current) => (current === accountId ? null : accountId));
+    setCollateralByAccountId((current) => {
+      if (current[accountId] !== undefined) return current;
+      getAccountCollateral(accountId).then((collateralDetails) => {
+        setCollateralByAccountId((latest) => ({ ...latest, [accountId]: collateralDetails }));
+      });
+      return current;
+    });
+  };
 
   const confirmCustomer = () => {
     updateNode("customerIdentity", {
@@ -2050,18 +2064,72 @@ function CustomerIdentity({
                   <span>Status</span>
                 </div>
 
-                {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceAccountDetailsforCustomerDTO.map((account) => (
-                  <div className="glci-eas-account-row" key={account.accountId}>
-                    <div className="glci-eas-account-info">
-                      <span className="glci-eas-account-product">{account.productName}</span>
-                      <span className="glci-eas-account-id">{account.accountId.trim()} · {account.branchName}</span>
+                {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceAccountDetailsforCustomerDTO.map((account) => {
+                  const isGoldLoan = /gold/i.test(account.productName || "");
+                  const isCollateralExpanded = expandedCollateralAccountId === account.accountId;
+                  const collateralDetails = collateralByAccountId[account.accountId];
+                  return (
+                    <div className="glci-eas-account-row-group" key={account.accountId}>
+                      <div className="glci-eas-account-row">
+                        <div className="glci-eas-account-info">
+                          <span className="glci-eas-account-product">{account.productName}</span>
+                          <span className="glci-eas-account-id">{account.accountId.trim()} · {account.branchName}</span>
+                          {isGoldLoan && (
+                            <button
+                              type="button"
+                              className="glci-eas-collateral-toggle"
+                              onClick={() => toggleCollateral(account.accountId)}
+                            >
+                              {isCollateralExpanded ? "Hide pledged ornaments ▲" : "View pledged ornaments ▾"}
+                            </button>
+                          )}
+                        </div>
+                        <strong className="glci-eas-stat-value">{formatINR(account.currentBalance)}</strong>
+                        <strong className="glci-eas-stat-value">{formatINR(account.amtSanction)}</strong>
+                        <strong className="glci-eas-stat-value">{account.maxDPD}</strong>
+                        <span className="glci-eas-status-badge">{account.currentStatusDescription}</span>
+                      </div>
+
+                      {isGoldLoan && isCollateralExpanded && (
+                        <div className="glci-eas-collateral-panel">
+                          {collateralDetails === undefined ? (
+                            <span className="glci-eas-collateral-note">Loading pledged ornaments…</span>
+                          ) : collateralDetails.length === 0 ? (
+                            <span className="glci-eas-collateral-note">
+                              No active collateral for this account.
+                            </span>
+                          ) : (
+                            <>
+                              <div className="glci-eas-ornament-row glci-eas-ornament-row-head" aria-hidden="true">
+                                <span>Ornament</span>
+                                <span>Weight</span>
+                                <span>Value</span>
+                              </div>
+                              {collateralDetails.flatMap((collateral) =>
+                                collateral.packetDetails.flatMap((packet) =>
+                                  packet.xfaceOrnamentDetailsDTO.map((ornament, index) => (
+                                    <div
+                                      className="glci-eas-ornament-row"
+                                      key={`${packet.packetId}-${index}`}
+                                    >
+                                      <span className="glci-eas-ornament-type">
+                                        {ornament.ornamentType} ({ornament.carat}K)
+                                      </span>
+                                      <span>{ornament.netWeight}g net · {ornament.grossWeight}g gross</span>
+                                      <strong className="glci-eas-stat-value">
+                                        {formatINR(ornament.securityAmount)}
+                                      </strong>
+                                    </div>
+                                  )),
+                                ),
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <strong className="glci-eas-stat-value">{formatINR(account.currentBalance)}</strong>
-                    <strong className="glci-eas-stat-value">{formatINR(account.amtSanction)}</strong>
-                    <strong className="glci-eas-stat-value">{account.maxDPD}</strong>
-                    <span className="glci-eas-status-badge">{account.currentStatusDescription}</span>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceCasaAccountDTO.map((casa) => (
                   <div className="glci-eas-account-row" key={casa.accountId}>

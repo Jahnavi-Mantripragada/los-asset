@@ -407,6 +407,59 @@
   letter-spacing: 0.03em;
 }
 
+.glci-existing-accounts-card {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.glci-existing-accounts-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.glci-existing-accounts-head strong {
+  color: var(--glci-text);
+  font-size: 11px;
+}
+
+.glci-existing-accounts-head span {
+  color: var(--glci-soft);
+  font-size: 8px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.glci-existing-account-row {
+  padding-top: 8px;
+  border-top: 1px solid var(--glci-border-soft);
+}
+
+.glci-existing-account-row:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.glci-existing-account-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.glci-existing-account-title strong {
+  color: var(--glci-text);
+  font-size: 10.5px;
+}
+
+.glci-existing-account-title span {
+  color: var(--glci-muted);
+  font-size: 8.5px;
+}
+
 .glci-no-match-card {
   display: grid;
   grid-template-columns: 42px 1fr auto;

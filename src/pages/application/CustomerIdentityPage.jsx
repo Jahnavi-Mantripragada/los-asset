@@ -448,6 +448,13 @@ const maskMobile = (value) => {
   return digits ? `+91 XXXXX ${digits.slice(-5)}` : "—";
 };
 
+const formatINR = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+
 const getInitials = (name) =>
   String(name || "GL")
     .split(/\s+/)
@@ -2011,7 +2018,54 @@ function CustomerIdentity({
                 </button>
               </div>
             </div>
-          ) : (
+          ) : null}
+
+          {customerType === "ETB" && customer.customer360?.xfaceCustomerAccountDetailsDTO && (
+            <div className="glci-card glci-existing-accounts-card">
+              <div className="glci-existing-accounts-head">
+                <strong>Existing accounts</strong>
+                <span>Customer360</span>
+              </div>
+              {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceAccountDetailsforCustomerDTO.map((account) => (
+                <div className="glci-existing-account-row" key={account.accountId}>
+                  <div className="glci-existing-account-title">
+                    <strong>{account.productName}</strong>
+                    <span>{account.accountId.trim()} · {account.branchName}</span>
+                  </div>
+                  <div className="glci-match-grid">
+                    <span>
+                      <small>Outstanding</small>
+                      <strong>{formatINR(account.currentBalance)}</strong>
+                    </span>
+                    <span>
+                      <small>Max DPD</small>
+                      <strong>{account.maxDPD}</strong>
+                    </span>
+                    <span>
+                      <small>Status</small>
+                      <strong>{account.currentStatusDescription}</strong>
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {customer.customer360.xfaceCustomerAccountDetailsDTO.xfaceCasaAccountDTO.map((casa) => (
+                <div className="glci-existing-account-row" key={casa.accountId}>
+                  <div className="glci-existing-account-title">
+                    <strong>{casa.productName}</strong>
+                    <span>{casa.accountId}</span>
+                  </div>
+                  <div className="glci-match-grid">
+                    <span>
+                      <small>Balance</small>
+                      <strong>{formatINR(casa.currentBalance)}</strong>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {customerType !== "ETB" && (
             <div className="glci-card glci-no-match-card">
               <span className="glci-no-match-icon">
                 <UserIcon />

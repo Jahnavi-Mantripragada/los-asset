@@ -1538,7 +1538,12 @@ function CustomerIdentity({
                 ...current.documents[key],
                 status: "Uploaded",
                 scanning: false,
-                ocr: key === "pan" ? panMock : OCR_MOCKS[key],
+                ocr:
+                  key === "pan"
+                    ? panMock
+                    : lmsApplicant
+                      ? { ...OCR_MOCKS[key], name: `${lead.firstName} ${lead.lastName}`.trim() }
+                      : OCR_MOCKS[key],
                 verifiedAt: "",
                 verificationReference: "",
               },

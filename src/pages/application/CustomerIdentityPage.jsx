@@ -4,6 +4,7 @@ import {
   normaliseIndianWhatsAppNumber,
   sendWhatsAppMessage,
 } from "../../services/whatsAppService";
+import { findLmsMockCustomer, toAppCustomerId } from "../../data/lmsMockCustomers";
 
 const CONSENT_WAIT_SECONDS = 7;
 const DEFAULT_LEAD_API_BASE =
@@ -1496,13 +1497,28 @@ function CustomerIdentity({
       setNotice("Document uploaded. OCR scan started.");
       const timer = window.setTimeout(() => {
         updateNode("borrowerInformation", (current) => {
-          const panMock = customerType === "NTB" ? NTB_OCR_PAN_MOCK : OCR_MOCKS.pan;
+          // An applicant on the LMS team's list keeps the name that was
+          // entered (and their own PAN) instead of the stock mock person's.
+          const lmsApplicant = findLmsMockCustomer({
+            mobile: lead.mobile,
+            firstName: lead.firstName,
+            lastName: lead.lastName,
+          });
+          const panMock = lmsApplicant
+            ? {
+                ...NTB_OCR_PAN_MOCK,
+                name: `${lead.firstName} ${lead.lastName}`.trim(),
+                pan: lmsApplicant.pan,
+              }
+            : customerType === "NTB"
+              ? NTB_OCR_PAN_MOCK
+              : OCR_MOCKS.pan;
           const extractedDetails =
             key === "pan"
               ? {
                   ...current.details,
-                  firstName: "Shivanjali",
-                  lastName: "Gaikwad",
+                  firstName: lmsApplicant ? lead.firstName : "Shivanjali",
+                  lastName: lmsApplicant ? lead.lastName : "Gaikwad",
                   dateOfBirth: "1996-11-01",
                   pan: panMock.pan,
                 }
@@ -1804,8 +1820,17 @@ function CustomerIdentity({
   const completeNtbOnboarding = () => {
     updateNode("ntbOnboarding", { status: "Running" });
     const timer = window.setTimeout(() => {
-      const generatedCustomerId = generateCustomerId();
-      const generatedCasaNumber = generateCasaNumber();
+      // The LMS team's mock numbers win when this applicant's phone number
+      // or name is one they gave (src/data/lmsMockCustomers.js).
+      const lmsCustomer = findLmsMockCustomer({
+        mobile: borrowerNode.details.mobile || lead.mobile,
+        firstName: borrowerNode.details.firstName || lead.firstName,
+        lastName: borrowerNode.details.lastName || lead.lastName,
+      });
+      const generatedCustomerId = lmsCustomer
+        ? toAppCustomerId(lmsCustomer)
+        : generateCustomerId();
+      const generatedCasaNumber = lmsCustomer?.casaNumber || generateCasaNumber();
       updateNode("ntbOnboarding", {
         status: "Completed",
         completedAt: getTimestamp(),

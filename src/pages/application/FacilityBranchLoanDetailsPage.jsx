@@ -107,6 +107,7 @@ const JEWELLERY_TYPES = [
   "Gold Bangles",
   "Gold Earrings",
   "Gold Ring",
+  "Gold Bracelet",
   "Gold Coin",
   "Other Gold Ornament",
 ];

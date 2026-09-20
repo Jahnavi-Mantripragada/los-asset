@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./ApplicationDetailsTab.css";
 import { validatePacket, fetchAvailablePacket } from "../../services/packetService";
+import {
+  applyLmsValuation,
+  findLmsMockCustomer,
+  lmsRequiredLtv,
+} from "../../data/lmsMockCustomers";
 import { BRANCHES } from "../../data/branches";
 
 const DEFAULT_LEAD_API_BASE =
@@ -207,9 +212,11 @@ const netWeightFor = (item) => {
   const deductions = deductionTotalFor(item);
   return Math.max(0, Number((gross - deductions).toFixed(2)));
 };
-const lendingRateFor = (item) => LENDING_RATE_BY_PURITY[item?.appraisal?.purity] || 0;
+const lendingRateFor = (item) =>
+  item?.lendingRateOverride || LENDING_RATE_BY_PURITY[item?.appraisal?.purity] || 0;
 const appraisedValueFor = (item) =>
   Math.round(netWeightFor(item) * lendingRateFor(item));
+
 const applicableLtvFor = (appraisedValue) => {
   const value = toNumber(appraisedValue) || 0;
   if (value <= 250000) return 85;
@@ -335,6 +342,11 @@ const Field = ({ label, required, error, helper, children, wide = false }) => (
 );
 
 const buildView = (leadDetails, lead) => {
+  const lmsApplicant = findLmsMockCustomer({
+    mobile: lead?.mobile,
+    firstName: lead?.firstName,
+    lastName: lead?.lastName,
+  });
   const application = leadDetails.applicationDetail || {};
   const details = application.details || {};
   const identity = leadDetails.customerIdentity || leadDetails.customerAuthenticationConsent || {};
@@ -364,7 +376,7 @@ const buildView = (leadDetails, lead) => {
     purpose: selectValue(leadDetails, ["facilityBranchLoanDetails.loanPurpose", "facilityBranchLoanDetails.purpose"], "—"),
     tenure: selectValue(leadDetails, ["facilityBranchLoanDetails.tenure", "facilityBranchLoanDetails.loan.tenure"], "—"),
     repaymentType: selectValue(leadDetails, ["facilityBranchLoanDetails.repaymentType", "facilityBranchLoanDetails.loan.repaymentType"], "—"),
-    requestedAmount: selectValue(leadDetails, ["facilityBranchLoanDetails.requestedLoanAmount", "facilityBranchLoanDetails.requestedAmount", "applicationDetail.requestedAmount"], 450000),
+    requestedAmount: selectValue(leadDetails, ["facilityBranchLoanDetails.productFacilityAndScheme.requestedLoanAmount", "facilityBranchLoanDetails.exposure.requestedLoanAmount", "facilityBranchLoanDetails.requestedLoanAmount", "facilityBranchLoanDetails.requestedAmount", "applicationDetail.requestedAmount"], 450000),
     existingExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.existingGoldLoanExposure", "facilityBranchLoanDetails.exposure.existingExposure"], 0),
     aggregateExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.aggregateGoldLoanExposure", "facilityBranchLoanDetails.exposure.aggregateExposure"], 0),
     chargesAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.chargesAccount", "facilityBranchLoanDetails.accounts.chargesAccount"], "XXXXXX4821"),
@@ -438,15 +450,16 @@ const buildView = (leadDetails, lead) => {
     appraiserSource && typeof appraiserSource === "object" ? appraiserSource : {};
   const appraisal = {
     status: selectValue(leadDetails, ["applicationDetail.details.jewelleryAppraisal.status", "applicationDetail.appraisal.status", "applicationDetail.jewelleryAppraisal.status"], application.status || "Awaiting Appraisal"),
-    items: normalizeItems(jewelleryItems),
+    items: applyLmsValuation(normalizeItems(jewelleryItems), lmsApplicant),
     appraiser: {
       name:
+        lmsApplicant?.appraiser.name ||
         appraiserObject.name ||
         appraiserObject.appraiserName ||
         (typeof appraiserSource === "string" ? appraiserSource : "") ||
         "Anant",
       email: appraiserObject.email || appraiserObject.appraiserEmail || "mohikumawat@deloitte.com",
-      id: appraiserObject.id || appraiserObject.appraiserId || "APR-YES-0142",
+      id: lmsApplicant?.appraiser.code || appraiserObject.id || appraiserObject.appraiserId || "APR-YES-0142",
       type: appraiserObject.type || appraiserObject.appraiserType || "Panel Jeweller",
       branch: appraiserObject.branch || appraiserObject.assignedBranch || loan.branch.name,
     },
@@ -467,7 +480,7 @@ const buildView = (leadDetails, lead) => {
   );
   const totalAppraisedValue =
     calculatedAppraisedValue || toNumber(eligibilitySource.schemeLendingValue) || 0;
-  const applicableLtv = applicableLtvFor(totalAppraisedValue);
+  const applicableLtv = Math.max(applicableLtvFor(totalAppraisedValue), lmsRequiredLtv(lmsApplicant));
   const ltvBasedValue = Math.round((totalAppraisedValue * applicableLtv) / 100);
   const availableExposureLimit =
     toNumber(eligibilitySource.availableExposureLimit) || 3500000;
@@ -494,7 +507,7 @@ const buildView = (leadDetails, lead) => {
     applicableLtv,
     maximumEligibleAmount,
     controllingLimit: eligibilitySource.controllingLimit || "Minimum of LTV value, appraised value and available exposure",
-    requiredAmount: makerSource.requiredAmount || eligibilitySource.requiredAmount || 450000,
+    requiredAmount: makerSource.requiredAmount || eligibilitySource.requiredAmount || loan.requestedAmount,
     recommendedAmount,
     disbursementAccount: makerSource.disbursementAccount || loan.disbursementAccount || "",
     makerComments: makerSource.makerComments || makerSource.comments || "Recommended based on verified net weight and maximum applicable LTV.",
@@ -537,6 +550,19 @@ export default function ApplicationDetailsTab({
     () => parseLeadDetails(lead?.leadDetails ?? lead?.lead_details),
     [lead?.leadDetails, lead?.lead_details],
   );
+  // The LMS team's mock numbers for this applicant, if their phone number or
+  // name was one they gave (src/data/lmsMockCustomers.js) - the loan account
+  // and packet shown below are theirs; otherwise the app's own placeholders.
+  const lmsCustomer = useMemo(
+    () =>
+      findLmsMockCustomer({
+        mobile: lead?.mobile,
+        firstName: lead?.firstName,
+        lastName: lead?.lastName,
+      }),
+    [lead?.mobile, lead?.firstName, lead?.lastName],
+  );
+  const demoLoanAccountNumber = lmsCustomer?.loanAccountNumber || DEMO_LOAN_ACCOUNT_NUMBER;
   const routeApplicationNumber =
     typeof window !== "undefined"
       ? decodeURIComponent(window.location.pathname.split("/").filter(Boolean).pop() || "")
@@ -992,7 +1018,7 @@ export default function ApplicationDetailsTab({
     setPacketRequestState("loading");
     setPacketRequestError("");
     try {
-      const result = await validatePacket({ packetId: manualPacketId.trim(), branch: packetBranch, packetSize });
+      const result = await validatePacket({ packetId: manualPacketId.trim(), branch: packetBranch, packetSize, preferredPacketId: lmsCustomer?.packetId });
       if (!result.available) {
         setPacketRequestState("error");
         setPacketRequestError(result.message || "This Packet ID is not available.");
@@ -1016,7 +1042,7 @@ export default function ApplicationDetailsTab({
     setPacketRequestState("loading");
     setPacketRequestError("");
     try {
-      const packet = await fetchAvailablePacket({ branch: packetBranch, packetSize });
+      const packet = await fetchAvailablePacket({ branch: packetBranch, packetSize, preferredPacketId: lmsCustomer?.packetId });
       setConfirmedPacket({ ...packet, source: "lms" });
       setPacketRequestState("success");
     } catch (error) {
@@ -1311,7 +1337,7 @@ export default function ApplicationDetailsTab({
           decidedAt: now,
           decidedBy: actor,
           cbsLoanAccountReference:
-            decision === "approve" ? DEMO_LOAN_ACCOUNT_NUMBER : null,
+            decision === "approve" ? demoLoanAccountNumber : null,
           loanAccountCreated: decision === "approve",
           loanAccountCreatedAt: decision === "approve" ? now : null,
           sanction:
@@ -1321,7 +1347,7 @@ export default function ApplicationDetailsTab({
                   amount: application.makerFinalisation?.recommendedAmount,
                   sanctionedAt: now,
                   sanctionedBy: actor,
-                  loanAccountNumber: DEMO_LOAN_ACCOUNT_NUMBER,
+                  loanAccountNumber: demoLoanAccountNumber,
                 }
               : { status: "Not Sanctioned" },
         };
@@ -1348,8 +1374,8 @@ export default function ApplicationDetailsTab({
                     amount: application.makerFinalisation?.recommendedAmount,
                     sanctionedAt: now,
                     checker: actor,
-                    cbsLoanAccountReference: DEMO_LOAN_ACCOUNT_NUMBER,
-                    loanAccountNumber: DEMO_LOAN_ACCOUNT_NUMBER,
+                    cbsLoanAccountReference: demoLoanAccountNumber,
+                    loanAccountNumber: demoLoanAccountNumber,
                   },
                 }
               : application.documentationDisbursement,
@@ -1360,7 +1386,7 @@ export default function ApplicationDetailsTab({
         title: decision === "approve" ? "Application approved and sanctioned" : decision === "pushback" ? "Application pushed back" : "Application rejected",
         description:
           decision === "approve"
-            ? `${checkerDraft.comments.trim()} Loan account ${DEMO_LOAN_ACCOUNT_NUMBER} created.`
+            ? `${checkerDraft.comments.trim()} Loan account ${demoLoanAccountNumber} created.`
             : decision === "pushback"
               ? checkerDraft.pushbackReason.trim()
               : decision === "reject"
@@ -1368,7 +1394,7 @@ export default function ApplicationDetailsTab({
                 : checkerDraft.comments.trim(),
         section: "Checker Decision",
         toStatus: decisionConfig.status,
-        metadata: decision === "approve" ? { loanAccountNumber: DEMO_LOAN_ACCOUNT_NUMBER } : {},
+        metadata: decision === "approve" ? { loanAccountNumber: demoLoanAccountNumber } : {},
       },
       true,
     );
@@ -1439,7 +1465,7 @@ export default function ApplicationDetailsTab({
           <span className="assignment-strip__icon"><Icon type="jewellery" /></span>
           <div>
             <small>Assigned appraiser</small>
-            <strong>Anant</strong>
+            <strong>{view.appraisal.appraiser.name}</strong>
             <span>{view.appraisal.appraiser.id} · {view.appraisal.appraiser.type} · {view.appraisal.appraiser.branch}</span>
           </div>
         </div>
@@ -1695,7 +1721,7 @@ export default function ApplicationDetailsTab({
                         setManualPacketId(event.target.value);
                         setValidationErrors((current) => ({ ...current, manualPacketId: "" }));
                       }}
-                      placeholder="e.g. PKT-00125"
+                      placeholder="e.g. 110000125"
                       disabled={packetRequestState === "loading"}
                     />
                   </Field>
@@ -1955,7 +1981,7 @@ export default function ApplicationDetailsTab({
     const loanAccountNumber =
       view.checker.cbsLoanAccountReference ||
       view.checker.sanction?.loanAccountNumber ||
-      DEMO_LOAN_ACCOUNT_NUMBER;
+      demoLoanAccountNumber;
 
     return (
       <section className="details-section checker-section">

@@ -10,17 +10,31 @@
 // function signatures and return shapes the same - the UI does not need to
 // change.
 
+import { LMS_MOCK_CUSTOMERS } from "../data/lmsMockCustomers";
+
 const MOCK_REQUEST_DELAY_MS = 900;
 
 // Edit this list to change what the mock "LMS" knows about: add/remove
 // packets, change branches/sizes, or flip status to "Allocated" to make a
-// packet unavailable for testing.
+// packet unavailable for testing. Ids follow the LMS team's mock numbering
+// (9 digits, 1100001xx); these are fabricated in that series.
 const mockPackets = [
-  { packetId: "PKT-00125", branch: "Pune - Deccan Gymkhana", packetSize: "Small", ornamentCount: 2, packetWeight: 25.4, status: "Available" },
-  { packetId: "PKT-00126", branch: "Pune - Deccan Gymkhana", packetSize: "Medium", ornamentCount: 3, packetWeight: 42.5, status: "Available" },
-  { packetId: "PKT-00127", branch: "Mumbai - Andheri East", packetSize: "Large", ornamentCount: 5, packetWeight: 78.2, status: "Available" },
-  { packetId: "PKT-00128", branch: "Pune - Deccan Gymkhana", packetSize: "Medium", ornamentCount: 4, packetWeight: 55.0, status: "Allocated" },
+  { packetId: "110000125", branch: "Pune - Deccan Gymkhana", packetSize: "Small", ornamentCount: 2, packetWeight: 25.4, status: "Available" },
+  { packetId: "110000126", branch: "Pune - Deccan Gymkhana", packetSize: "Medium", ornamentCount: 3, packetWeight: 42.5, status: "Available" },
+  { packetId: "110000127", branch: "Mumbai - Andheri East", packetSize: "Large", ornamentCount: 5, packetWeight: 78.2, status: "Available" },
+  { packetId: "110000128", branch: "Pune - Deccan Gymkhana", packetSize: "Medium", ornamentCount: 4, packetWeight: 55.0, status: "Allocated" },
 ];
+
+// The LMS team's own packets (see src/data/lmsMockCustomers.js). Each is
+// reserved for its own application: never handed out by a normal fetch, and
+// only accepted when that application asks for it via preferredPacketId. The
+// LMS data has no branch or size for them, so they take whatever the
+// appraiser selected; count and weight come from the LMS ornaments.
+const lmsPackets = LMS_MOCK_CUSTOMERS.map((entry) => ({
+  packetId: entry.packetId,
+  ornamentCount: entry.ornaments.reduce((sum, ornament) => sum + ornament.units, 0),
+  packetWeight: entry.ornaments.reduce((sum, ornament) => sum + ornament.grossWeight, 0),
+}));
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -32,12 +46,23 @@ const toPacketDetails = (packet) => ({
   packetWeight: packet.packetWeight,
 });
 
-export async function validatePacket({ packetId, branch, packetSize }) {
+const toLmsPacketDetails = (packet, { branch, packetSize }) =>
+  toPacketDetails({ ...packet, branch, packetSize });
+
+export async function validatePacket({ packetId, branch, packetSize, preferredPacketId }) {
   await delay(MOCK_REQUEST_DELAY_MS);
 
   // TODO(real LMS): replace this lookup with something like
   // POST /lms/packets/validate { packetId, branch, packetSize }
   const normalizedId = String(packetId || "").trim().toUpperCase();
+
+  const reserved = lmsPackets.find((entry) => entry.packetId === normalizedId);
+  if (reserved) {
+    return reserved.packetId === preferredPacketId
+      ? { available: true, packet: toLmsPacketDetails(reserved, { branch, packetSize }) }
+      : { available: false, message: `Packet ${reserved.packetId} is already allocated and unavailable.` };
+  }
+
   const packet = mockPackets.find((entry) => entry.packetId.toUpperCase() === normalizedId);
 
   if (!packet) {
@@ -56,11 +81,14 @@ export async function validatePacket({ packetId, branch, packetSize }) {
   return { available: true, packet: toPacketDetails(packet) };
 }
 
-export async function fetchAvailablePacket({ branch, packetSize }) {
+export async function fetchAvailablePacket({ branch, packetSize, preferredPacketId }) {
   await delay(MOCK_REQUEST_DELAY_MS);
 
   // TODO(real LMS): replace this lookup with something like
   // GET /lms/packets/available?branch=...&packetSize=...
+  const reserved = lmsPackets.find((entry) => entry.packetId === preferredPacketId);
+  if (reserved) return toLmsPacketDetails(reserved, { branch, packetSize });
+
   const packet = mockPackets.find(
     (entry) => entry.branch === branch && entry.packetSize === packetSize && entry.status === "Available",
   );

@@ -168,9 +168,9 @@
       "persona": "Appraiser",
       "fields": {
         "branch": { "value": "Pune - Deccan Gymkhana", "source": "ENTERED (default)", "note": "Defaults to the application's real home branch (Page 3)." },
-        "packetSize": { "value": "Medium", "source": "ENTERED", "note": "Closest match to our real 3 ornaments (PKT-00126)." },
+        "packetSize": { "value": "Medium", "source": "ENTERED", "note": "Closest match to our real 3 ornaments (110000126)." },
         "selectionMethod": { "value": "Fetch available packet from LMS", "source": "ENTERED" },
-        "allocatedPacketId": { "value": "PKT-00126", "source": "APP MOCK (packetService.js)" },
+        "allocatedPacketId": { "value": "110000126", "source": "APP MOCK (packetService.js)" },
         "ornamentCountShown": { "value": 3, "source": "COMPUTED", "note": "1 necklace + 2 earrings, from the real appraisal items on Page 5." },
         "packetWeightShown": { "value": 65, "unit": "g", "source": "COMPUTED", "note": "Real total gross weight from Page 5, not the mock packet's own hardcoded 42.5g." }
       },

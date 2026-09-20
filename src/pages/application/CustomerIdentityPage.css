@@ -508,6 +508,79 @@
   gap: 2px;
 }
 
+.glci-eas-account-actions {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.glci-eas-topup-button {
+  min-height: 28px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  background: linear-gradient(135deg, #00518f, #176cc7);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  box-shadow: 0 3px 8px rgba(11, 67, 143, 0.18);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.14s, box-shadow 0.14s;
+}
+
+.glci-eas-topup-button span {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.glci-eas-topup-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(11, 67, 143, 0.22);
+}
+
+.glci-eas-topup-chip {
+  min-height: 28px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #147a52;
+  background: #e8f6ee;
+  border: 1px solid #b9e0cb;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.glci-eas-topup-undo {
+  padding: 0;
+  color: #64748b;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.glci-eas-topup-undo:hover {
+  color: #b42318;
+}
+
+.glci-eas-topup-note {
+  margin-top: 2px;
+  color: #147a52;
+  font-size: 0.64rem;
+  font-weight: 600;
+}
+
 .glci-eas-collateral-toggle {
   align-self: flex-start;
   margin-top: 2px;

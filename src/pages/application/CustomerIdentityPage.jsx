@@ -6,6 +6,7 @@ import {
 } from "../../services/whatsAppService";
 import { getCustomer360 } from "../../services/customer360Service";
 import { getAccountCollateral } from "../../services/account360Service";
+import CustomerDetailsPanel from "./CustomerDetailsPanel";
 
 const CONSENT_WAIT_SECONDS = 7;
 const DEFAULT_LEAD_API_BASE =
@@ -1089,6 +1090,7 @@ function CustomerIdentity({
         .status !== "Saved",
   );
   const [isAddressIdentityEditing, setIsAddressIdentityEditing] = useState(false);
+  const [customerPanelOpen, setCustomerPanelOpen] = useState(false);
   const [expandedCollateralAccountId, setExpandedCollateralAccountId] = useState(null);
   const [collateralByAccountId, setCollateralByAccountId] = useState({});
   const uploadTimers = useRef([]);
@@ -1346,6 +1348,14 @@ function CustomerIdentity({
     sectionKey,
     stepComplete,
   ]);
+
+  // Recorded on the customerIdentity node; Step 2 reads it and starts with
+  // this account's top-up already accepted.
+  const toggleTopUp = (accountId) => {
+    updateNode("customerIdentity", {
+      topUpAccountId: identityNode.topUpAccountId === accountId ? "" : accountId,
+    });
+  };
 
   const toggleCollateral = (accountId) => {
     setExpandedCollateralAccountId((current) => (current === accountId ? null : accountId));
@@ -2041,6 +2051,13 @@ function CustomerIdentity({
                 >
                   Update match
                 </button>
+                <button
+                  type="button"
+                  className="glci-secondary-button"
+                  onClick={() => setCustomerPanelOpen(true)}
+                >
+                  Customer details
+                </button>
               </div>
             </div>
           ) : null}
@@ -2068,6 +2085,8 @@ function CustomerIdentity({
                   const isGoldLoan = /gold/i.test(account.productName || "");
                   const isCollateralExpanded = expandedCollateralAccountId === account.accountId;
                   const collateralDetails = collateralByAccountId[account.accountId];
+                  const canTopUp = isGoldLoan && !/closed/i.test(account.currentStatusDescription || "");
+                  const isTopUpSelected = identityNode.topUpAccountId === account.accountId;
                   return (
                     <div className="glci-eas-account-row-group" key={account.accountId}>
                       <div className="glci-eas-account-row">
@@ -2075,13 +2094,43 @@ function CustomerIdentity({
                           <span className="glci-eas-account-product">{account.productName}</span>
                           <span className="glci-eas-account-id">{account.accountId.trim()} · {account.branchName}</span>
                           {isGoldLoan && (
-                            <button
-                              type="button"
-                              className="glci-eas-collateral-toggle"
-                              onClick={() => toggleCollateral(account.accountId)}
-                            >
-                              {isCollateralExpanded ? "Hide pledged ornaments ▲" : "View pledged ornaments ▾"}
-                            </button>
+                            <div className="glci-eas-account-actions">
+                              <button
+                                type="button"
+                                className="glci-eas-collateral-toggle"
+                                onClick={() => toggleCollateral(account.accountId)}
+                              >
+                                {isCollateralExpanded ? "Hide pledged ornaments ▲" : "View pledged ornaments ▾"}
+                              </button>
+                              {canTopUp && !isTopUpSelected && (
+                                <button
+                                  type="button"
+                                  className="glci-eas-topup-button"
+                                  onClick={() => toggleTopUp(account.accountId)}
+                                >
+                                  <span aria-hidden="true">+</span> Top up this account
+                                </button>
+                              )}
+                              {canTopUp && isTopUpSelected && (
+                                <>
+                                  <span className="glci-eas-topup-chip">
+                                    <CheckIcon size={11} /> Top-up selected
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="glci-eas-topup-undo"
+                                    onClick={() => toggleTopUp(account.accountId)}
+                                  >
+                                    Undo
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          {isTopUpSelected && (
+                            <span className="glci-eas-topup-note">
+                              Step 2 will add to this account instead of opening a new facility.
+                            </span>
                           )}
                         </div>
                         <strong className="glci-eas-stat-value">{formatINR(account.currentBalance)}</strong>
@@ -3031,6 +3080,14 @@ function CustomerIdentity({
           </p>
         </div>
       </footer>
+
+      <CustomerDetailsPanel
+        open={customerPanelOpen}
+        onClose={() => setCustomerPanelOpen(false)}
+        lead={{ ...lead, leadDetails: leadDetailsJson }}
+        customerName={customer.fullName}
+        relationshipType={customerType}
+      />
     </div>
   );
 }

@@ -232,6 +232,59 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value) || 0);
 
+// A top-up candidate is an OPEN gold loan of the chosen product type. A
+// customer can hold several "Retail" products (MSME, vehicle...) that
+// aren't gold loans, and a closed account has nothing left to top up.
+const isTopUpCandidate = (account, productType) =>
+  Boolean(productType) &&
+  account.productType === productType &&
+  /gold/i.test(account.productName || "") &&
+  !/closed/i.test(account.currentStatusDescription || "");
+
+// Existing accounts for an ETB customer, plus the account (if any) whose
+// "Top up this account" button was pressed on Stage 1.
+const getExistingAccounts = (rawLeadDetails) => {
+  const identity = parseLeadDetails(rawLeadDetails).customerIdentity || {};
+  const accountsDto =
+    identity.customerType === "ETB"
+      ? identity.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO
+      : null;
+  return {
+    loans: accountsDto?.xfaceAccountDetailsforCustomerDTO || [],
+    overdrafts: accountsDto?.xfaceODDetailsDTO || [],
+    topUpIntentAccountId: identity.topUpAccountId || "",
+  };
+};
+
+// A top-up must be opened at the branch that already holds the account, so
+// picking one overrides the branch selection (when that branch is one of
+// our own BRANCHES; otherwise there's nothing concrete to lock to).
+const topUpBranchFields = (account, homeBranch) => {
+  const branch = account ? BRANCHES.find((entry) => entry.code === account.branchCode) : null;
+  if (!branch) return {};
+  return branch.code === homeBranch.code
+    ? { branchType: "Home", pinCode: homeBranch.pinCode, selectedBranchCode: homeBranch.code }
+    : { branchType: "Other", pinCode: branch.pinCode, selectedBranchCode: branch.code };
+};
+
+// Existing loans come from Customer360's loan list (overdrafts sit in a
+// separate list), so an account being topped up is always a term loan.
+const TOP_UP_SCHEME = "Term Loan";
+
+// Everything a top-up decides for the form: the account itself, its product
+// and scheme, and its branch. Purpose/tenure/repayment type aren't in
+// Customer360, so they stay with the Maker (cleared only if the product or
+// scheme actually changes underneath them).
+const topUpFormFields = (account, homeBranch, current) => ({
+  topUpAccountId: account.accountId,
+  productType: account.productType,
+  schemeName: TOP_UP_SCHEME,
+  ...(current.productType !== account.productType || current.schemeName !== TOP_UP_SCHEME
+    ? { purpose: "", tenure: "", repaymentType: "" }
+    : {}),
+  ...topUpBranchFields(account, homeBranch),
+});
+
 const getStoredStepNode = (lead, stepData, sectionKey) => {
   const leadDetails = parseLeadDetails(lead?.leadDetails ?? lead?.lead_details);
   return leadDetails?.[sectionKey] || stepData?.[sectionKey] || stepData || {};
@@ -255,6 +308,21 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
   const storedItems = Array.isArray(stored.jewelleryItems) && stored.jewelleryItems.length > 0
     ? stored.jewelleryItems.map(normalizeJewelleryItem)
     : [createJewelleryItem(1)];
+
+  // Stage 1's "Top up this account" carries into Step 2 as an already-
+  // accepted top-up - unless Step 2 already has its own stored choice.
+  const { loans, topUpIntentAccountId } = getExistingAccounts(lead?.leadDetails ?? lead?.lead_details);
+  const storedTopUpAccountId = stored.topUp?.accountId || "";
+  const intentAccount =
+    !storedTopUpAccountId && topUpIntentAccountId
+      ? loans.find(
+          (account) =>
+            account.accountId === topUpIntentAccountId &&
+            isTopUpCandidate(account, account.productType) &&
+            (!productType || account.productType === productType) &&
+            (!schemeName || schemeName === TOP_UP_SCHEME),
+        ) || null
+      : null;
 
   return {
     branchType,
@@ -281,7 +349,10 @@ const buildInitialForm = ({ lead, stepData, sectionKey, homeBranch }) => {
     // ETB Step 8 (part 1): which existing account, if any, this facility is
     // topping up. Empty means "new facility" - the default, unchanged
     // behavior for everyone until explicitly chosen otherwise.
-    topUpAccountId: stored.topUp?.accountId || "",
+    topUpAccountId: storedTopUpAccountId,
+    ...(intentAccount
+      ? topUpFormFields(intentAccount, homeBranch, { productType, schemeName })
+      : {}),
   };
 };
 
@@ -380,16 +451,14 @@ function FacilityBranchLoanDetailsPage({
   // for Step 8's top-up matching, which doesn't apply to an OD account),
   // but computed alongside it in one memo - its balance is real existing
   // exposure too, and was missing from the sum entirely.
-  const { existingLoanAccounts, existingOdAccounts } = useMemo(() => {
-    const leadDetailsForExposure = parseLeadDetails(lead?.leadDetails ?? lead?.lead_details);
-    const identityForExposure = leadDetailsForExposure.customerIdentity || {};
-    const accountsDto =
-      identityForExposure.customerType === "ETB"
-        ? identityForExposure.matchedCustomer?.customer360?.xfaceCustomerAccountDetailsDTO
-        : null;
+  const { existingLoanAccounts, existingOdAccounts, topUpIntentAccountId } = useMemo(() => {
+    const { loans, overdrafts, topUpIntentAccountId: intentAccountId } = getExistingAccounts(
+      lead?.leadDetails ?? lead?.lead_details,
+    );
     return {
-      existingLoanAccounts: accountsDto?.xfaceAccountDetailsforCustomerDTO || [],
-      existingOdAccounts: accountsDto?.xfaceODDetailsDTO || [],
+      existingLoanAccounts: loans,
+      existingOdAccounts: overdrafts,
+      topUpIntentAccountId: intentAccountId,
     };
   }, [lead?.leadDetails, lead?.lead_details]);
   const existingOutstanding =
@@ -412,18 +481,26 @@ function FacilityBranchLoanDetailsPage({
   // convention across products in the data we have). A CLOSED account
   // (e.g. Deepak's old gold loan) is also excluded - there's nothing to
   // top up once an account is closed and its collateral released.
-  const matchingTopUpAccount = useMemo(
-    () =>
-      form.productType
-        ? existingLoanAccounts.find(
-            (account) =>
-              account.productType === form.productType &&
-              /gold/i.test(account.productName || "") &&
-              !/closed/i.test(account.currentStatusDescription || ""),
-          ) || null
-        : null,
-    [existingLoanAccounts, form.productType],
-  );
+  // When several accounts qualify, the one picked on Stage 1 wins. With no
+  // product chosen yet, only that Stage 1 pick is offered - otherwise
+  // "Change" on a pre-accepted top-up would leave nothing on screen.
+  // A top-up is only ever a term loan (see TOP_UP_SCHEME), so an Over Draft
+  // scheme never matches.
+  const matchingTopUpAccount = useMemo(() => {
+    if (form.schemeName && form.schemeName !== TOP_UP_SCHEME) return null;
+    const candidates = form.productType
+      ? existingLoanAccounts.filter((account) => isTopUpCandidate(account, form.productType))
+      : existingLoanAccounts.filter(
+          (account) =>
+            account.accountId === topUpIntentAccountId &&
+            isTopUpCandidate(account, account.productType),
+        );
+    return (
+      candidates.find((account) => account.accountId === topUpIntentAccountId) ||
+      candidates[0] ||
+      null
+    );
+  }, [existingLoanAccounts, form.productType, form.schemeName, topUpIntentAccountId]);
 
   // ETB Step 8 (part 2): a top-up isn't opened at a branch of the
   // Maker's choosing - it has to be the branch that already holds the
@@ -431,12 +508,38 @@ function FacilityBranchLoanDetailsPage({
   // list; if the account's own branch code isn't one of our demo
   // branches, there's nothing concrete to lock the selector to, so
   // branch selection is left as a free choice.
-  const topUpBranch = useMemo(() => {
-    if (!matchingTopUpAccount) return null;
-    return BRANCHES.find((branch) => branch.code === matchingTopUpAccount.branchCode) || null;
-  }, [matchingTopUpAccount]);
+  const topUpAccount = useMemo(
+    () => existingLoanAccounts.find((account) => account.accountId === form.topUpAccountId) || null,
+    [existingLoanAccounts, form.topUpAccountId],
+  );
+  const topUpBranch = useMemo(
+    () => (topUpAccount ? BRANCHES.find((branch) => branch.code === topUpAccount.branchCode) || null : null),
+    [topUpAccount],
+  );
 
   const branchLockedForTopUp = Boolean(form.topUpAccountId && topUpBranch);
+
+  // Stage 1's top-up choice reaches this step even while it's already open
+  // (and undoing it on Stage 1 undoes it here) - not only on first load,
+  // and without waiting for a product to be picked.
+  const [appliedIntentId, setAppliedIntentId] = useState(topUpIntentAccountId);
+  if (appliedIntentId !== topUpIntentAccountId) {
+    setAppliedIntentId(topUpIntentAccountId);
+    const intentAccount =
+      existingLoanAccounts.find(
+        (account) =>
+          account.accountId === topUpIntentAccountId &&
+          isTopUpCandidate(account, account.productType) &&
+          (!form.productType || account.productType === form.productType) &&
+          (!form.schemeName || form.schemeName === TOP_UP_SCHEME),
+      ) || null;
+    setForm((current) => {
+      if (intentAccount) {
+        return { ...current, ...topUpFormFields(intentAccount, homeBranch, current) };
+      }
+      return current.topUpAccountId === appliedIntentId ? { ...current, topUpAccountId: "" } : current;
+    });
+  }
 
   const branchComplete = Boolean(
     selectedBranch?.code &&
@@ -601,6 +704,13 @@ function FacilityBranchLoanDetailsPage({
     const value = event.target.value;
     setTopUpPromptDismissed(false);
     if (!value || value === "||") {
+      // Back to "no product chosen": a Stage 1 top-up choice still stands.
+      const intentAccount =
+        existingLoanAccounts.find(
+          (account) =>
+            account.accountId === topUpIntentAccountId &&
+            isTopUpCandidate(account, account.productType),
+        ) || null;
       setForm((current) => ({
         ...current,
         productType: "",
@@ -608,12 +718,22 @@ function FacilityBranchLoanDetailsPage({
         purpose: "",
         tenure: "",
         repaymentType: "",
-        topUpAccountId: "",
+        topUpAccountId: intentAccount?.accountId || "",
       }));
       return;
     }
 
     const [productType, schemeName, purpose] = value.split("|");
+
+    // The account picked on Stage 1 is pre-accepted once a matching product
+    // is chosen here; any other product starts without a top-up.
+    const intentAccount =
+      existingLoanAccounts.find(
+        (account) =>
+          account.accountId === topUpIntentAccountId &&
+          schemeName === TOP_UP_SCHEME &&
+          isTopUpCandidate(account, productType),
+      ) || null;
 
     setForm((current) => ({
       ...current,
@@ -622,7 +742,8 @@ function FacilityBranchLoanDetailsPage({
       purpose,
       tenure: "",
       repaymentType: "",
-      topUpAccountId: "",
+      topUpAccountId: intentAccount?.accountId || "",
+      ...topUpBranchFields(intentAccount, homeBranch),
     }));
   };
 
@@ -630,12 +751,7 @@ function FacilityBranchLoanDetailsPage({
     if (!matchingTopUpAccount) return;
     setForm((current) => ({
       ...current,
-      topUpAccountId: matchingTopUpAccount.accountId,
-      ...(topUpBranch
-        ? topUpBranch.code === homeBranch.code
-          ? { branchType: "Home", pinCode: homeBranch.pinCode, selectedBranchCode: homeBranch.code }
-          : { branchType: "Other", pinCode: topUpBranch.pinCode, selectedBranchCode: topUpBranch.code }
-        : {}),
+      ...topUpFormFields(matchingTopUpAccount, homeBranch, current),
     }));
   };
 
@@ -648,6 +764,7 @@ function FacilityBranchLoanDetailsPage({
   // it must NOT set topUpPromptDismissed, or the original prompt would stay
   // hidden and nothing would show at all.
   const changeTopUp = () => {
+    setTopUpPromptDismissed(false);
     setForm((current) => ({ ...current, topUpAccountId: "" }));
   };
 
@@ -896,13 +1013,18 @@ function FacilityBranchLoanDetailsPage({
             <span>Product, Scheme & Purpose *</span>
             <select
               value={
-                form.productType && form.schemeName && form.purpose
+                form.productType && form.schemeName
                   ? `${form.productType}|${form.schemeName}|${form.purpose}`
                   : "||"
               }
               onChange={handleCombinedConfigChange}
             >
               <option value="||">Select Product, Scheme & Purpose</option>
+              {form.productType && form.schemeName && !form.purpose && (
+                <option value={`${form.productType}|${form.schemeName}|`} disabled>
+                  {facility?.label} - {form.schemeName} (select purpose)
+                </option>
+              )}
 
               {Object.entries(FACILITY_OPTIONS).map(([productKey, facilityConfig]) => (
                 <optgroup label={facilityConfig.label} key={productKey}>
@@ -995,7 +1117,9 @@ function FacilityBranchLoanDetailsPage({
         {matchingTopUpAccount && !form.topUpAccountId && !topUpPromptDismissed && (
           <div className="fbl-topup-prompt">
             <div>
-              <strong>Existing {facility?.label} found</strong>
+              <strong>
+                Existing {facility?.label || FACILITY_OPTIONS[matchingTopUpAccount.productType]?.label || "gold loan"} found
+              </strong>
               <p>
                 This customer already has account {matchingTopUpAccount.accountId.trim()} (outstanding{" "}
                 {formatCurrency(matchingTopUpAccount.currentBalance)}). Top this up instead of opening a new facility?
@@ -1024,7 +1148,11 @@ function FacilityBranchLoanDetailsPage({
             <span><CheckIcon /></span>
             <div>
               <strong>Topping up account {form.topUpAccountId}</strong>
-              <p>The requested amount adds to this existing facility, not a new one.</p>
+              <p>
+                {form.purpose
+                  ? "The requested amount adds to this existing facility, not a new one."
+                  : "Product and scheme are set from this account. Choose the purpose, tenure and repayment type above - the requested amount adds to this existing facility."}
+              </p>
             </div>
             <button type="button" className="fbl-topup-change" onClick={changeTopUp}>Change</button>
           </div>

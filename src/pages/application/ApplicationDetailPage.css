@@ -306,6 +306,30 @@
   border: 1px solid rgba(159, 213, 250, 0.28);
 }
 
+.application-customer-button {
+  padding: 7px 13px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.application-customer-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.application-customer-button:focus-visible {
+  outline: 2px solid #e9c66e;
+  outline-offset: 2px;
+}
+
 .application-context-metrics {
   position: relative;
   z-index: 1;

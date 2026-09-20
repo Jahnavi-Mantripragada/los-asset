@@ -13,6 +13,7 @@ import {
 import ApplicationSummaryTab from "./ApplicationSummaryTab";
 import ApplicationDetailsTab from "./ApplicationDetailsTab";
 import DocumentationDisbursementTab from "./DocumentationDisbursementTab";
+import CustomerDetailsPanel from "./CustomerDetailsPanel";
 import "./ApplicationDetailPage.css";
 
 const LEAD_API =
@@ -657,6 +658,7 @@ function ApplicationDetailPage({
   const [activeTab, setActiveTab] = useState("summary");
   const [requestedSection, setRequestedSection] = useState("");
   const [activityExpanded, setActivityExpanded] = useState(false);
+  const [customerPanelOpen, setCustomerPanelOpen] = useState(false);
 
   const leadRef = useRef(null);
   const detailsRef = useRef({});
@@ -1188,6 +1190,13 @@ function ApplicationDetailPage({
                 <span className="application-badge status">
                   {applicationDetail.status || lead?.status || "In progress"}
                 </span>
+                <button
+                  type="button"
+                  className="application-customer-button"
+                  onClick={() => setCustomerPanelOpen(true)}
+                >
+                  Customer details
+                </button>
               </div>
             </div>
           </div>
@@ -1396,6 +1405,14 @@ function ApplicationDetailPage({
           </aside>
         </div>
       </main>
+
+      <CustomerDetailsPanel
+        open={customerPanelOpen}
+        onClose={() => setCustomerPanelOpen(false)}
+        lead={lead}
+        customerName={customerName}
+        relationshipType={resolvedRelationshipType}
+      />
     </div>
   );
 }

@@ -1,0 +1,485 @@
+/* Half-page customer details drawer. Header, backdrop and close button mirror
+   the Quick Gold Loan drawer (DashboardPage.css .create-lead-drawer); cards
+   mirror ApplicationSummaryTab.css's .summary-section. */
+
+.cdp-backdrop {
+  --adp-blue-950: #052f52;
+  --adp-blue-800: #00518f;
+  --adp-blue-700: #096ba8;
+  --adp-red: #c4261d;
+  --adp-ink: #172536;
+  --adp-muted: #647487;
+  --adp-line: #dce4ec;
+  --adp-bg: #f3f6f9;
+
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 38, 66, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: cdpFadeIn 0.2s ease;
+}
+
+.cdp-backdrop *,
+.cdp-backdrop *::before,
+.cdp-backdrop *::after {
+  box-sizing: border-box;
+}
+
+.cdp-panel {
+  width: 50vw;
+  min-width: 520px;
+  max-width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  box-shadow: -16px 0 60px rgba(0, 48, 84, 0.2);
+  animation: cdpSlideIn 0.26s ease;
+}
+
+.cdp-header {
+  position: relative;
+  padding: 24px 26px 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--adp-line);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(0, 81, 143, 0.08), transparent 32%),
+    #ffffff;
+}
+
+.cdp-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--adp-blue-800) 0 82%, var(--adp-red) 82% 100%);
+}
+
+.cdp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+  color: var(--adp-blue-800);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cdp-eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--adp-blue-800);
+  opacity: 0.6;
+}
+
+.cdp-header h2 {
+  margin: 0;
+  color: var(--adp-ink);
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.4px;
+}
+
+.cdp-header p {
+  margin: 6px 0 0;
+  color: var(--adp-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.cdp-close {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--adp-line);
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--adp-muted);
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.cdp-close:hover {
+  transform: translateY(-1px);
+  background: #fceae8;
+  border-color: rgba(196, 38, 29, 0.2);
+  color: var(--adp-red);
+}
+
+.cdp-close:focus-visible {
+  outline: 2px solid var(--adp-blue-700);
+  outline-offset: 2px;
+}
+
+.cdp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--adp-bg);
+}
+
+/* Flex children shrink by default, and the hero/cards clip their overflow -
+   without this they collapse to a sliver once the body has enough content
+   to scroll. */
+.cdp-body > * {
+  flex-shrink: 0;
+}
+
+.cdp-hero {
+  position: relative;
+  min-height: 88px;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(8, 117, 181, 0.45), transparent 35%),
+    linear-gradient(135deg, var(--adp-blue-950), var(--adp-blue-800));
+  border-radius: 15px;
+  box-shadow: 0 10px 24px rgba(0, 81, 143, 0.16);
+}
+
+.cdp-hero::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 72px;
+  height: 4px;
+  background: var(--adp-red);
+}
+
+.cdp-avatar {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(247, 205, 104, 0.4);
+  border-radius: 14px;
+  color: #f7cd68;
+  background: rgba(227, 170, 50, 0.13);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.cdp-hero-copy {
+  min-width: 0;
+}
+
+.cdp-hero-copy span,
+.cdp-hero-copy strong,
+.cdp-hero-copy p {
+  display: block;
+}
+
+.cdp-hero-copy span {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cdp-hero-copy strong {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cdp-hero-copy p {
+  margin: 3px 0 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 11px;
+}
+
+.cdp-hero-pills {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.cdp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cdp-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8ee0ad;
+  box-shadow: 0 0 8px rgba(142, 224, 173, 0.7);
+}
+
+.cdp-card {
+  padding: 18px 20px 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.cdp-card-header {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--adp-blue-800);
+}
+
+.cdp-card-header span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--adp-blue-800);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cdp-card-header h3 {
+  margin: 0;
+  color: var(--adp-ink);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.cdp-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+
+.cdp-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cdp-field.is-full {
+  grid-column: 1 / -1;
+}
+
+.cdp-field span {
+  color: var(--adp-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cdp-field strong {
+  color: var(--adp-ink);
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.cdp-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cdp-flags {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cdp-flag {
+  padding: 9px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #d3eadf;
+  border-radius: 9px;
+  color: var(--adp-ink);
+  background: #f2faf6;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.cdp-flag b {
+  color: #147a52;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.cdp-flag.is-alert {
+  border-color: #f2c9c5;
+  background: #fff0ee;
+}
+
+.cdp-flag.is-alert b {
+  color: #b42318;
+}
+
+.cdp-flag.is-info {
+  border-color: #cfe0ee;
+  background: #eaf4fb;
+}
+
+.cdp-flag.is-info b {
+  color: var(--adp-blue-800);
+}
+
+.cdp-table {
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  color: var(--adp-ink);
+  font-size: 0.8rem;
+}
+
+.cdp-table-head {
+  padding: 0 12px 2px;
+  background: none;
+  border: none;
+  color: var(--adp-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cdp-account {
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #edf1f5;
+  border-radius: 10px;
+}
+
+.cdp-account-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cdp-account-main strong {
+  color: var(--adp-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cdp-account-main span {
+  color: var(--adp-muted);
+  font-size: 0.68rem;
+}
+
+.cdp-account-stats {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cdp-account-stats span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cdp-account-stats small {
+  color: var(--adp-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cdp-account-stats b {
+  color: var(--adp-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cdp-account-meta {
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid #e6ecf1;
+  color: var(--adp-muted);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+@keyframes cdpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cdpSlideIn {
+  from { transform: translateX(40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-width: 720px) {
+  .cdp-panel {
+    width: 100vw;
+    min-width: 0;
+  }
+
+  .cdp-hero {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .cdp-hero-pills {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .cdp-fields,
+  .cdp-flags {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cdp-flags {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

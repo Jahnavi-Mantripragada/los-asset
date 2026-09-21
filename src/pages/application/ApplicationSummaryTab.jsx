@@ -250,6 +250,7 @@ const buildSummary = (details, lead) => {
     customer: {
       customerType,
       customerId: matchedCustomer.customerId || (customerType === "NTB" ? "Created during onboarding" : ""),
+      casaNumber: matchedCustomer.casaNumber || "",
       firstName: borrowerDetails.firstName || matchedCustomer.firstName || lead?.firstName || "",
       middleName: borrowerDetails.middleName || matchedCustomer.middleName || lead?.middleName || "",
       lastName: borrowerDetails.lastName || matchedCustomer.lastName || lead?.lastName || "",
@@ -529,6 +530,7 @@ export default function ApplicationSummaryTab({
             <div className="summary-form-grid">
               <Input label="Customer type" value={customerDraft.customerType} readOnly onChange={() => {}} />
               <Input label="CBS Customer ID" value={customerDraft.customerId} readOnly onChange={() => {}} />
+              <Input label="CASA account" value={customerDraft.casaNumber} readOnly onChange={() => {}} />
               <Input label="First name" value={customerDraft.firstName} onChange={(value) => updateDraft(setCustomerDraft, "firstName", value)} />
               <Input label="Middle name" value={customerDraft.middleName} onChange={(value) => updateDraft(setCustomerDraft, "middleName", value)} />
               <Input label="Last name" value={customerDraft.lastName} onChange={(value) => updateDraft(setCustomerDraft, "lastName", value)} />
@@ -549,6 +551,7 @@ export default function ApplicationSummaryTab({
             <div className="summary-details-list">
               <Detail label="Customer type" value={summary.customer.customerType} />
               <Detail label="CBS Customer ID" value={summary.customer.customerId} />
+              <Detail label="CASA account" value={summary.customer.casaNumber} />
               <Detail label="Customer name" value={customerName} />
               <Detail label="Date of birth" value={summary.customer.dateOfBirth} />
               <Detail label="Gender" value={summary.customer.gender} />

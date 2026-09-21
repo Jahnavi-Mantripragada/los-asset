@@ -23,7 +23,7 @@ export const LMS_MOCK_CUSTOMERS = [
     lmsShortName: "Shivanjali",
     customerId: "605284",
     pan: "CIJPG1213N", // her NTB demo PAN - not in the LMS data; used by the mock PAN-card scan
-    casaNumber: "",
+    casaNumber: "50100000000481", // given for 605284
     loanAccountNumber: "51000000321211",
     packetId: "110000122",
     collateralId: "GOLDCOLL1",
@@ -102,17 +102,17 @@ export const parseLmsProductName = (productName) => {
   return { productType: productKey, repaymentType, purpose: match[3].trim() };
 };
 
-// App-facing customer id for an LMS customer: YESC + the 8-digit CBS id
-// (605284 -> YESC00605284), the same shape the app generates for others.
-export const toAppCustomerId = (lmsCustomer) =>
-  `YESC${lmsCustomer.customerId.padStart(8, "0")}`;
+// The customer id LOS shows for an LMS customer is exactly the id LMS holds
+// (605284) - no prefix - so what is typed into a sheet matches theirs.
+export const toAppCustomerId = (lmsCustomer) => lmsCustomer.customerId;
 
 // Demo bridge, no real LOS -> LMS integration yet: each ornament of an LMS
-// applicant is valued at the LMS valuation amount (their figures aren't
-// derivable from net weight x a rate), so LOS shows what LMS holds. Done as a
-// per-ornament rate = LMS valuation / LMS net weight, which lands exactly on
-// their figure when the LMS net weight is what the appraiser enters. Items
-// are matched by ornament type ("Gold Necklace" <-> "Necklace").
+// applicant shows the LMS lending rate (MARKET_VALUE) verbatim and is valued
+// at the LMS VALUATION_AMOUNT. Their figures don't multiply out (13000 x 10g
+// is not 1,50,000), so the value is carried separately, as a per-gram figure
+// = LMS valuation / LMS net weight, which lands exactly on their valuation
+// when the LMS net weight is what the appraiser enters. Items are matched by
+// ornament type ("Gold Necklace" <-> "Necklace").
 export const applyLmsValuation = (items, lmsApplicant) => {
   if (!lmsApplicant) return items;
   return items.map((item) => {
@@ -122,7 +122,11 @@ export const applyLmsValuation = (items, lmsApplicant) => {
       .trim();
     const ornament = lmsApplicant.ornaments.find((entry) => entry.description.toLowerCase() === key);
     return ornament
-      ? { ...item, lendingRateOverride: ornament.valuationAmount / ornament.netWeight }
+      ? {
+          ...item,
+          lendingRateOverride: ornament.marketValue,
+          valuationPerGramOverride: ornament.valuationAmount / ornament.netWeight,
+        }
       : item;
   });
 };

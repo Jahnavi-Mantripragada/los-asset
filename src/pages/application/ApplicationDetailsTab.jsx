@@ -214,8 +214,10 @@ const netWeightFor = (item) => {
 };
 const lendingRateFor = (item) =>
   item?.lendingRateOverride || LENDING_RATE_BY_PURITY[item?.appraisal?.purity] || 0;
+// An LMS customer's ornaments carry their own valuation per gram (see
+// applyLmsValuation); everyone else is valued at the lending rate shown.
 const appraisedValueFor = (item) =>
-  Math.round(netWeightFor(item) * lendingRateFor(item));
+  Math.round(netWeightFor(item) * (item?.valuationPerGramOverride ?? lendingRateFor(item)));
 
 const applicableLtvFor = (appraisedValue) => {
   const value = toNumber(appraisedValue) || 0;

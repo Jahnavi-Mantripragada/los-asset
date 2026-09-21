@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./FacilityBranchLoanDetailsPage.css";
 import { BRANCHES } from "../../data/branches";
+import { findLmsMockCustomer, findLmsOrnament } from "../../data/lmsMockCustomers";
 
 const LEAD_DETAILS_API_BASE =
   "https://700pag34e9.execute-api.ap-south-1.amazonaws.com/prod/leads";
@@ -395,6 +396,29 @@ function FacilityBranchLoanDetailsPage({
       jewelleryComplete
   );
 
+  // For an applicant on the LMS team's list, the lending rate of each ornament
+  // (once its quality is chosen) is the rate LMS holds for it, not the
+  // standard per-karat rate - shown here and saved with the item.
+  const lmsApplicant = useMemo(
+    () =>
+      findLmsMockCustomer({
+        mobile: lead?.mobile,
+        firstName: lead?.firstName,
+        lastName: lead?.lastName,
+      }),
+    [lead?.mobile, lead?.firstName, lead?.lastName],
+  );
+  const jewelleryItemsWithRates = useMemo(
+    () =>
+      form.jewelleryItems.map((item) => {
+        const ornament = item.lendingRatePerGram
+          ? findLmsOrnament(lmsApplicant, item.jewelleryType)
+          : null;
+        return ornament ? { ...item, lendingRatePerGram: ornament.marketValue } : item;
+      }),
+    [form.jewelleryItems, lmsApplicant],
+  );
+
   const stepNode = useMemo(
     () => ({
       schemaVersion: 2,
@@ -422,7 +446,7 @@ function FacilityBranchLoanDetailsPage({
         tenure: form.tenure,
         repaymentType: form.repaymentType,
       },
-      jewelleryItems: form.jewelleryItems,
+      jewelleryItems: jewelleryItemsWithRates,
       existingGoldLoans: [],
       exposure: {
         existingOutstandingAmount: existingOutstanding,
@@ -443,6 +467,7 @@ function FacilityBranchLoanDetailsPage({
       facility?.label,
       form,
       homeBranch.pinCode,
+      jewelleryItemsWithRates,
       landDetailsRequired,
       requestedLoanAmount,
       selectedBranch,
@@ -961,11 +986,15 @@ function FacilityBranchLoanDetailsPage({
                   <span>Lending Rate per Gram</span>
                   <input
                     type="text"
-                    value={formatLendingRate(item.lendingRatePerGram)}
+                    value={formatLendingRate(jewelleryItemsWithRates[index]?.lendingRatePerGram)}
                     readOnly
                     aria-readonly="true"
                   />
-                  <small>Auto-populated from quality/fineness</small>
+                  <small>
+                    {jewelleryItemsWithRates[index]?.lendingRatePerGram !== item.lendingRatePerGram
+                      ? "Lending rate as held by LMS"
+                      : "Auto-populated from quality/fineness"}
+                  </small>
                 </label>
                 <label className="jds-defects-field">
                   <span>Jewellery Defects, if any</span>

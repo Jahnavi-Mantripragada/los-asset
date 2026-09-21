@@ -113,14 +113,15 @@ export const toAppCustomerId = (lmsCustomer) => lmsCustomer.customerId;
 // = LMS valuation / LMS net weight, which lands exactly on their valuation
 // when the LMS net weight is what the appraiser enters. Items are matched by
 // ornament type ("Gold Necklace" <-> "Necklace").
+export const findLmsOrnament = (lmsApplicant, description) => {
+  const key = String(description || "").toLowerCase().replace(/^gold\s+/, "").trim();
+  return lmsApplicant?.ornaments.find((entry) => entry.description.toLowerCase() === key) || null;
+};
+
 export const applyLmsValuation = (items, lmsApplicant) => {
   if (!lmsApplicant) return items;
   return items.map((item) => {
-    const key = String(item.description || item.jewelleryType || "")
-      .toLowerCase()
-      .replace(/^gold\s+/, "")
-      .trim();
-    const ornament = lmsApplicant.ornaments.find((entry) => entry.description.toLowerCase() === key);
+    const ornament = findLmsOrnament(lmsApplicant, item.description || item.jewelleryType);
     return ornament
       ? {
           ...item,

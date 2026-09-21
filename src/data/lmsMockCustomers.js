@@ -14,10 +14,15 @@
 
 export const LMS_MOCK_CUSTOMERS = [
   {
-    mobile: "9000605284",
-    fullName: "ShortNameDemo", // CUSTOMER_SHORT_NAME - entered as e.g. "ShortName" + "Demo"
+    // LMS customer 605284, whose CUSTOMER_SHORT_NAME is "ShortNameDemo" - in LOS
+    // this is the app's new-to-bank demo person, Shivanjali Gaikwad, with her
+    // own demo details (mobile 8712700209, PAN CIJPG1213N as in
+    // docs/demo-data/ntb-scenario.csv).
+    mobile: "8712700209",
+    fullName: "Shivanjali Gaikwad",
+    lmsShortName: "ShortNameDemo",
     customerId: "605284",
-    pan: "SHNDM4455D", // fabricated - not in the LMS data; used by the mock PAN-card scan
+    pan: "CIJPG1213N", // her NTB demo PAN - not in the LMS data; used by the mock PAN-card scan
     casaNumber: "",
     loanAccountNumber: "51000000321211",
     packetId: "110000122",
@@ -68,7 +73,7 @@ const normaliseName = (value) => String(value || "").toLowerCase().replace(/[^a-
 const normaliseMobile = (value) => String(value || "").replace(/\D/g, "").slice(-10);
 
 // Finds the LMS entry for an application: by mobile first, then by name
-// (spaces/case ignored, so "Short Name Demo" and "ShortNameDemo" both match).
+// (spaces/case ignored, so "Shivanjali  Gaikwad" and "shivanjaligaikwad" both match).
 export const findLmsMockCustomer = ({ mobile, firstName, lastName, fullName } = {}) => {
   const mobileKey = normaliseMobile(mobile);
   const byMobile = mobileKey

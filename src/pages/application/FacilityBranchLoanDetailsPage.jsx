@@ -990,11 +990,7 @@ function FacilityBranchLoanDetailsPage({
                     readOnly
                     aria-readonly="true"
                   />
-                  <small>
-                    {jewelleryItemsWithRates[index]?.lendingRatePerGram !== item.lendingRatePerGram
-                      ? "Lending rate as held by LMS"
-                      : "Auto-populated from quality/fineness"}
-                  </small>
+                  <small>Auto-populated from quality/fineness</small>
                 </label>
                 <label className="jds-defects-field">
                   <span>Jewellery Defects, if any</span>

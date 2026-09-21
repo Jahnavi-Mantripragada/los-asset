@@ -1,6 +1,6 @@
 "Page","Component","Persona","Field","Value","Source","Note"
 "(purpose)","","","LOS -> LMS demo","","NOTE","No real LOS/LMS integration exists. Type exactly these values in LOS so that what LOS shows and creates equals what the LMS team pre-loaded for customer 605284 (loan account 51000000321211, packet 110000122, product 6615 Retail Gold Loan Quaterly - Medical)."
-"Dashboard - Start Gold Loan","src/pages/DashboardPage.jsx","","firstName","Shivanjali","ENTERED","Name + phone are how LOS recognises this LMS customer (LMS short name: ShortNameDemo; in LOS she is Shivanjali Gaikwad, the app's new-to-bank demo person). Spaces/case don't matter."
+"Dashboard - Start Gold Loan","src/pages/DashboardPage.jsx","","firstName","Shivanjali","ENTERED","Name + phone are how LOS recognises this LMS customer (LMS short name: Shivanjali; in LOS she is Shivanjali Gaikwad, the app's new-to-bank demo person). Spaces/case don't matter."
 "Dashboard - Start Gold Loan","src/pages/DashboardPage.jsx","","lastName","Gaikwad","ENTERED","LMS customer 605284."
 "Dashboard - Start Gold Loan","src/pages/DashboardPage.jsx","","mobile","8712700209","ENTERED","Any number you will remember works as long as the name above is used; 8712700209 also matches on its own. Must not be an existing mock customer's number."
 "Dashboard - Start Gold Loan","src/pages/DashboardPage.jsx","","email","","NOT ENTERED","Optional."

@@ -14,13 +14,13 @@
 
 export const LMS_MOCK_CUSTOMERS = [
   {
-    // LMS customer 605284, whose CUSTOMER_SHORT_NAME is "ShortNameDemo" - in LOS
+    // LMS customer 605284, whose CUSTOMER_SHORT_NAME is "Shivanjali" - in LOS
     // this is the app's new-to-bank demo person, Shivanjali Gaikwad, with her
     // own demo details (mobile 8712700209, PAN CIJPG1213N as in
     // docs/demo-data/ntb-scenario.csv).
     mobile: "8712700209",
     fullName: "Shivanjali Gaikwad",
-    lmsShortName: "ShortNameDemo",
+    lmsShortName: "Shivanjali",
     customerId: "605284",
     pan: "CIJPG1213N", // her NTB demo PAN - not in the LMS data; used by the mock PAN-card scan
     casaNumber: "",

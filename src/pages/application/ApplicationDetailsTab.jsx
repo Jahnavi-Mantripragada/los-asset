@@ -223,6 +223,11 @@ const applicableLtvFor = (appraisedValue) => {
   if (value <= 500000) return 80;
   return 75;
 };
+// Same masking as Step 3 (EligibilitySupportingDetailsPage.jsx): last 4 digits only.
+const maskAccountNumber = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 4 ? `XXXX XXXX ${digits.slice(-4)}` : "XXXXXX4821";
+};
 const calculateCharges = (recommendedAmount, chargesAccount = "—") => {
   const amount = toNumber(recommendedAmount) || 0;
   const processingCharge = Number((amount * 0.005).toFixed(2));
@@ -370,6 +375,17 @@ const buildView = (leadDetails, lead) => {
   const selectedBranch = facility.branch || facility.selectedBranch || application.branch || {};
   const existingLoansValue = selectValue(leadDetails, ["facilityBranchLoanDetails.existingGoldLoans", "facilityBranchLoanDetails.exposure.existingLoans", "applicationDetail.details.loanBranch.existingGoldLoans"], []);
   const accountsValue = selectValue(leadDetails, ["facilityBranchLoanDetails.activeCasaAccounts", "facilityBranchLoanDetails.accounts", "customerIdentity.activeCasaAccounts"], []);
+  // The CASA account created for the customer in Step 1 (or matched from CBS)
+  // is the one the loan is disbursed to and charged from; the fixed
+  // placeholder below is only for a lead with no account yet.
+  const realCasaNumber = identity.matchedCustomer?.casaNumber || "";
+  const realAccounts = realCasaNumber
+    ? [{
+        accountNumber: realCasaNumber,
+        maskedAccountNumber: maskAccountNumber(realCasaNumber),
+        status: "Active",
+      }]
+    : null;
   const loan = {
     facilityType: selectValue(leadDetails, ["facilityBranchLoanDetails.facilityType", "facilityBranchLoanDetails.facility", "applicationDetail.facility"], lead?.product || "Gold Loan"),
     scheme: selectValue(leadDetails, ["facilityBranchLoanDetails.scheme.name", "facilityBranchLoanDetails.scheme", "facilityBranchLoanDetails.schemeName", "applicationDetail.scheme"], "—"),
@@ -379,12 +395,12 @@ const buildView = (leadDetails, lead) => {
     requestedAmount: selectValue(leadDetails, ["facilityBranchLoanDetails.productFacilityAndScheme.requestedLoanAmount", "facilityBranchLoanDetails.exposure.requestedLoanAmount", "facilityBranchLoanDetails.requestedLoanAmount", "facilityBranchLoanDetails.requestedAmount", "applicationDetail.requestedAmount"], 450000),
     existingExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.existingGoldLoanExposure", "facilityBranchLoanDetails.exposure.existingExposure"], 0),
     aggregateExposure: selectValue(leadDetails, ["facilityBranchLoanDetails.exposure.aggregateGoldLoanExposure", "facilityBranchLoanDetails.exposure.aggregateExposure"], 0),
-    chargesAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.chargesAccount", "facilityBranchLoanDetails.accounts.chargesAccount"], "XXXXXX4821"),
-    disbursementAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.disbursementAccount", "applicationDetail.makerFinalisation.disbursementAccount"], "XXXXXX4821"),
+    chargesAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.chargesAccount", "facilityBranchLoanDetails.accounts.chargesAccount"], realAccounts?.[0]?.maskedAccountNumber || "XXXXXX4821"),
+    disbursementAccount: selectValue(leadDetails, ["facilityBranchLoanDetails.disbursementAccount", "applicationDetail.makerFinalisation.disbursementAccount"], realAccounts?.[0]?.accountNumber || "XXXXXX4821"),
     existingLoans: Array.isArray(existingLoansValue) ? existingLoansValue : [],
     accounts: Array.isArray(accountsValue) && accountsValue.length
       ? accountsValue
-      : [{ accountNumber: "XXXXXX4821", maskedAccountNumber: "XXXXXX4821", status: "Active" }],
+      : realAccounts || [{ accountNumber: "XXXXXX4821", maskedAccountNumber: "XXXXXX4821", status: "Active" }],
     savingsNominee: selectValue(leadDetails, [
       "facilityBranchLoanDetails.savingsNominee",
       "customerIdentity.savingsNominee",
@@ -1871,7 +1887,7 @@ export default function ApplicationDetailsTab({
               <ReadOnlyGrid columns={2} fields={[
                 { label: "Customer requested amount", value: formatCurrency(view.eligibility.requiredAmount) },
                 { label: "Recommended amount", value: formatCurrency(view.eligibility.recommendedAmount) },
-                { label: "Disbursement account", value: view.eligibility.disbursementAccount || "Not applicable" },
+                { label: "Disbursement account", value: view.eligibility.disbursementAccount ? maskAccountNumber(view.eligibility.disbursementAccount) : "Not applicable" },
                 { label: "Document execution", value: view.eligibility.eSignRequired ? "eSign" : "Manual signature" },
                 { label: "Recommendation comments", value: view.eligibility.makerComments || "—", wide: true },
               ]} />

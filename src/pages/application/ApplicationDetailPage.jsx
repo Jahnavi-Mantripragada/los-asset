@@ -973,6 +973,18 @@ function ApplicationDetailPage({
     lead?.id ||
     "—";
   const currentStageIndex = getStageIndex(applicationDetail);
+  // Once the loan is disbursed there is no "current" stage left: every stage,
+  // including Documentation & Disbursement, is done.
+  const disbursement = applicationDetail.documentationDisbursement || {};
+  const isDisbursed =
+    disbursement.disbursement?.status === "completed" ||
+    String(disbursement.status || "").toUpperCase() === "DISBURSED";
+  const stageStateAt = (index) =>
+    isDisbursed || index < currentStageIndex
+      ? "complete"
+      : index === currentStageIndex
+        ? "active"
+        : "upcoming";
   const currentAction = useMemo(
     () => getActionForUser(persona, applicationDetail),
     [applicationDetail, persona],
@@ -1232,28 +1244,35 @@ function ApplicationDetailPage({
           <div className="application-stage-card__heading">
             <div>
               <span>APPLICATION JOURNEY</span>
-              <h2>Current processing stage</h2>
+              <h2>{isDisbursed ? "Application journey complete" : "Current processing stage"}</h2>
             </div>
-            <span className="application-stage-count">
-              Stage {String(currentStageIndex + 1).padStart(2, "0")} of 03
+            <span className={`application-stage-count${isDisbursed ? " is-complete" : ""}`}>
+              {isDisbursed
+                ? "All 3 stages complete"
+                : `Stage ${String(currentStageIndex + 1).padStart(2, "0")} of 03`}
             </span>
           </div>
 
           <ol className="application-stage-tracker">
             {STAGES.map((stage, index) => {
-              const state =
-                index < currentStageIndex
-                  ? "complete"
-                  : index === currentStageIndex
-                    ? "active"
-                    : "upcoming";
+              const state = stageStateAt(index);
+              const stateLabel = {
+                complete: "Completed",
+                active: "In progress",
+                upcoming: "Not started",
+              }[state];
               return (
-                <li key={stage.id} className={`is-${state}`}>
+                <li
+                  key={stage.id}
+                  className={`is-${state}`}
+                  aria-current={state === "active" ? "step" : undefined}
+                  aria-label={`${stage.label}: ${stateLabel}`}
+                >
                   <div className="application-stage-marker">
                     {state === "complete" ? <CheckIcon /> : stage.number}
                   </div>
                   <div>
-                    <span>{state === "active" ? "Current stage" : state}</span>
+                    <span>{stateLabel}</span>
                     <strong>{stage.label}</strong>
                   </div>
                 </li>

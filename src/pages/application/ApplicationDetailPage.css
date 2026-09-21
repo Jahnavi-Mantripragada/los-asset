@@ -405,6 +405,11 @@
   letter-spacing: 0;
 }
 
+.application-stage-card__heading .application-stage-count.is-complete {
+  color: var(--adp-success);
+  background: #e6f6ee;
+}
+
 .application-stage-tracker {
   margin: 20px 0 0;
   padding: 0;
@@ -423,7 +428,7 @@
 .application-stage-tracker li:not(:last-child)::after {
   content: "";
   position: absolute;
-  left: 45px;
+  left: 48px;
   right: 12px;
   top: 17px;
   height: 2px;
@@ -446,7 +451,7 @@
   background: #fff;
   border: 2px solid var(--adp-line);
   border-radius: 50%;
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   font-weight: 850;
 }
 
@@ -478,7 +483,7 @@
 
 .application-stage-tracker li span {
   color: #8895a3;
-  font-size: 0.61rem;
+  font-size: 0.66rem;
   font-weight: 750;
   text-transform: uppercase;
 }
@@ -492,6 +497,15 @@
 }
 
 .application-stage-tracker li.is-active strong {
+  color: var(--adp-blue-800);
+}
+
+/* the status word says what state each stage is in, in that state's colour */
+.application-stage-tracker li.is-complete span {
+  color: var(--adp-success);
+}
+
+.application-stage-tracker li.is-active span {
   color: var(--adp-blue-800);
 }
 
